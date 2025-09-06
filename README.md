@@ -1,0 +1,2 @@
+# sub
+translate vedio subtitle
