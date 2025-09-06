@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>字幕生成 · 演示前端</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/styles.css" />
+  <!-- HLS 播放 -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>视频字幕生成</h1>
+
+    <div class="notice">
+      <b>配置提示：</b>
+      先把 <code>API_BASE</code> 改成你的后端地址（例如 <code>https://api.example.com</code>）。
+    </div>
+
+    <div class="card">
+      <h2>方式 A：提交视频链接</h2>
+      <input id="videoUrl" class="input" placeholder="粘贴视频直链或 .m3u8" />
+      <button id="createByUrlBtn" class="btn">创建任务</button>
+    </div>
+
+    <div class="card">
+      <h2>方式 B：上传本地视频（预签名直传对象存储）</h2>
+      <input id="fileInput" type="file" accept="video/*" />
+      <button id="uploadBtn" class="btn">上传并创建任务</button>
+      <div id="uploadProgress" class="muted"></div>
+    </div>
+
+    <div class="card">
+      <h2>任务状态</h2>
+      <div class="row">
+        <input id="jobId" class="input" placeholder="输入/自动填充 job_id" />
+        <button id="queryBtn" class="btn">查询</button>
+        <button id="pollBtn" class="btn">开始轮询</button>
+        <button id="stopBtn" class="btn">停止轮询</button>
+      </div>
+      <pre id="statusBox" class="status"></pre>
+    </div>
+
+    <div class="card">
+      <h2>在线播放 / 下载</h2>
+      <video id="player" controls playsinline class="player"></video>
+      <div class="row">
+        <a id="playM3U8" class="btn" href="#" target="_blank" rel="noopener">用 m3u8 播放</a>
+        <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener">下载 MP4</a>
+      </div>
+      <div class="muted">说明：m3u8 只是“清单”，实际数据来自同一份 MP4（支持断点续传）。</div>
+    </div>
+  </div>
+
+  <script>
+    // === 修改这里：你的后端域名（VPS 经 Cloudflare Tunnel 暴露的 API）===
+    const API_BASE = 'https://api.example.com';
+
+    const els = {
+      videoUrl: document.getElementById('videoUrl'),
+      createByUrlBtn: document.getElementById('createByUrlBtn'),
+      fileInput: document.getElementById('fileInput'),
+      uploadBtn: document.getElementById('uploadBtn'),
+      uploadProgress: document.getElementById('uploadProgress'),
+      jobId: document.getElementById('jobId'),
+      queryBtn: document.getElementById('queryBtn'),
+      pollBtn: document.getElementById('pollBtn'),
+      stopBtn: document.getElementById('stopBtn'),
+      statusBox: document.getElementById('statusBox'),
+      player: document.getElementById('player'),
+      playM3U8: document.getElementById('playM3U8'),
+      downloadMp4: document.getElementById('downloadMp4')
+    };
+
+    let pollTimer = null;
+
+    function showStatus(obj) {
+      els.statusBox.textContent = JSON.stringify(obj, null, 2);
+      if (obj && obj.status === 'PUBLISHED') {
+        if (obj.m3u8Url) setupHls(obj.m3u8Url);
+        if (obj.m3u8Url) els.playM3U8.href = obj.m3u8Url;
+        if (obj.mp4Url) els.downloadMp4.href = obj.mp4Url;
+      }
+    }
+
+    async function createJobByUrl() {
+      const url = els.videoUrl.value.trim();
+      if (!url) return alert('请填写视频链接');
+      const res = await fetch(`${API_BASE}/api/jobs`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ sourceUrl: url })
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.message || '创建失败');
+      els.jobId.value = data.jobId || data.id;
+      showStatus(data);
+      alert('任务已创建。支付/排队/处理以状态为准。');
+    }
+
+    // 预签名直传：后端返回 { uploadUrl, objectKey, headers? }
+    async function uploadAndCreateJob() {
+      const file = els.fileInput.files?.[0];
+      if (!file) return alert('请先选择文件');
+
+      const resSign = await fetch(`${API_BASE}/api/uploads/sign`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ filename: file.name, size: file.size, type: file.type })
+      });
+      const sign = await resSign.json();
+      if (!resSign.ok) return alert(sign.message || '获取预签名失败');
+
+      const putHeaders = new Headers(sign.headers || {});
+      if (!putHeaders.has('Content-Type') && file.type) putHeaders.set('Content-Type', file.type);
+
+      els.uploadProgress.textContent = '上传中...';
+      const putRes = await fetch(sign.uploadUrl, { method: 'PUT', headers: putHeaders, body: file });
+      if (!putRes.ok) return alert('上传失败');
+
+      els.uploadProgress.textContent = '上传完成，创建任务...';
+
+      const resJob = await fetch(`${API_BASE}/api/jobs`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ objectKey: sign.objectKey })
+      });
+      const data = await resJob.json();
+      if (!resJob.ok) return alert(data.message || '创建任务失败');
+
+      els.uploadProgress.textContent = '任务已创建。';
+      els.jobId.value = data.jobId || data.id;
+      showStatus(data);
+    }
+
+    async function queryJob() {
+      const id = (els.jobId.value || '').trim();
+      if (!id) return alert('请填写 job_id');
+      const res = await fetch(`${API_BASE}/api/jobs/${id}`);
+      const data = await res.json();
+      showStatus(data);
+    }
+
+    function startPoll() {
+      if (pollTimer) return;
+      pollTimer = setInterval(queryJob, 5000);
+      queryJob();
+    }
+    function stopPoll() {
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    }
+
+    function setupHls(m3u8Url) {
+      const video = els.player;
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = m3u8Url; video.play().catch(()=>{});
+      } else if (window.Hls && Hls.isSupported()) {
+        const hls = new Hls(); hls.loadSource(m3u8Url); hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+      } else {
+        window.open(m3u8Url, '_blank');
+      }
+    }
+
+    els.createByUrlBtn.onclick = createJobByUrl;
+    els.uploadBtn.onclick = uploadAndCreateJob;
+    els.queryBtn.onclick = queryJob;
+    els.pollBtn.onclick = startPoll;
+    els.stopBtn.onclick = stopPoll;
+  </script>
+</body>
+</html>
