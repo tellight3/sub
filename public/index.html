@@ -75,15 +75,43 @@
 
     let pollTimer = null;
 
+    function absUrl(u) {
+      return u && u.startsWith('http') ? u : `${API_BASE}${u || ''}`;
+    }
+    let lastJob = null;
+
+    // function showStatus(obj) {
+    //   els.statusBox.textContent = JSON.stringify(obj, null, 2);
+    //   if (obj && obj.status === 'PUBLISHED') {
+    //     if (obj.m3u8Url) setupHls(obj.m3u8Url);
+    //     if (obj.m3u8Url) els.playM3U8.href = obj.m3u8Url;
+    //     if (obj.mp4Url) els.downloadMp4.href = obj.mp4Url;
+    //   }
+    // }
+
     function showStatus(obj) {
+      lastJob = obj;
       els.statusBox.textContent = JSON.stringify(obj, null, 2);
+    
       if (obj && obj.status === 'PUBLISHED') {
-        if (obj.m3u8Url) setupHls(obj.m3u8Url);
-        if (obj.m3u8Url) els.playM3U8.href = obj.m3u8Url;
-        if (obj.mp4Url) els.downloadMp4.href = obj.mp4Url;
+        const m3u8 = obj.m3u8Url ? absUrl(obj.m3u8Url) : null;
+        const mp4  = obj.mp4Url  ? absUrl(obj.mp4Url)  : null;
+    
+        // 下载按钮：始终给 MP4
+        els.downloadMp4.href = mp4 || '#';
+    
+        // 播放优先 m3u8，否则用 MP4 直链
+        if (m3u8) {
+          setupHls(m3u8);
+          els.playM3U8.href = m3u8; // 仅作为备用“新开页播放”
+        } else if (mp4) {
+          els.player.src = mp4;
+          els.player.play().catch(()=>{});
+          els.playM3U8.href = '#';   // 没有 m3u8 时避免跳转
+        }
       }
     }
-
+    
     async function createJobByUrl() {
       const url = els.videoUrl.value.trim();
       if (!url) return alert('请填写视频链接');
@@ -103,7 +131,7 @@
     async function uploadAndCreateJob() {
       const file = els.fileInput.files?.[0];
       if (!file) return alert('请先选择文件');
-
+    
       const resSign = await fetch(`${API_BASE}/api/uploads/sign`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -111,16 +139,21 @@
       });
       const sign = await resSign.json();
       if (!resSign.ok) return alert(sign.message || '获取预签名失败');
-
+    
       const putHeaders = new Headers(sign.headers || {});
       if (!putHeaders.has('Content-Type') && file.type) putHeaders.set('Content-Type', file.type);
-
+      // 关键：告诉后端用这个 objectKey 保存
+      putHeaders.set('X-Object-Key', sign.objectKey);
+    
       els.uploadProgress.textContent = '上传中...';
-      const putRes = await fetch(sign.uploadUrl, { method: 'PUT', headers: putHeaders, body: file });
+    
+      // 关键：uploadUrl 可能是相对路径，拼成绝对地址
+      const uploadUrl = absUrl(sign.uploadUrl);
+      const putRes = await fetch(uploadUrl, { method: 'PUT', headers: putHeaders, body: file });
       if (!putRes.ok) return alert('上传失败');
-
+    
       els.uploadProgress.textContent = '上传完成，创建任务...';
-
+    
       const resJob = await fetch(`${API_BASE}/api/jobs`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -128,11 +161,12 @@
       });
       const data = await resJob.json();
       if (!resJob.ok) return alert(data.message || '创建任务失败');
-
+    
       els.uploadProgress.textContent = '任务已创建。';
       els.jobId.value = data.jobId || data.id;
       showStatus(data);
     }
+
 
     async function queryJob() {
       const id = (els.jobId.value || '').trim();
@@ -168,6 +202,19 @@
     els.queryBtn.onclick = queryJob;
     els.pollBtn.onclick = startPoll;
     els.stopBtn.onclick = stopPoll;
+    // 这里加上防止刷新并自动用 MP4 播放的逻辑
+    els.playM3U8.addEventListener('click', (e) => {
+      if (!lastJob) return;
+      const m3u8 = lastJob.m3u8Url ? absUrl(lastJob.m3u8Url) : null;
+      if (!m3u8) {
+        e.preventDefault(); // 阻止跳转/刷新
+        const mp4 = lastJob.mp4Url ? absUrl(lastJob.mp4Url) : null;
+        if (mp4) {
+          els.player.src = mp4;
+          els.player.play().catch(()=>{});
+        }
+      }
+    });
   </script>
 </body>
 </html>
