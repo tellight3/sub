@@ -97,17 +97,21 @@
         const m3u8 = obj.m3u8Url ? absUrl(obj.m3u8Url) : null;
         const mp4  = obj.mp4Url  ? absUrl(obj.mp4Url)  : null;
     
-        // 下载按钮：始终给 MP4
+        // 下载始终给 MP4
         els.downloadMp4.href = mp4 || '#';
     
-        // 播放优先 m3u8，否则用 MP4 直链
         if (m3u8) {
+          // 有 m3u8：启用按钮并内联用 HLS 播放
+          els.playM3U8.href = m3u8;
+          els.playM3U8.classList.remove('disabled');
+          els.playM3U8.title = '用 m3u8 播放';
           setupHls(m3u8);
-          els.playM3U8.href = m3u8; // 仅作为备用“新开页播放”
-        } else if (mp4) {
-          els.player.src = mp4;
-          els.player.play().catch(()=>{});
-          els.playM3U8.href = '#';   // 没有 m3u8 时避免跳转
+        } else {
+          // 没 m3u8：禁用按钮 & 直接用 MP4 播放
+          els.playM3U8.href = '#';
+          els.playM3U8.classList.add('disabled');
+          els.playM3U8.title = '未提供 m3u8（已自动用 MP4 播放）';
+          if (mp4) { els.player.src = mp4; els.player.play().catch(()=>{}); }
         }
       }
     }
@@ -207,12 +211,9 @@
       if (!lastJob) return;
       const m3u8 = lastJob.m3u8Url ? absUrl(lastJob.m3u8Url) : null;
       if (!m3u8) {
-        e.preventDefault(); // 阻止跳转/刷新
+        e.preventDefault();
         const mp4 = lastJob.mp4Url ? absUrl(lastJob.mp4Url) : null;
-        if (mp4) {
-          els.player.src = mp4;
-          els.player.play().catch(()=>{});
-        }
+        if (mp4) { els.player.src = mp4; els.player.play().catch(()=>{}); }
       }
     });
   </script>
