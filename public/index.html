@@ -13,7 +13,7 @@
     <h1>视频字幕生成</h1>
 
     <div class="notice">
-      <b>后端：</b><code>https://mmx.multmatrix.com</code>
+      <b>后端：</b><code>https://mmx.multmatrix.com0.1</code>
     </div>
 
     <div class="card">
@@ -150,15 +150,14 @@
         // 初始快照
         if (msg.type === 'snapshot') {
           lastSnapshot = msg;
-          if (msg.status === 'PUBLISHED') {
-            // 如果已经完成，直接播放
-            if (msg.result) {
-              const mp4 = toFileUrlFromResult(msg.result);
-              if (mp4) {
-                els.downloadMp4.href = mp4;
-                els.player.src = mp4;
-                els.player.play().catch(()=>{});
-              }
+          if (msg.status === 'PUBLISHED' && msg.result) {
+            const mp4 =
+              toFileUrlFromResult(msg.result) ||
+              (msg.result.details && msg.result.details.fileUrl ? absUrl(msg.result.details.fileUrl) : null);
+            if (mp4) {
+              els.downloadMp4.href = mp4;
+              els.player.src = mp4;
+              els.player.play().catch(()=>{});
             }
           }
           return;
@@ -172,13 +171,14 @@
 
         // 结束/失败
         if (msg.type === 'finished' || msg.status === 'PUBLISHED') {
-          const mp4 = toFileUrlFromResult(msg.result);
+          const mp4 =
+            toFileUrlFromResult(msg.result) ||
+            (msg.result && msg.result.details && msg.result.details.fileUrl ? absUrl(msg.result.details.fileUrl) : null);
           if (mp4) {
             els.downloadMp4.href = mp4;
             els.player.src = mp4;
             els.player.play().catch(()=>{});
           }
-          return;
         }
       };
 
