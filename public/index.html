@@ -6,18 +6,21 @@
   <title>字幕生成 · 演示前端</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/styles.css" />
+  <!-- 可选：HLS.js（如未来提供 m3u8，可直接内联播放） -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 </head>
 <body>
   <div class="container">
     <h1>视频字幕生成</h1>
 
+    <!-- A：提交视频直链 -->
     <div class="card">
       <h2>方式 A：提交视频链接</h2>
       <input id="videoUrl" class="input" placeholder="粘贴视频直链或 .m3u8" />
       <button id="createByUrlBtn" class="btn">创建任务</button>
     </div>
 
+    <!-- 任务状态 -->
     <div class="card">
       <h2>任务状态</h2>
       <div class="row">
@@ -29,21 +32,25 @@
       <pre id="statusBox" class="status"></pre>
     </div>
 
+    <!-- 播放 & 下载区 -->
     <div class="card">
       <h2>在线播放 / 下载</h2>
       <video id="player" controls playsinline class="player"></video>
       <div class="row">
+        <!-- 如果未来有 m3u8，可用它播放；否则会自动用 MP4 播放 -->
         <a id="playM3U8" class="btn" href="#" target="_blank" rel="noopener">用 m3u8 播放</a>
-        <a id="downloadMp4" class="btn" href="#">下载 MP4</a>
-        <div id="nowPlaying" class="muted"></div>
+        <!-- ⭐ 下载按钮：我们会把它指向 /download/{objectPath}?filename=xxx，实现真正“保存为” -->
+        <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener">下载 MP4</a>
       </div>
+      <div id="nowPlaying" class="muted"></div>
     </div>
   </div>
 
 <script>
-  // === 改成你的后端地址 ===
+  // ===== 你的后端域名（VPS 经 Tunnel 暴露的 API）=====
   const API_BASE = 'https://mmx.multmatrix.com';
 
+  // ===== DOM 引用 =====
   const els = {
     videoUrl: document.getElementById('videoUrl'),
     createByUrlBtn: document.getElementById('createByUrlBtn'),
@@ -58,116 +65,59 @@
     nowPlaying: document.getElementById('nowPlaying'),
   };
 
-  let es = null;
-  let lastSnapshot = null;
-  let lastTitle = 'video';
+  // ===== 全局状态 =====
+  let es = null;              // EventSource 句柄
+  let lastSnapshot = null;    // 最近一次状态（可用于恢复播放）
+  let lastTitle = 'video';    // ⭐ 全局保存“将要播放/下载”的标题（多处更新）
+  let lastObjectPath = null;  // 形如 "ADN-699/ADN-699.mp4" 或 "50.mp4"（相对 data/）
+  let lastMp4Url = null;      // 可直接访问的 MP4 绝对地址（/files/**）
 
+  // ===== 工具函数 =====
+  function absUrl(u) {
+    return u && /^https?:\/\//i.test(u) ? u : `${API_BASE}${u || ''}`;
+  }
+  // 清洗为合法文件名
+  function sanitizeFilename(name) {
+    if (!name) return 'video';
+    return String(name).trim().replace(/[\\/:*?"<>|]/g, '_');
+  }
+  // 从路径取文件名
+  function fileNameFromPath(p) {
+    if (!p) return null;
+    const parts = String(p).replace(/\\/g, '/').split('/');
+    return parts[parts.length - 1] || null;
+  }
+  // 从 URL / 路径推断标题（去掉扩展名）
+  function titleFromUrl(u) {
+    try {
+      const url = new URL(u);
+      const base = fileNameFromPath(url.pathname);
+      return base ? base.replace(/\.(mp4|mkv|webm|mov|m4v)$/i, '') : null;
+    } catch {
+      const base = fileNameFromPath(u);
+      return base ? base.replace(/\.(mp4|mkv|webm|mov|m4v)$/i, '') : null;
+    }
+  }
+  // 从 result.path 里提取相对 data/ 的 objectPath（可能带子目录）
+  function objectPathFromResultPath(p) {
+    if (!p) return null;
+    let s = String(p).replace(/\\/g, '/');
+    const i = s.lastIndexOf('/data/');
+    if (i >= 0) s = s.slice(i + '/data/'.length);
+    else if (s.startsWith('data/')) s = s.slice('data/'.length);
+    return s;
+  }
+  // 由 result 生成 /files/** 的可访问直链
+  function toFileUrlFromResult(result) {
+    const objPath = objectPathFromResultPath(result && result.path);
+    return objPath ? `${API_BASE}/files/${objPath}` : null;
+  }
+  // 把任意对象打印到“任务状态”框（便于调试/观测）
   function setStatus(obj) {
     els.statusBox.textContent = JSON.stringify(obj, null, 2);
   }
 
-  // 从 result.path 取出 data 下相对路径（可含子目录）
-  function toObjectPathFromResult(result) {
-    if (!result || !result.path) return null;
-    let p = String(result.path).replace(/\\/g, '/');
-    const idx = p.lastIndexOf('/data/');
-    if (idx >= 0) p = p.slice(idx + '/data/'.length);
-    else if (p.startsWith('data/')) p = p.slice('data/'.length);
-    return p; // e.g. "ADN-699/ADN-699.mp4" 或 "50.mp4"
-  }
-
-  // 构造 /download/**?filename=xxx.mp4 的链接（逐段 encode，保留子目录）
-  function buildDownloadUrl(objectPath, filename) {
-    const encoded = objectPath.split('/').map(encodeURIComponent).join('/');
-    const qp = filename ? `?filename=${encodeURIComponent(filename)}` : '';
-    return `${API_BASE}/download/${encoded}${qp}`;
-  }
-
-  // 订阅 SSE（收到 finished 后自动播放，并把“下载”按钮切换到 /download/**）
-  function subscribeJob(jobId) {
-    if (!jobId) return;
-    if (es) es.close();
-    es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
-
-    es.onmessage = (ev) => {
-      let msg;
-      try { msg = JSON.parse(ev.data); } catch { return; }
-      setStatus(msg);
-
-      if (msg.type === 'snapshot') {
-        lastSnapshot = msg;
-        return;
-      }
-
-      if (msg.type === 'finished' && msg.result) {
-        const objectPath = toObjectPathFromResult(msg.result);
-        if (objectPath) {
-          const mp4PlayUrl = `${API_BASE}/files/${objectPath}`;                    // 播放用
-          const downloadUrl = buildDownloadUrl(objectPath, `${lastTitle}.mp4`);    // 下载用
-
-          els.player.src = mp4PlayUrl;
-          els.player.play().catch(()=>{});
-          els.nowPlaying.textContent = `正在播放：${lastTitle}.mp4`;
-
-          // ⭐ 下载按钮改成 /download/**，无需前端 download 属性
-          els.downloadMp4.removeAttribute('target');
-          els.downloadMp4.removeAttribute('download');
-          els.downloadMp4.href = downloadUrl;
-        }
-        // 下载完成后，你之前说想停止推送：
-        es.close();
-      }
-    };
-
-    es.onerror = () => { if (es) es.close(); };
-  }
-
-  // 创建 → 探测 → 确认
-  async function createJobByUrl() {
-    const url = els.videoUrl.value.trim();
-    if (!url) return alert('请填写视频链接');
-
-    // Step1: 创建并探测
-    const res = await fetch(`${API_BASE}/api/jobs`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ sourceUrl: url })
-    });
-    const data = await res.json();
-    if (!res.ok) return alert(data.message || '创建失败');
-
-    const jobId = data.jobId;
-    els.jobId.value = jobId;
-    subscribeJob(jobId); // 先订阅，后面会收到 finished
-
-    // Step2: 弹窗确认（显示大小/时长/标题）
-    const i = data?.probe?.info || {};
-    lastTitle = (i.title || 'video').trim();
-    const sizeHuman = i.size_human || '未知';
-    const durationHuman = i.duration_str || '未知';
-    const ok = window.confirm(
-      `即将下载：\n\n标题：${lastTitle}\n大小：${sizeHuman}\n时长：${durationHuman}\n\n是否开始下载？`
-    );
-    if (!ok) return;
-
-    // Step3: 确认开始下载
-    const res2 = await fetch(`${API_BASE}/api/jobs/${jobId}/confirm`, { method: 'POST' });
-    const data2 = await res2.json();
-    if (!res2.ok || !data2.ok) {
-      alert(data2.error || '无法开始下载');
-      return;
-    }
-  }
-
-  async function queryJob() {
-    const id = (els.jobId.value || '').trim();
-    if (!id) return alert('请填写 job_id');
-    const res = await fetch(`${API_BASE}/api/jobs/${id}`);
-    const data = await res.json();
-    setStatus(data);
-  }
-
-  // 可选：HLS 播放（如果以后提供 m3u8）
+  // ===== HLS 播放（可选）=====
   function setupHls(m3u8Url) {
     const video = els.player;
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -180,23 +130,171 @@
     }
   }
 
-  // 事件绑定
+  // ===== 当资源已发布（PUBLISHED）时的 UI 渲染（播放 & 下载）=====
+  function handlePublished(snapshotLike) {
+    // 可能包含 mp4Url / m3u8Url（本项目一般只有 mp4）
+    const m3u8 = snapshotLike.m3u8Url ? absUrl(snapshotLike.m3u8Url) : null;
+    const mp4  = snapshotLike.mp4Url  ? absUrl(snapshotLike.mp4Url)  : null;
+
+    if (m3u8) {
+      els.playM3U8.href = m3u8;
+      setupHls(m3u8);
+    }
+
+    if (mp4) {
+      // 播放
+      els.player.src = mp4;
+      els.player.play().catch(()=>{});
+      els.nowPlaying.textContent = `正在播放：${lastTitle}.mp4`;
+    }
+
+    // 设置下载按钮（如果我们已经知道 objectPath，优先走 /download 强制保存）
+    if (lastObjectPath) {
+      const downloadHref = `${API_BASE}/download/${encodeURIComponent(lastObjectPath)}?filename=${encodeURIComponent(lastTitle)}.mp4`;
+      els.downloadMp4.href = downloadHref;
+      els.downloadMp4.removeAttribute('download'); // 让服务端控制 attachment
+      els.downloadMp4.target = '_self';            // 避免新开页（可选）
+    } else if (mp4) {
+      // 兜底：没有 objectPath 时，直接给 /files/** 链接（很多浏览器会直接在线播放，不保证必下载）
+      els.downloadMp4.href = mp4;
+      els.downloadMp4.setAttribute('download', `${lastTitle}.mp4`);
+      els.downloadMp4.target = '_blank';
+    }
+  }
+
+  // ===== SSE 订阅：接收 snapshot / progress / finished 等 =====
+  function subscribeJob(jobId) {
+    if (!jobId) return alert('没有 jobId');
+    if (es) es.close();
+    es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
+
+    es.onmessage = (ev) => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch { return; }
+      // 打印当前事件（方便检查）
+      setStatus(msg);
+
+      // ---- 标题更新：尽可能早（probe/snapshot）& 最晚（finished）兜底 ----
+      if (msg.type === 'snapshot') {
+        lastSnapshot = msg;
+        const t = (msg.info && (msg.info.title || (msg.info.details && msg.info.details.title)))
+                  || lastTitle;
+        if (t) lastTitle = sanitizeFilename(t);
+        // 如果已经是 PUBLISHED（刷新后重连 SSE 的情况），直接渲染
+        if (msg.status === 'PUBLISHED') handlePublished(msg);
+      }
+
+      if (msg.type === 'progress') {
+        // 你可以在这里做进度条展示；本示例仅把一行进度追加到状态框顶部
+        const percent = msg.percent != null ? Number(msg.percent).toFixed(1) : null;
+        const summary = [
+          `[${msg.backend || '-'}][${msg.stage || '-'}]`,
+          percent != null ? `${percent}%` : '',
+          msg.speedHuman ? ` | ${msg.speedHuman}` : '',
+        ].join('');
+        els.statusBox.textContent = (summary + '\n' + els.statusBox.textContent);
+      }
+
+      if (msg.type === 'finished' && msg.result) {
+        // 记录 objectPath & mp4 直链
+        lastObjectPath = objectPathFromResultPath(msg.result.path);
+        lastMp4Url = toFileUrlFromResult(msg.result);
+
+        // 最后一次兜底修正标题（details.title 或 path 文件名）
+        const t2 = (msg.result.details && msg.result.details.title)
+                  || (lastObjectPath && fileNameFromPath(lastObjectPath).replace(/\.(mp4|mkv|webm|mov|m4v)$/i, ''))
+                  || lastTitle;
+        lastTitle = sanitizeFilename(t2);
+
+        // 组装“可播放/可下载”的快照对象并渲染
+        const snap = {
+          status: 'PUBLISHED',
+          mp4Url: lastMp4Url || (lastObjectPath ? `${API_BASE}/files/${lastObjectPath}` : null),
+          m3u8Url: null,
+        };
+        handlePublished(snap);
+
+        // ⭐ 下载完成后，SSE 可直接关闭，避免继续推送心跳等
+        if (es) { es.close(); es = null; }
+      }
+
+      if (msg.type === 'failed' || msg.type === 'canceled') {
+        if (es) { es.close(); es = null; }
+      }
+    };
+
+    es.onerror = () => {
+      // 网络/代理异常时，SSE 可能自动重连；这里先关闭（按需改成忽略）
+      if (es) { es.close(); es = null; }
+    };
+  }
+
+  // ===== 创建任务（先探测→弹窗确认→确认后开始下载→订阅 SSE）=====
+  async function createJobByUrl() {
+    const url = els.videoUrl.value.trim();
+    if (!url) return alert('请填写视频链接');
+
+    // Step1：创建任务（后端会立即做 probe，并返回 info）
+    const res = await fetch(`${API_BASE}/api/jobs`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ sourceUrl: url })
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.message || '创建失败');
+
+    const jobId = data.jobId;
+    els.jobId.value = jobId;
+
+    // 从 probe 中拿标题（第一优先），否则从 URL 推断（第二优先），最后兜底 'video'
+    const i = (data && data.probe && data.probe.info) || {};
+    lastTitle = sanitizeFilename(i.title || titleFromUrl(url) || 'video');
+
+    // 弹确认框（含标题/大小/时长）
+    const sizeHuman = i.size_human || '未知';
+    const durationHuman = i.duration_str || '未知';
+    const ok = window.confirm(
+      `即将下载：\n\n标题：${lastTitle}\n大小：${sizeHuman}\n时长：${durationHuman}\n\n是否开始下载？`
+    );
+    if (!ok) return;
+
+    // Step2：确认下载
+    const res2 = await fetch(`${API_BASE}/api/jobs/${jobId}/confirm`, { method: 'POST' });
+    const data2 = await res2.json();
+    if (!res2.ok || !data2.ok) {
+      return alert(data2.error || data2.message || '无法开始下载');
+    }
+
+    // Step3：订阅 SSE，等待进度/完成事件
+    subscribeJob(jobId);
+  }
+
+  // ===== 查询一次任务快照（可选）=====
+  async function queryJob() {
+    const id = (els.jobId.value || '').trim();
+    if (!id) return alert('请填写 job_id');
+    const res = await fetch(`${API_BASE}/api/jobs/${id}`);
+    const data = await res.json();
+    setStatus(data);
+    if (data.status === 'PUBLISHED') {
+      // 如果后端快照里直接带 mp4Url/m3u8Url，也可以渲染
+      handlePublished(data);
+    }
+  }
+
+  // ===== 事件绑定 =====
   els.createByUrlBtn.onclick = createJobByUrl;
   els.queryBtn.onclick = queryJob;
   els.sseBtn.onclick = () => subscribeJob((els.jobId.value || '').trim());
-  els.stopBtn.onclick = () => { if (es) es.close(); };
+  els.stopBtn.onclick = () => { if (es) es.close(); es = null; };
 
-  // “用 m3u8 播放”按钮兜底为 MP4
+  // 如果“用 m3u8 播放”被点击，但当前没有 m3u8，就退化用 MP4 播放
   els.playM3U8.addEventListener('click', (e) => {
     if (!lastSnapshot) return;
-    const m3u8 = lastSnapshot.m3u8Url;
-    if (!m3u8 && lastSnapshot.result) {
+    const m3u8 = lastSnapshot.m3u8Url ? absUrl(lastSnapshot.m3u8Url) : null;
+    if (!m3u8) {
       e.preventDefault();
-      const objectPath = toObjectPathFromResult(lastSnapshot.result);
-      if (objectPath) {
-        els.player.src = `${API_BASE}/files/${objectPath}`;
-        els.player.play().catch(()=>{});
-      }
+      if (lastMp4Url) { els.player.src = lastMp4Url; els.player.play().catch(()=>{}); }
     }
   });
 </script>
