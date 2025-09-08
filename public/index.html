@@ -55,7 +55,7 @@
 
 
   <script>
-    // === 修改这里：你的后端域名（VPS 经 Cloudflare Tunnel 暴露的 API）===
+    // === 修改这里：你的后端地址 ===
     const API_BASE = 'https://mmx.multmatrix.com';
   
     const els = {
@@ -66,7 +66,7 @@
       uploadProgress: document.getElementById('uploadProgress'),
       jobId: document.getElementById('jobId'),
       queryBtn: document.getElementById('queryBtn'),
-      sseBtn: document.getElementById('sseBtn'),
+      sseBtn: document.getElementById('sseBtn') || document.getElementById('pollBtn'), // 兼容旧id
       stopBtn: document.getElementById('stopBtn'),
       statusBox: document.getElementById('statusBox'),
       player: document.getElementById('player'),
@@ -75,50 +75,116 @@
     };
   
     let evtSource = null;
-    let lastJob = null;
+    let lastSnapshot = null;   // 保存最近一次快照/状态
+    let lastJobId = null;
   
     function absUrl(u) {
       return u && u.startsWith('http') ? u : `${API_BASE}${u || ''}`;
     }
   
-    function showStatus(obj) {
-      lastJob = obj;
+    // --------- 工具函数：格式化 ----------
+    function fmtBytes(b) {
+      if (b == null) return '未知';
+      if (b < 1024) return `${b} B`;
+      const units = ['KB','MB','GB','TB'];
+      let i = -1; do { b /= 1024; i++; } while (b >= 1024 && i < units.length - 1);
+      return `${b.toFixed(2)} ${units[i]}`;
+    }
+    function fmtSec(s) {
+      if (!s && s !== 0) return '未知';
+      s = Math.floor(s);
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+      return h ? `${h}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}` : `${m}:${String(ss).padStart(2,'0')}`;
+    }
+    function fmtSpeed(bytesPerSec) {
+      if (!bytesPerSec) return '';
+      return `${fmtBytes(bytesPerSec)}/s`;
+    }
+  
+    // --------- UI：把任意对象显示到状态框 ----------
+    function setStatus(obj) {
       els.statusBox.textContent = JSON.stringify(obj, null, 2);
+    }
   
-      if (obj && obj.status === 'PUBLISHED') {
-        const m3u8 = obj.m3u8Url ? absUrl(obj.m3u8Url) : null;
-        const mp4  = obj.mp4Url  ? absUrl(obj.mp4Url)  : null;
+    // --------- UI：处理“已发布/可播放”状态 ----------
+    function handlePublished(snapshot) {
+      const m3u8 = snapshot.m3u8Url ? absUrl(snapshot.m3u8Url) : null;
+      const mp4  = snapshot.mp4Url  ? absUrl(snapshot.mp4Url)  : null;
   
-        els.downloadMp4.href = mp4 || '#';
+      if (mp4) els.downloadMp4.href = mp4;
   
-        if (m3u8) {
-          els.playM3U8.href = m3u8;
-          els.playM3U8.classList.remove('disabled');
-          els.playM3U8.title = '用 m3u8 播放';
-          setupHls(m3u8);
-        } else {
-          els.playM3U8.href = '#';
-          els.playM3U8.classList.add('disabled');
-          els.playM3U8.title = '未提供 m3u8（已自动用 MP4 播放）';
-          if (mp4) { els.player.src = mp4; els.player.play().catch(()=>{}); }
-        }
+      if (m3u8) {
+        els.playM3U8.href = m3u8;
+        els.playM3U8.classList.remove('disabled');
+        els.playM3U8.title = '用 m3u8 播放';
+        setupHls(m3u8);
+      } else {
+        els.playM3U8.href = '#';
+        els.playM3U8.classList.add('disabled');
+        els.playM3U8.title = '未提供 m3u8（已自动用 MP4 播放）';
+        if (mp4) { els.player.src = mp4; els.player.play().catch(()=>{}); }
       }
     }
   
+    // --------- SSE：开始/停止 ----------
     function startSSE(jobId) {
       if (!jobId) return alert("没有 jobId");
-      stopSSE(); // 避免重复连接
+      stopSSE();
+      lastJobId = jobId;
   
       const url = `${API_BASE}/api/jobs/${jobId}/events`;
       evtSource = new EventSource(url);
   
       evtSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("SSE update:", data);
-          showStatus(data);
-        } catch (e) {
-          console.error("SSE parse error", e, event.data);
+        // 后端发的是 JSON：可能是 snapshot / progress / finished / failed / heartbeat 等
+        let data;
+        try { data = JSON.parse(event.data); }
+        catch { return console.error("SSE parse error", event.data); }
+  
+        // 统一打印到状态框（方便调试）
+        setStatus(data);
+  
+        // 1) 初始快照（包含 status / info / result）
+        if (data.type === 'snapshot') {
+          lastSnapshot = data;
+          // 如果已发布，直接展示播放器
+          if (data.status === 'PUBLISHED') handlePublished(data);
+          return;
+        }
+  
+        // 2) 进度事件
+        if (data.type === 'progress') {
+          // 规范：Downloader / JobManager 会发 { backend, stage, percent, downloaded_bytes, total_bytes, speed, eta }
+          const percent = data.percent != null ? Number(data.percent).toFixed(1) : null;
+          // 尝试在 status 区顶部汇总一行（你也可以在页面放一个进度条，这里先简化）
+          const line = [
+            `[${data.backend || '-'}][${data.stage || '-'}]`,
+            percent != null ? `${percent}%` : '',
+            data.downloaded_bytes != null ? `${fmtBytes(data.downloaded_bytes)}` : '',
+            data.total_bytes != null ? ` / ${fmtBytes(data.total_bytes)}` : '',
+            data.speed ? ` | ${fmtSpeed(data.speed)}` : '',
+            data.eta ? ` | ETA ${data.eta}s` : '',
+          ].join('');
+          // 把最新进度行附加到最上面显示
+          els.statusBox.textContent = (line + '\n' + els.statusBox.textContent);
+          return;
+        }
+  
+        // 3) 下载开始/入队/结束等
+        if (data.type === 'queued' || data.type === 'start' || data.type === 'finished' || data.type === 'failed' || data.type === 'canceled') {
+          // 更新 lastSnapshot 基本状态
+          lastSnapshot = Object.assign({}, lastSnapshot, data);
+          if (data.type === 'finished' && data.result) {
+            // 任务完成：如果后端有 mp4Url/m3u8Url，渲染播放
+            const snap = {
+              status: 'PUBLISHED',
+              mp4Url: data.result.path ? data.result.path : (data.result.details && data.result.details.fileUrl),
+              m3u8Url: null,
+            };
+            setStatus({ ...data, hint: "任务完成" });
+            handlePublished(snap);
+          }
+          return;
         }
       };
   
@@ -135,28 +201,58 @@
       }
     }
   
-    // === 创建任务（视频链接） ===
+    // --------- 业务流：创建 → 探测 → 确认 → 提示并开始SSE ----------
     async function createJobByUrl() {
       const url = els.videoUrl.value.trim();
       if (!url) return alert('请填写视频链接');
+  
+      // 1) 创建并探测
       const res = await fetch(`${API_BASE}/api/jobs`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ sourceUrl: url })
       });
       const data = await res.json();
-      if (!res.ok) return alert(data.message || '创建失败');
-      els.jobId.value = data.jobId || data.id;
-      showStatus(data);
-      alert('任务已创建，开始监听进度...');
-      startSSE(els.jobId.value);
+      if (!res.ok || !data.ok) {
+        setStatus(data);
+        return alert(data.message || data.error || '创建失败');
+      }
+  
+      // 保存 jobId，展示探测信息
+      const jobId = data.jobId || data.id;
+      els.jobId.value = jobId;
+      setStatus(data);
+  
+      // 2) 对话框确认
+      // 后端返回探测数据在 data.probe.info（参考前端/后端实现）
+      const info = (data.probe && data.probe.info && data.probe.info.details) || (data.probe && data.probe.info) || {};
+      const sizeHuman = info.size_human || (info.size_bytes ? fmtBytes(info.size_bytes) : '未知');
+      const durationHuman = info.duration_str || (info.duration_seconds ? fmtSec(info.duration_seconds) : '未知');
+      const title = info.title || '未命名';
+      const confirmMsg = `即将下载：\n\n标题：${title}\n大小：${sizeHuman}\n时长：${durationHuman}\n\n是否开始下载？`;
+  
+      if (!window.confirm(confirmMsg)) {
+        return; // 用户取消，不启动下载
+      }
+  
+      // 3) 确认后开始下载
+      const res2 = await fetch(`${API_BASE}/api/jobs/${jobId}/confirm`, { method: 'POST' });
+      const data2 = await res2.json();
+      if (!res2.ok || !data2.ok) {
+        setStatus(data2);
+        return alert(data2.message || data2.error || '确认失败');
+      }
+  
+      // 4) 开始监听进度（SSE）
+      startSSE(jobId);
     }
   
-    // === 上传文件并创建任务 ===
+    // --------- 上传并创建（同样走：创建→探测→确认→下载） ----------
     async function uploadAndCreateJob() {
       const file = els.fileInput.files?.[0];
       if (!file) return alert('请先选择文件');
   
+      // 预签名
       const resSign = await fetch(`${API_BASE}/api/uploads/sign`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -175,28 +271,56 @@
       if (!putRes.ok) return alert('上传失败');
   
       els.uploadProgress.textContent = '上传完成，创建任务...';
+  
+      // 创建并（在后端同步）探测
       const resJob = await fetch(`${API_BASE}/api/jobs`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ objectKey: sign.objectKey })
       });
       const data = await resJob.json();
-      if (!resJob.ok) return alert(data.message || '创建任务失败');
+      if (!resJob.ok || !data.ok) {
+        setStatus(data);
+        return alert(data.message || '创建任务失败');
+      }
   
-      els.uploadProgress.textContent = '任务已创建，开始监听进度...';
-      els.jobId.value = data.jobId || data.id;
-      showStatus(data);
-      startSSE(els.jobId.value);
+      const jobId = data.jobId || data.id;
+      els.uploadProgress.textContent = '任务已创建';
+      els.jobId.value = jobId;
+      setStatus(data);
+  
+      // 同样弹出确认框
+      const info = (data.probe && data.probe.info && data.probe.info.details) || (data.probe && data.probe.info) || {};
+      const sizeHuman = info.size_human || (info.size_bytes ? fmtBytes(info.size_bytes) : '未知');
+      const durationHuman = info.duration_str || (info.duration_seconds ? fmtSec(info.duration_seconds) : '未知');
+      const title = info.title || '未命名';
+      const confirmMsg = `即将下载（本地上传文件）：\n\n标题：${title}\n大小：${sizeHuman}\n时长：${durationHuman}\n\n是否开始下载？`;
+  
+      if (!window.confirm(confirmMsg)) {
+        return;
+      }
+  
+      const res2 = await fetch(`${API_BASE}/api/jobs/${jobId}/confirm`, { method: 'POST' });
+      const data2 = await res2.json();
+      if (!res2.ok || !data2.ok) {
+        setStatus(data2);
+        return alert(data2.message || data2.error || '确认失败');
+      }
+  
+      startSSE(jobId);
     }
   
+    // --------- 查询（可选） ----------
     async function queryJob() {
       const id = (els.jobId.value || '').trim();
       if (!id) return alert('请填写 job_id');
       const res = await fetch(`${API_BASE}/api/jobs/${id}`);
       const data = await res.json();
-      showStatus(data);
+      setStatus(data);
+      if (data.status === 'PUBLISHED') handlePublished(data);
     }
   
+    // --------- HLS 播放 ----------
     function setupHls(m3u8Url) {
       const video = els.player;
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -209,24 +333,25 @@
       }
     }
   
-    // === 按钮绑定 ===
+    // --------- 事件绑定 ----------
     els.createByUrlBtn.onclick = createJobByUrl;
     els.uploadBtn.onclick = uploadAndCreateJob;
     els.queryBtn.onclick = queryJob;
-    els.sseBtn.onclick = () => startSSE(els.jobId.value.trim());
-    els.stopBtn.onclick = stopSSE;
+    if (els.sseBtn) els.sseBtn.onclick = () => startSSE((els.jobId.value || '').trim());
+    els.stopBtn.onclick = () => stopSSE();
   
-    // 防止点击 m3u8 没有时刷新页面
+    // 没有 m3u8 时，按钮兜底为 MP4 直播
     els.playM3U8.addEventListener('click', (e) => {
-      if (!lastJob) return;
-      const m3u8 = lastJob.m3u8Url ? absUrl(lastJob.m3u8Url) : null;
+      if (!lastSnapshot) return;
+      const m3u8 = lastSnapshot.m3u8Url ? absUrl(lastSnapshot.m3u8Url) : null;
       if (!m3u8) {
         e.preventDefault();
-        const mp4 = lastJob.mp4Url ? absUrl(lastJob.mp4Url) : null;
+        const mp4 = lastSnapshot.mp4Url ? absUrl(lastSnapshot.mp4Url) : null;
         if (mp4) { els.player.src = mp4; els.player.play().catch(()=>{}); }
       }
     });
   </script>
+
 
 
 </body>
