@@ -200,53 +200,83 @@
         evtSource = null;
       }
     }
-  
+
+    // === 辅助：把 result.path 转为 /files/** 可访问直链 ===
+    function toFileUrlFromResult(result) {
+      if (!result || !result.path) return null;
+      let p = String(result.path).replace(/\\/g, '/');  // 兼容 Windows
+      const idx = p.lastIndexOf('/data/');
+      if (idx >= 0) p = p.slice(idx + '/data/'.length);
+      else if (p.startsWith('data/')) p = p.slice('data/'.length);
+      return `${API_BASE}/files/${p}`;
+    }
+    
+    // === 订阅 SSE 事件，接收进度 & 完成事件 ===
+    let es = null;
+    function subscribeJob(jobId) {
+      if (es) es.close();
+      es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
+    
+      es.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+    
+          // 下载完成后自动播放
+          if (msg.type === 'finished' || msg.status === 'PUBLISHED') {
+            const mp4 = toFileUrlFromResult(msg.result);
+            if (mp4) {
+              els.downloadMp4.href = mp4;
+              els.player.src = mp4;
+              els.player.play().catch(()=>{});
+            }
+          }
+    
+          // 如果需要展示进度，可以这里处理 msg.type === 'progress'
+        } catch (e) {
+          console.warn('SSE parse error', e, ev.data);
+        }
+      };
+    }
+    
     // --------- 业务流：创建 → 探测 → 确认 → 提示并开始SSE ----------
     async function createJobByUrl() {
       const url = els.videoUrl.value.trim();
       if (!url) return alert('请填写视频链接');
-  
-      // 1) 创建并探测
+    
       const res = await fetch(`${API_BASE}/api/jobs`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ sourceUrl: url })
       });
       const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setStatus(data);
-        return alert(data.message || data.error || '创建失败');
-      }
-  
-      // 保存 jobId，展示探测信息
-      const jobId = data.jobId || data.id;
+      if (!res.ok) return alert(data.message || '创建失败');
+    
+      const jobId = data.jobId;
       els.jobId.value = jobId;
-      setStatus(data);
-  
-      // 2) 对话框确认
-      // 后端返回探测数据在 data.probe.info（参考前端/后端实现）
-      const info = (data.probe && data.probe.info && data.probe.info.details) || (data.probe && data.probe.info) || {};
-      const sizeHuman = info.size_human || (info.size_bytes ? fmtBytes(info.size_bytes) : '未知');
-      const durationHuman = info.duration_str || (info.duration_seconds ? fmtSec(info.duration_seconds) : '未知');
-      const title = info.title || '未命名';
-      const confirmMsg = `即将下载：\n\n标题：${title}\n大小：${sizeHuman}\n时长：${durationHuman}\n\n是否开始下载？`;
-  
-      if (!window.confirm(confirmMsg)) {
-        return; // 用户取消，不启动下载
-      }
-  
-      // 3) 确认后开始下载
+    
+      // 订阅 SSE，后续会收到 progress / finished 事件
+      subscribeJob(jobId);
+
+      // === 弹窗确认（可选：带视频信息） ===
+      const i = data?.probe?.info || {};
+      const title = i.title || '未命名';
+      const sizeHuman = i.size_human || '未知';
+      const durationHuman = i.duration_str || '未知';
+      const ok = window.confirm(
+        `即将下载：\n\n标题：${title}\n大小：${sizeHuman}\n时长：${durationHuman}\n\n是否开始下载？`
+      );
+      if (!ok) return;
+    
+      // 确认开始下载
       const res2 = await fetch(`${API_BASE}/api/jobs/${jobId}/confirm`, { method: 'POST' });
       const data2 = await res2.json();
       if (!res2.ok || !data2.ok) {
-        setStatus(data2);
-        return alert(data2.message || data2.error || '确认失败');
+        alert(data2.error || '无法开始下载');
+        return;
       }
-  
-      // 4) 开始监听进度（SSE）
-      startSSE(jobId);
     }
   
+
     // --------- 上传并创建（同样走：创建→探测→确认→下载） ----------
     async function uploadAndCreateJob() {
       const file = els.fileInput.files?.[0];
