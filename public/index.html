@@ -218,22 +218,28 @@
       es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
     
       es.onmessage = (ev) => {
-        try {
-          const msg = JSON.parse(ev.data);
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch { return; }
     
-          // 下载完成后自动播放
-          if (msg.type === 'finished' || msg.status === 'PUBLISHED') {
-            const mp4 = toFileUrlFromResult(msg.result);
-            if (mp4) {
-              els.downloadMp4.href = mp4;
-              els.player.src = mp4;
-              els.player.play().catch(()=>{});
-            }
+        // 统一显示到“任务状态”
+        showStatus(msg);   // 你已有的函数，保持
+    
+        // 进度（可选）
+        if (msg.type === 'progress' && typeof msg.percent === 'number') {
+          // 在状态面板里追加一行百分比等
+          // appendProgress(msg.percent, msg.backend);
+        }
+
+        // 下载完成 → 自动播放
+        if (msg.type === 'finished' || msg.status === 'PUBLISHED') {
+          const mp4 = toFileUrlFromResult(msg.result);
+          if (mp4) {
+            els.downloadMp4.href = mp4;
+            els.player.src = mp4;
+            els.player.play().catch(()=>{});
           }
-    
-          // 如果需要展示进度，可以这里处理 msg.type === 'progress'
-        } catch (e) {
-          console.warn('SSE parse error', e, ev.data);
+          // 可关闭 SSE（可选）：
+          // es.close();
         }
       };
     }
