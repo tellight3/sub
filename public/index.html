@@ -53,10 +53,11 @@
     </div>
   </div>
 
+
   <script>
     // === 修改这里：你的后端域名（VPS 经 Cloudflare Tunnel 暴露的 API）===
     const API_BASE = 'https://mmx.multmatrix.com';
-
+  
     const els = {
       videoUrl: document.getElementById('videoUrl'),
       createByUrlBtn: document.getElementById('createByUrlBtn'),
@@ -65,49 +66,37 @@
       uploadProgress: document.getElementById('uploadProgress'),
       jobId: document.getElementById('jobId'),
       queryBtn: document.getElementById('queryBtn'),
-      pollBtn: document.getElementById('pollBtn'),
+      sseBtn: document.getElementById('sseBtn'),
       stopBtn: document.getElementById('stopBtn'),
       statusBox: document.getElementById('statusBox'),
       player: document.getElementById('player'),
       playM3U8: document.getElementById('playM3U8'),
       downloadMp4: document.getElementById('downloadMp4')
     };
-
-    let pollTimer = null;
-
+  
+    let evtSource = null;
+    let lastJob = null;
+  
     function absUrl(u) {
       return u && u.startsWith('http') ? u : `${API_BASE}${u || ''}`;
     }
-    let lastJob = null;
-
-    // function showStatus(obj) {
-    //   els.statusBox.textContent = JSON.stringify(obj, null, 2);
-    //   if (obj && obj.status === 'PUBLISHED') {
-    //     if (obj.m3u8Url) setupHls(obj.m3u8Url);
-    //     if (obj.m3u8Url) els.playM3U8.href = obj.m3u8Url;
-    //     if (obj.mp4Url) els.downloadMp4.href = obj.mp4Url;
-    //   }
-    // }
-
+  
     function showStatus(obj) {
       lastJob = obj;
       els.statusBox.textContent = JSON.stringify(obj, null, 2);
-    
+  
       if (obj && obj.status === 'PUBLISHED') {
         const m3u8 = obj.m3u8Url ? absUrl(obj.m3u8Url) : null;
         const mp4  = obj.mp4Url  ? absUrl(obj.mp4Url)  : null;
-    
-        // 下载始终给 MP4
+  
         els.downloadMp4.href = mp4 || '#';
-    
+  
         if (m3u8) {
-          // 有 m3u8：启用按钮并内联用 HLS 播放
           els.playM3U8.href = m3u8;
           els.playM3U8.classList.remove('disabled');
           els.playM3U8.title = '用 m3u8 播放';
           setupHls(m3u8);
         } else {
-          // 没 m3u8：禁用按钮 & 直接用 MP4 播放
           els.playM3U8.href = '#';
           els.playM3U8.classList.add('disabled');
           els.playM3U8.title = '未提供 m3u8（已自动用 MP4 播放）';
@@ -115,7 +104,38 @@
         }
       }
     }
-    
+  
+    function startSSE(jobId) {
+      if (!jobId) return alert("没有 jobId");
+      stopSSE(); // 避免重复连接
+  
+      const url = `${API_BASE}/api/jobs/${jobId}/events`;
+      evtSource = new EventSource(url);
+  
+      evtSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("SSE update:", data);
+          showStatus(data);
+        } catch (e) {
+          console.error("SSE parse error", e, event.data);
+        }
+      };
+  
+      evtSource.onerror = (err) => {
+        console.error("SSE error:", err);
+        stopSSE();
+      };
+    }
+  
+    function stopSSE() {
+      if (evtSource) {
+        evtSource.close();
+        evtSource = null;
+      }
+    }
+  
+    // === 创建任务（视频链接） ===
     async function createJobByUrl() {
       const url = els.videoUrl.value.trim();
       if (!url) return alert('请填写视频链接');
@@ -128,14 +148,15 @@
       if (!res.ok) return alert(data.message || '创建失败');
       els.jobId.value = data.jobId || data.id;
       showStatus(data);
-      alert('任务已创建。支付/排队/处理以状态为准。');
+      alert('任务已创建，开始监听进度...');
+      startSSE(els.jobId.value);
     }
-
-    // 预签名直传：后端返回 { uploadUrl, objectKey, headers? }
+  
+    // === 上传文件并创建任务 ===
     async function uploadAndCreateJob() {
       const file = els.fileInput.files?.[0];
       if (!file) return alert('请先选择文件');
-    
+  
       const resSign = await fetch(`${API_BASE}/api/uploads/sign`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -143,21 +164,17 @@
       });
       const sign = await resSign.json();
       if (!resSign.ok) return alert(sign.message || '获取预签名失败');
-    
+  
       const putHeaders = new Headers(sign.headers || {});
       if (!putHeaders.has('Content-Type') && file.type) putHeaders.set('Content-Type', file.type);
-      // 关键：告诉后端用这个 objectKey 保存
       putHeaders.set('X-Object-Key', sign.objectKey);
-    
+  
       els.uploadProgress.textContent = '上传中...';
-    
-      // 关键：uploadUrl 可能是相对路径，拼成绝对地址
       const uploadUrl = absUrl(sign.uploadUrl);
       const putRes = await fetch(uploadUrl, { method: 'PUT', headers: putHeaders, body: file });
       if (!putRes.ok) return alert('上传失败');
-    
+  
       els.uploadProgress.textContent = '上传完成，创建任务...';
-    
       const resJob = await fetch(`${API_BASE}/api/jobs`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -165,13 +182,13 @@
       });
       const data = await resJob.json();
       if (!resJob.ok) return alert(data.message || '创建任务失败');
-    
-      els.uploadProgress.textContent = '任务已创建。';
+  
+      els.uploadProgress.textContent = '任务已创建，开始监听进度...';
       els.jobId.value = data.jobId || data.id;
       showStatus(data);
+      startSSE(els.jobId.value);
     }
-
-
+  
     async function queryJob() {
       const id = (els.jobId.value || '').trim();
       if (!id) return alert('请填写 job_id');
@@ -179,16 +196,7 @@
       const data = await res.json();
       showStatus(data);
     }
-
-    function startPoll() {
-      if (pollTimer) return;
-      pollTimer = setInterval(queryJob, 5000);
-      queryJob();
-    }
-    function stopPoll() {
-      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    }
-
+  
     function setupHls(m3u8Url) {
       const video = els.player;
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -200,13 +208,15 @@
         window.open(m3u8Url, '_blank');
       }
     }
-
+  
+    // === 按钮绑定 ===
     els.createByUrlBtn.onclick = createJobByUrl;
     els.uploadBtn.onclick = uploadAndCreateJob;
     els.queryBtn.onclick = queryJob;
-    els.pollBtn.onclick = startPoll;
-    els.stopBtn.onclick = stopPoll;
-    // 这里加上防止刷新并自动用 MP4 播放的逻辑
+    els.sseBtn.onclick = () => startSSE(els.jobId.value.trim());
+    els.stopBtn.onclick = stopSSE;
+  
+    // 防止点击 m3u8 没有时刷新页面
     els.playM3U8.addEventListener('click', (e) => {
       if (!lastJob) return;
       const m3u8 = lastJob.m3u8Url ? absUrl(lastJob.m3u8Url) : null;
@@ -217,5 +227,7 @@
       }
     });
   </script>
+
+
 </body>
 </html>
