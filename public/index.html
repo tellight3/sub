@@ -141,6 +141,32 @@
     els.nowPlaying.textContent = `正在播放：${fileNameFromPath(nextUrl) || 'video.mp4'}`;
   }
 
+
+// 在 <script> 顶部工具区添加
+  function addVttTrackToVideo(videoEl, vttUrl, { lang='zh', label='中文', makeDefault=true } = {}) {
+    if (!videoEl || !vttUrl) return;
+  
+    // 移除旧的 track，避免重复
+    [...videoEl.querySelectorAll('track')].forEach(t => t.remove());
+  
+    // 创建并挂载新的 track
+    const track = document.createElement('track');
+    track.kind = 'subtitles';
+    track.srclang = lang;
+    track.label = label;
+    track.src = /^https?:\/\//i.test(vttUrl) ? vttUrl : (API_BASE + vttUrl);
+    if (makeDefault) track.default = true;
+    videoEl.appendChild(track);
+  
+    // 某些浏览器需要显式设为 showing
+    track.addEventListener('load', () => {
+      try {
+        const tt = videoEl.textTracks;
+        if (tt && tt[0]) tt[0].mode = 'showing';
+      } catch {}
+    });
+  }
+  
   // ===== SSE 订阅（两个信号：play / finished）===== // NEW
   function subscribeJob(jobId) {
     if (!jobId) return alert('没有 jobId');
@@ -192,6 +218,11 @@
           els.downloadMp4.href = lastMp4Url;
           els.downloadMp4.setAttribute('download', `${lastTitle}.mp4`);
           els.downloadMp4.target = '_blank';
+        }
+        // 取后端回填的 VTT 地址（推荐优先 playback.subtitleUrl）
+        const subUrl = msg.result?.playback?.subtitleUrl || msg.result?.subtitle?.url;
+        if (subUrl) {
+          addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
         }
 
         if (es) { es.close(); es = null; }
