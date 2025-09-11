@@ -35,7 +35,7 @@
     <!-- 播放 & 下载区 -->
     <div class="card">
       <h2>在线播放 / 下载</h2>
-      <video id="player" controls playsinline muted class="player"></video> <!-- NEW: 默认静音提升自动播放成功率 -->
+      <video id="player" controls playsinline muted class="player"></video>
       <div class="row">
         <a id="playM3U8" class="btn" href="#" target="_blank" rel="noopener">用 m3u8 播放</a>
         <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener">下载 MP4</a>
@@ -109,6 +109,15 @@
     els.statusBox.textContent = JSON.stringify(obj, null, 2);
   }
 
+  // ===== 选取字幕 URL（优先 playback.subtitleUrl） =====
+  function pickSubtitleUrl(payload) {
+    return payload?.result?.playback?.subtitleUrl
+        || payload?.result?.subtitle?.url
+        || payload?.subtitleUrl
+        || payload?.subtitle?.url
+        || null;
+  }
+
   // ===== HLS 播放（可选）=====
   function setupHls(m3u8Url) {
     const video = els.player;
@@ -122,7 +131,7 @@
     }
   }
 
-  // ===== NEW：平滑切源（保留进度/状态） =====
+  // ===== 平滑切源（保留进度/状态） =====
   function switchSourceKeepPosition(nextUrl){
     if(!nextUrl) return;
     const v = els.player;
@@ -141,14 +150,13 @@
     els.nowPlaying.textContent = `正在播放：${fileNameFromPath(nextUrl) || 'video.mp4'}`;
   }
 
-
-// 在 <script> 顶部工具区添加
+  // ===== 创建并挂载 VTT track（统一入口） =====
   function addVttTrackToVideo(videoEl, vttUrl, { lang='zh', label='中文', makeDefault=true } = {}) {
     if (!videoEl || !vttUrl) return;
-  
+
     // 移除旧的 track，避免重复
     [...videoEl.querySelectorAll('track')].forEach(t => t.remove());
-  
+
     // 创建并挂载新的 track
     const track = document.createElement('track');
     track.kind = 'subtitles';
@@ -157,8 +165,8 @@
     track.src = /^https?:\/\//i.test(vttUrl) ? vttUrl : (API_BASE + vttUrl);
     if (makeDefault) track.default = true;
     videoEl.appendChild(track);
-  
-    // 某些浏览器需要显式设为 showing
+
+    // 尝试在 track 加载后设为 showing
     track.addEventListener('load', () => {
       try {
         const tt = videoEl.textTracks;
@@ -166,8 +174,16 @@
       } catch {}
     });
   }
-  
-  // ===== SSE 订阅（两个信号：play / finished）===== // NEW
+
+  // 再加一重保险：每次元数据就绪后，确保第一条字幕轨显示
+  els.player.addEventListener('loadedmetadata', () => {
+    try {
+      const tt = els.player.textTracks;
+      if (tt && tt[0]) tt[0].mode = 'showing';
+    } catch {}
+  });
+
+  // ===== SSE 订阅（两个信号：play / finished）=====
   function subscribeJob(jobId) {
     if (!jobId) return alert('没有 jobId');
     if (es) es.close();
@@ -178,35 +194,37 @@
       try { msg = JSON.parse(ev.data); } catch { return; }
       setStatus(msg);
 
-      // 1) 首帧快照：仅用于展示状态，不做自动播放（让“play”信号来决定） // NEW
+      // 1) 首帧快照（不强制自动播；如果已经是 finished/PUBLISHED，可直接播并挂字幕）
       if (msg.type === 'snapshot') {
         lastSnapshot = msg;
         const t = (msg.info && (msg.info.title || (msg.info.details && msg.info.details.title))) || lastTitle;
         if (t) lastTitle = sanitizeFilename(t);
-        // 如果你希望“刷新后重连 SSE 且已经完成”的情况也能马上播放，可在此判断：
+
         if (msg.status === 'finished' || msg.status === 'PUBLISHED') {
           const pb = msg.result && msg.result.playback || {};
           const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || (msg.result && msg.result.path);
           if (finalUrl) switchSourceKeepPosition(finalUrl);
+          const subUrl = pickSubtitleUrl(msg);
+          if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
         }
         return;
       }
 
-      // 2) 中途播放信号：让前端立刻切到指定 URL，但不结束（用于先播原视频 / 字幕就绪后切有字幕） // NEW
+      // 2) 中途播放信号：先播并尽量挂上可用字幕
       if (msg.type === 'play' && msg.url) {
         switchSourceKeepPosition(msg.url);
-        // 不关闭 SSE，继续等最终 finished
+        const subUrl = pickSubtitleUrl(msg);
+        if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
         return;
       }
 
-      // 3) 最终信号：切到最终版本并收尾（关闭 SSE） // NEW
+      // 3) 最终信号：切到最终版本并挂字幕，然后收尾
       if (msg.type === 'finished' && msg.result) {
-        // 兼容：后端可把最终文件放在 playback.withSubUrl / playback.videoUrl / playback.originalUrl / result.path
         const pb = msg.result.playback || {};
         const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || msg.result.path;
         if (finalUrl) switchSourceKeepPosition(finalUrl);
 
-        // 下载按钮（优先 /download 强制保存）
+        // 下载按钮
         lastObjectPath = objectPathFromResultPath(msg.result.path);
         lastMp4Url = toFileUrlFromResult(msg.result) || (lastObjectPath ? `${API_BASE}/files/${lastObjectPath}` : null);
         if (lastObjectPath) {
@@ -219,21 +237,22 @@
           els.downloadMp4.setAttribute('download', `${lastTitle}.mp4`);
           els.downloadMp4.target = '_blank';
         }
-        // 取后端回填的 VTT 地址（推荐优先 playback.subtitleUrl）
-        const subUrl = msg.result?.playback?.subtitleUrl || msg.result?.subtitle?.url;
-        if (subUrl) {
-          addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
-        }
+
+        // 挂字幕（优先 playback.subtitleUrl）
+        const subUrl = pickSubtitleUrl(msg);
+        if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
 
         if (es) { es.close(); es = null; }
         return;
       }
 
-      // 4) 兼容：如果后端仍会发 published，把它当作“play”处理（不中断） // NEW
+      // 4) 兼容：published 当作“play”处理
       if (msg.type === 'published' && msg.result) {
         const pb = msg.result.playback || {};
         const midUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl;
         if (midUrl) switchSourceKeepPosition(midUrl);
+        const subUrl = pickSubtitleUrl(msg);
+        if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
         return;
       }
 
@@ -256,7 +275,7 @@
     };
 
     es.onerror = () => {
-      // 可选：做自动重连；此处保持简单
+      // 可选：自动重连
     };
 
     return es;
@@ -294,22 +313,24 @@
       return alert(data2.error || data2.message || '无法开始下载');
     }
 
-    // 订阅 SSE：等待后端的 "play" 与 "finished" 两个信号 // NEW
+    // 订阅 SSE：等待后端的 "play" 与 "finished" 两个信号
     subscribeJob(jobId);
   }
 
-  // ===== 查询一次任务快照（可选）=====
+  // ===== 查询一次任务快照（并尝试立刻播/挂字幕）=====
   async function queryJob() {
     const id = (els.jobId.value || '').trim();
     if (!id) return alert('请填写 job_id');
     const res = await fetch(`${API_BASE}/api/jobs/${id}`);
     const data = await res.json();
     setStatus(data);
-    // 如果服务端在快照中就已经提供最终可播地址，也可以手动触发一次播放
+
     if (data.status === 'finished' || data.status === 'PUBLISHED') {
       const pb = data.result && data.result.playback || {};
       const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || (data.result && data.result.path);
       if (finalUrl) switchSourceKeepPosition(finalUrl);
+      const subUrl = pickSubtitleUrl(data);
+      if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
     }
   }
 
@@ -330,6 +351,9 @@
       setupHls(m3u8);
     }
   });
+
+  // 自动播放兜底：用户首次点击页面时尝试播放
+  document.addEventListener('click', () => els.player.play().catch(()=>{}), { once: true });
 </script>
 </body>
 </html>
