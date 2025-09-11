@@ -251,18 +251,16 @@
       // 3) 最终信号
       if (msg.type === 'finished' && msg.result) {
         const pb = msg.result.playback || {};
-        // ✅ 优先选择带字幕的视频
         const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || msg.result.path;
         if (finalUrl) switchSourceKeepPosition(finalUrl);
       
-        // === 修改这里：下载按钮 (MP4) ===
+        // ✅ 下载按钮：优先使用带字幕的最终文件
         if (pb.withSubUrl) {
-          // 如果有 withSubUrl，说明这是“带字幕的最终版”
           els.downloadMp4.href = absUrl(pb.withSubUrl);
           els.downloadMp4.setAttribute('download', `${lastTitle}.mp4`);
           els.downloadMp4.target = '_blank';
         } else {
-          // 否则走之前的逻辑
+          // 兜底逻辑：沿用你之前的无字幕下载方式
           lastObjectPath = objectPathFromResultPath(msg.result.path);
           lastMp4Url = toFileUrlFromResult(msg.result) || (lastObjectPath ? `${API_BASE}/files/${lastObjectPath}` : null);
           if (lastObjectPath) {
