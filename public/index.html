@@ -251,33 +251,74 @@
       // 3) 最终信号
       if (msg.type === 'finished' && msg.result) {
         const pb = msg.result.playback || {};
+        // ✅ 优先选择带字幕的视频
         const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || msg.result.path;
         if (finalUrl) switchSourceKeepPosition(finalUrl);
-
-        // 下载按钮（MP4）
-        lastObjectPath = objectPathFromResultPath(msg.result.path);
-        lastMp4Url = toFileUrlFromResult(msg.result) || (lastObjectPath ? `${API_BASE}/files/${lastObjectPath}` : null);
-        if (lastObjectPath) {
-          const dl = `${API_BASE}/download/${encodeURIComponent(lastObjectPath)}?filename=${encodeURIComponent(lastTitle)}.mp4`;
-          els.downloadMp4.href = dl;
-          els.downloadMp4.removeAttribute('download');
-          els.downloadMp4.target = '_self';
-        } else if (lastMp4Url) {
-          els.downloadMp4.href = lastMp4Url;
+      
+        // === 修改这里：下载按钮 (MP4) ===
+        if (pb.withSubUrl) {
+          // 如果有 withSubUrl，说明这是“带字幕的最终版”
+          els.downloadMp4.href = absUrl(pb.withSubUrl);
           els.downloadMp4.setAttribute('download', `${lastTitle}.mp4`);
           els.downloadMp4.target = '_blank';
+        } else {
+          // 否则走之前的逻辑
+          lastObjectPath = objectPathFromResultPath(msg.result.path);
+          lastMp4Url = toFileUrlFromResult(msg.result) || (lastObjectPath ? `${API_BASE}/files/${lastObjectPath}` : null);
+          if (lastObjectPath) {
+            const dl = `${API_BASE}/download/${encodeURIComponent(lastObjectPath)}?filename=${encodeURIComponent(lastTitle)}.mp4`;
+            els.downloadMp4.href = dl;
+            els.downloadMp4.removeAttribute('download');
+            els.downloadMp4.target = '_self';
+          } else if (lastMp4Url) {
+            els.downloadMp4.href = lastMp4Url;
+            els.downloadMp4.setAttribute('download', `${lastTitle}.mp4`);
+            els.downloadMp4.target = '_blank';
+          }
         }
-
+      
         // 挂字幕 + 启用字幕下载
         const subUrl = pickSubtitleUrl(msg);
         if (subUrl) {
           addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
           setSubtitleDownload(subUrl);
         }
-
+      
         if (es) { es.close(); es = null; }
         return;
       }
+
+
+      
+      // if (msg.type === 'finished' && msg.result) {
+      //   const pb = msg.result.playback || {};
+      //   const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || msg.result.path;
+      //   if (finalUrl) switchSourceKeepPosition(finalUrl);
+
+      //   // 下载按钮（MP4）
+      //   lastObjectPath = objectPathFromResultPath(msg.result.path);
+      //   lastMp4Url = toFileUrlFromResult(msg.result) || (lastObjectPath ? `${API_BASE}/files/${lastObjectPath}` : null);
+      //   if (lastObjectPath) {
+      //     const dl = `${API_BASE}/download/${encodeURIComponent(lastObjectPath)}?filename=${encodeURIComponent(lastTitle)}.mp4`;
+      //     els.downloadMp4.href = dl;
+      //     els.downloadMp4.removeAttribute('download');
+      //     els.downloadMp4.target = '_self';
+      //   } else if (lastMp4Url) {
+      //     els.downloadMp4.href = lastMp4Url;
+      //     els.downloadMp4.setAttribute('download', `${lastTitle}.mp4`);
+      //     els.downloadMp4.target = '_blank';
+      //   }
+
+      //   // 挂字幕 + 启用字幕下载
+      //   const subUrl = pickSubtitleUrl(msg);
+      //   if (subUrl) {
+      //     addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+      //     setSubtitleDownload(subUrl);
+      //   }
+
+      //   if (es) { es.close(); es = null; }
+      //   return;
+      // }
 
       // 4) 兼容：published 当作“play”处理
       if (msg.type === 'published' && msg.result) {
