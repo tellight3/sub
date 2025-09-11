@@ -8,6 +8,14 @@
   <link rel="stylesheet" href="/styles.css" />
   <!-- 可选：HLS.js（如未来提供 m3u8，可直接内联播放） -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+  <style>
+    /* 简单的“虚/禁用”样式 */
+    .btn[aria-disabled="true"] {
+      opacity: 0.5;
+      pointer-events: none;
+      cursor: not-allowed;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -35,11 +43,12 @@
     <!-- 播放 & 下载区 -->
     <div class="card">
       <h2>在线播放 / 下载</h2>
-<!--       <video id="player" controls playsinline muted class="player"></video> -->
       <video id="player" controls playsinline muted crossorigin="anonymous" class="player"></video>
       <div class="row">
         <a id="playM3U8" class="btn" href="#" target="_blank" rel="noopener">用 m3u8 播放</a>
         <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener">下载 MP4</a>
+        <!-- 新增：下载字幕按钮（初始为虚/禁用） -->
+        <a id="downloadVtt" class="btn" href="#" aria-disabled="true">下载字幕</a>
       </div>
       <div id="nowPlaying" class="muted"></div>
     </div>
@@ -61,6 +70,7 @@
     player: document.getElementById('player'),
     playM3U8: document.getElementById('playM3U8'),
     downloadMp4: document.getElementById('downloadMp4'),
+    downloadVtt: document.getElementById('downloadVtt'),
     nowPlaying: document.getElementById('nowPlaying'),
   };
 
@@ -70,6 +80,7 @@
   let lastTitle = 'video';
   let lastObjectPath = null;
   let lastMp4Url = null;
+  let lastSubtitleUrl = null; // ← 记住字幕直链（用于 Blob 下载）
 
   // ===== 工具函数 =====
   function absUrl(u) {
@@ -184,6 +195,18 @@
     } catch {}
   });
 
+  // ===== 字幕下载按钮：启用/清理 =====
+  function setSubtitleDownload(subUrl) {
+    if (!subUrl) return clearSubtitleDownload();
+    lastSubtitleUrl = /^https?:\/\//i.test(subUrl) ? subUrl : (API_BASE + subUrl);
+    els.downloadVtt.removeAttribute('aria-disabled');
+    // 不再依赖 <a download>，点击时用 Blob 触发下载（控制文件名）
+  }
+  function clearSubtitleDownload() {
+    lastSubtitleUrl = null;
+    els.downloadVtt.setAttribute('aria-disabled', 'true');
+  }
+
   // ===== SSE 订阅（两个信号：play / finished）=====
   function subscribeJob(jobId) {
     if (!jobId) return alert('没有 jobId');
@@ -195,7 +218,7 @@
       try { msg = JSON.parse(ev.data); } catch { return; }
       setStatus(msg);
 
-      // 1) 首帧快照（不强制自动播；如果已经是 finished/PUBLISHED，可直接播并挂字幕）
+      // 1) 首帧快照
       if (msg.type === 'snapshot') {
         lastSnapshot = msg;
         const t = (msg.info && (msg.info.title || (msg.info.details && msg.info.details.title))) || lastTitle;
@@ -206,26 +229,32 @@
           const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || (msg.result && msg.result.path);
           if (finalUrl) switchSourceKeepPosition(finalUrl);
           const subUrl = pickSubtitleUrl(msg);
-          if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+          if (subUrl) {
+            addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+            setSubtitleDownload(subUrl);
+          }
         }
         return;
       }
 
-      // 2) 中途播放信号：先播并尽量挂上可用字幕
+      // 2) 中途播放信号
       if (msg.type === 'play' && msg.url) {
         switchSourceKeepPosition(msg.url);
         const subUrl = pickSubtitleUrl(msg);
-        if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+        if (subUrl) {
+          addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+          setSubtitleDownload(subUrl); // 播放时就启用下载
+        }
         return;
       }
 
-      // 3) 最终信号：切到最终版本并挂字幕，然后收尾
+      // 3) 最终信号
       if (msg.type === 'finished' && msg.result) {
         const pb = msg.result.playback || {};
         const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || msg.result.path;
         if (finalUrl) switchSourceKeepPosition(finalUrl);
 
-        // 下载按钮
+        // 下载按钮（MP4）
         lastObjectPath = objectPathFromResultPath(msg.result.path);
         lastMp4Url = toFileUrlFromResult(msg.result) || (lastObjectPath ? `${API_BASE}/files/${lastObjectPath}` : null);
         if (lastObjectPath) {
@@ -239,9 +268,12 @@
           els.downloadMp4.target = '_blank';
         }
 
-        // 挂字幕（优先 playback.subtitleUrl）
+        // 挂字幕 + 启用字幕下载
         const subUrl = pickSubtitleUrl(msg);
-        if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+        if (subUrl) {
+          addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+          setSubtitleDownload(subUrl);
+        }
 
         if (es) { es.close(); es = null; }
         return;
@@ -253,7 +285,10 @@
         const midUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl;
         if (midUrl) switchSourceKeepPosition(midUrl);
         const subUrl = pickSubtitleUrl(msg);
-        if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+        if (subUrl) {
+          addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+          setSubtitleDownload(subUrl);
+        }
         return;
       }
 
@@ -286,6 +321,8 @@
   async function createJobByUrl() {
     const url = els.videoUrl.value.trim();
     if (!url) return alert('请填写视频链接');
+
+    clearSubtitleDownload(); // 新任务前清理旧状态
 
     const res = await fetch(`${API_BASE}/api/jobs`, {
       method: 'POST',
@@ -331,14 +368,20 @@
       const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || (data.result && data.result.path);
       if (finalUrl) switchSourceKeepPosition(finalUrl);
       const subUrl = pickSubtitleUrl(data);
-      if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+      if (subUrl) {
+        addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+        setSubtitleDownload(subUrl); // 查询已完成时也启用下载
+      }
     }
   }
 
   // ===== 事件绑定 =====
   els.createByUrlBtn.onclick = createJobByUrl;
   els.queryBtn.onclick = queryJob;
-  els.sseBtn.onclick = () => subscribeJob((els.jobId.value || '').trim());
+  els.sseBtn.onclick = () => {
+    clearSubtitleDownload(); // 新订阅前清理旧状态
+    subscribeJob((els.jobId.value || '').trim());
+  };
   els.stopBtn.onclick = () => { if (es) es.close(); es = null; };
 
   // “用 m3u8 播放”兜底
@@ -353,8 +396,37 @@
     }
   });
 
+  // 下载字幕：用 Blob 触发下载，确保文件名为 <标题>.zh.vtt
+  els.downloadVtt.addEventListener('click', async (e) => {
+    if (!lastSubtitleUrl || els.downloadVtt.getAttribute('aria-disabled') === 'true') return;
+    e.preventDefault(); // 阻止直接打开新标签
+
+    try {
+      // 跨域 fetch 需要后端 CORS（你已配置）
+      const r = await fetch(lastSubtitleUrl, { mode: 'cors', credentials: 'omit' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const blob = await r.blob();
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${sanitizeFilename(lastTitle)}.zh.vtt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (err) {
+      console.error('download vtt failed:', err);
+      // 兜底：失败时内联打开
+      window.open(lastSubtitleUrl, '_blank', 'noopener');
+    }
+  });
+
   // 自动播放兜底：用户首次点击页面时尝试播放
   document.addEventListener('click', () => els.player.play().catch(()=>{}), { once: true });
+
+  // 初始清理一次字幕下载状态
+  clearSubtitleDownload();
 </script>
 </body>
 </html>
