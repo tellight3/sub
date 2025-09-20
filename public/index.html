@@ -130,6 +130,50 @@
         || null;
   }
 
+  // === 本地持久化（jobId + 浏览器轻指纹）===
+  const LS_KEY_LAST = 'mmx:lastJob';
+  
+  // 简单 hash（djb2）把长字符串压短
+  function hashString(s) {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+
+  // 轻指纹：UA / 语言 / 时区 / 平台 / DPR / 屏幕尺寸 / （可选）WebGL渲染信息
+  function getBrowserFingerprint() {
+    const ua = navigator.userAgent || '';
+    const lang = (navigator.languages && navigator.languages.join(',')) || navigator.language || '';
+    const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || '';
+    const plat = navigator.platform || '';
+    const dpr = String(window.devicePixelRatio || 1);
+    const scr = (window.screen && `${screen.width}x${screen.height}@${screen.colorDepth||24}`) || '';
+    let gl = '';
+    try {
+      const c = document.createElement('canvas');
+      const glctx = c.getContext('webgl') || c.getContext('experimental-webgl');
+      if (glctx) {
+        const dbg = glctx.getExtension('WEBGL_debug_renderer_info');
+        const ven = dbg ? glctx.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : '';
+        const ren = dbg ? glctx.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '';
+        gl = `${ven}|${ren}`;
+      }
+    } catch {}
+    return hashString([ua, lang, tz, plat, dpr, scr, gl].join('|'));
+  }
+
+  function saveLastJob(jobId) {
+    try {
+      const fp = getBrowserFingerprint();
+      localStorage.setItem(LS_KEY_LAST, JSON.stringify({ jobId, fp, createdAt: Date.now() }));
+    } catch {}
+  }
+  
+  function clearLastJob() {
+    try { localStorage.removeItem(LS_KEY_LAST); } catch {}
+  }
+  
+  
   // ===== HLS 播放（可选）=====
   function setupHls(m3u8Url) {
     const video = els.player;
@@ -362,6 +406,7 @@
     if (!url) return alert('请填写视频链接');
 
     clearSubtitleDownload(); // 新任务前清理旧状态
+    clearLastJob(); // 新任务前清掉上一次的 { jobId, fp }
 
     const res = await fetch(`${API_BASE}/api/jobs`, {
       method: 'POST',
@@ -373,7 +418,9 @@
 
     const jobId = data.jobId;
     els.jobId.value = jobId;
+    saveLastJob(jobId); // 保存 { jobId, fp } 到 localStorage
 
+    
     const i = (data && data.probe && data.probe.info) || {};
     lastTitle = sanitizeFilename(i.title || titleFromUrl(url) || 'video');
 
@@ -464,6 +511,34 @@
   // 自动播放兜底：用户首次点击页面时尝试播放
   document.addEventListener('click', () => els.player.play().catch(()=>{}), { once: true });
 
+  // 页面加载时尝试恢复上次任务
+  document.addEventListener('DOMContentLoaded', async () => {
+    const last = localStorage.getItem('mmx:lastJob');
+    if (!last) return;
+  
+    try {
+      const { jobId, fp } = JSON.parse(last);
+      els.jobId.value = jobId;
+  
+      const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setStatus(data);
+  
+      if (data.status === 'finished' || data.status === 'PUBLISHED') {
+        const pb = data.result && data.result.playback || {};
+        const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || (data.result && data.result.path);
+        if (finalUrl) switchSourceKeepPosition(finalUrl);
+        const subUrl = pickSubtitleUrl(data);
+        if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+      } else {
+        subscribeJob(jobId);
+      }
+    } catch (e) {
+      console.error('恢复任务失败:', e);
+    }
+  });
+  
   // 初始清理一次字幕下载状态
   clearSubtitleDownload();
 </script>
