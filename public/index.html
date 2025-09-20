@@ -263,9 +263,10 @@
 
     es.onmessage = (ev) => {
       let msg; try { msg = JSON.parse(ev.data); } catch { return; }
+      if (msg.type === 'heartbeat') return;
       setStatus(msg);
       
-      if (msg.type === 'heartbeat') return;
+
 
       if (msg.type === 'snapshot') {
         lastSnapshot = msg;
