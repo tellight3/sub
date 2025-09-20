@@ -511,28 +511,60 @@
   // 自动播放兜底：用户首次点击页面时尝试播放
   document.addEventListener('click', () => els.player.play().catch(()=>{}), { once: true });
 
-  // 页面加载时尝试恢复上次任务
+  // 页面加载时尝试恢复上次任务（任何状态）
   document.addEventListener('DOMContentLoaded', async () => {
-    const last = localStorage.getItem('mmx:lastJob');
-    if (!last) return;
+    const raw = localStorage.getItem('mmx:lastJob');
+    if (!raw) return;
+  
+    let last;
+    try { last = JSON.parse(raw); } catch { return; }
+    const jobId = last?.jobId;
+    if (!jobId) return;
+  
+    els.jobId.value = jobId;
   
     try {
-      const { jobId, fp } = JSON.parse(last);
-      els.jobId.value = jobId;
-  
       const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
-      if (!res.ok) return;
+      if (!res.ok) return; // 不清理，用户仍可手动查询
       const data = await res.json();
       setStatus(data);
   
-      if (data.status === 'finished' || data.status === 'PUBLISHED') {
-        const pb = data.result && data.result.playback || {};
-        const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || (data.result && data.result.path);
-        if (finalUrl) switchSourceKeepPosition(finalUrl);
-        const subUrl = pickSubtitleUrl(data);
-        if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
-      } else {
-        subscribeJob(jobId);
+      const pb = data.result?.playback || {};
+      const subUrl = data?.result?.playback?.subtitleUrl
+        || data?.result?.subtitle?.url
+        || data?.subtitleUrl
+        || data?.subtitle?.url
+        || null;
+
+      // 状态分流
+      switch (String(data.status || '').toLowerCase()) {
+        case 'finished':
+        case 'published': {
+          const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || data.result?.path;
+          if (finalUrl) switchSourceKeepPosition(finalUrl);
+          if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+          // 下载按钮指向带字幕版本（如有）
+          if (pb.withSubUrl) {
+            els.downloadMp4.href = absUrl(pb.withSubUrl);
+            els.downloadMp4.setAttribute('download', `${sanitizeFilename(data.info?.title || lastTitle)}.mp4`);
+            els.downloadMp4.target = '_blank';
+          }
+          // 不清理 localStorage：你之前说只在新任务时清理
+          break;
+        }
+  
+        case 'failed':
+        case 'canceled': {
+          // 展示失败/取消状态即可；保留 jobId，用户可查看或重试
+          // 这里不自动订阅
+          break;
+        }
+
+        default: {
+          // 任何运行中/等待中的状态：直接恢复订阅
+          subscribeJob(jobId);
+          break;
+        }
       }
     } catch (e) {
       console.error('恢复任务失败:', e);
