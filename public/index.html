@@ -140,61 +140,6 @@
     return (h >>> 0).toString(16).padStart(8, '0');
   }
 
-  // —— 从任何 payload 里尽量抽取播放/字幕链接
-  function extractMedia(payload) {
-    const pb = payload?.result?.playback || {};
-    const url =
-      payload?.url ||                      // "play" 事件
-      pb.withSubUrl || pb.videoUrl || pb.originalUrl ||
-      payload?.result?.path ||             // 兜底：后端保存的文件路径
-      null;
-  
-    const subUrl =
-      pb.subtitleUrl ||
-      payload?.result?.subtitle?.url ||
-      payload?.subtitleUrl ||
-      payload?.subtitle?.url ||
-      null;
-  
-    return { url, subUrl };
-  }
-
-  // —— 只要拿到播放链接就切源+自动播；有字幕就挂；顺手把“下载 MP4”指向当前 src
-  function playIfPossible(payload) {
-    const { url, subUrl } = extractMedia(payload);
-    if (!url) return;
-  
-    // 切源（保留进度）
-    switchSourceKeepPosition(url);
-  
-    // 立刻尝试播放 + 就绪后再补一次
-    const v = els.player;
-    v.muted = true;
-    const tryPlay = () => v.play().catch(()=>{});
-    tryPlay();
-    const once = () => { v.removeEventListener('canplay', once); v.removeEventListener('loadeddata', once); tryPlay(); };
-    v.addEventListener('canplay', once, { once: true });
-    v.addEventListener('loadeddata', once, { once: true });
-  
-    // 挂字幕 & 启用“下载字幕”
-    if (subUrl) {
-      addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
-      setSubtitleDownload(subUrl);
-    }
-
-    // 顺手把“下载 MP4”指向当前在播资源（如果是 mp4）
-    setTimeout(() => {
-      const src = els.player.currentSrc || absUrl(url);
-      if (src && /\.mp4(\?|$)/i.test(src)) {
-        els.downloadMp4.href = src;
-        els.downloadMp4.setAttribute('download', `${sanitizeFilename(lastTitle)}.mp4`);
-        els.downloadMp4.target = '_blank';
-      }
-    }, 0);
-  }
-
-  
-
   // 轻指纹：UA / 语言 / 时区 / 平台 / DPR / 屏幕尺寸 / （可选）WebGL渲染信息
   function getBrowserFingerprint() {
     const ua = navigator.userAgent || '';
@@ -318,29 +263,61 @@
       setStatus(msg);
 
       // 1) 首帧快照
-
       if (msg.type === 'snapshot') {
         lastSnapshot = msg;
         const t = (msg.info && (msg.info.title || (msg.info.details && msg.info.details.title))) || lastTitle;
         if (t) lastTitle = sanitizeFilename(t);
-      
-        // ✅ 可播即播：不再区分状态
-        playIfPossible(msg);
+
+        if (msg.status === 'finished' || msg.status === 'PUBLISHED') {
+          const pb = msg.result && msg.result.playback || {};
+          const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || (msg.result && msg.result.path);
+          if (finalUrl) switchSourceKeepPosition(finalUrl);
+          const subUrl = pickSubtitleUrl(msg);
+          if (subUrl) {
+            addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+            setSubtitleDownload(subUrl);
+          }
+        }
         return;
       }
 
       // 2) 中途播放信号
-      if (msg.type === 'play') {
-        playIfPossible(msg);
+      if (msg.type === 'play' && msg.url) {
+        switchSourceKeepPosition(msg.url);
+        const subUrl = pickSubtitleUrl(msg);
+        if (subUrl) {
+          addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+          setSubtitleDownload(subUrl); // 播放时就启用下载
+        }
         return;
       }
 
       // 3) 最终信号
-      if (msg.type === 'finished') {
-        playIfPossible(msg);    // 会切到最终资源并自动播、挂字幕
-        if (es) { es.close(); es = null; }
-        return;
-      }
+      if (msg.type === 'finished' && msg.result) {
+        const pb = msg.result.playback || {};
+        const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || msg.result.path;
+        if (finalUrl) switchSourceKeepPosition(finalUrl);
+      
+        // ✅ 下载按钮：优先使用带字幕的最终文件
+        if (pb.withSubUrl) {
+          els.downloadMp4.href = absUrl(pb.withSubUrl);
+          els.downloadMp4.setAttribute('download', `${lastTitle}.mp4`);
+          els.downloadMp4.target = '_blank';
+        } else {
+          // 兜底逻辑：沿用你之前的无字幕下载方式
+          lastObjectPath = objectPathFromResultPath(msg.result.path);
+          lastMp4Url = toFileUrlFromResult(msg.result) || (lastObjectPath ? `${API_BASE}/files/${lastObjectPath}` : null);
+          if (lastObjectPath) {
+            const dl = `${API_BASE}/download/${encodeURIComponent(lastObjectPath)}?filename=${encodeURIComponent(lastTitle)}.mp4`;
+            els.downloadMp4.href = dl;
+            els.downloadMp4.removeAttribute('download');
+            els.downloadMp4.target = '_self';
+          } else if (lastMp4Url) {
+            els.downloadMp4.href = lastMp4Url;
+            els.downloadMp4.setAttribute('download', `${lastTitle}.mp4`);
+            els.downloadMp4.target = '_blank';
+          }
+        }
       
         // 挂字幕 + 启用字幕下载
         const subUrl = pickSubtitleUrl(msg);
@@ -386,8 +363,15 @@
       // }
 
       // 4) 兼容：published 当作“play”处理
-      if (msg.type === 'published') {
-        playIfPossible(msg);
+      if (msg.type === 'published' && msg.result) {
+        const pb = msg.result.playback || {};
+        const midUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl;
+        if (midUrl) switchSourceKeepPosition(midUrl);
+        const subUrl = pickSubtitleUrl(msg);
+        if (subUrl) {
+          addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+          setSubtitleDownload(subUrl);
+        }
         return;
       }
 
@@ -465,8 +449,16 @@
     const data = await res.json();
     setStatus(data);
 
-    setStatus(data);
-    playIfPossible(data); // ✅ 一句话
+    if (data.status === 'finished' || data.status === 'PUBLISHED') {
+      const pb = data.result && data.result.playback || {};
+      const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || (data.result && data.result.path);
+      if (finalUrl) switchSourceKeepPosition(finalUrl);
+      const subUrl = pickSubtitleUrl(data);
+      if (subUrl) {
+        addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+        setSubtitleDownload(subUrl); // 查询已完成时也启用下载
+      }
+    }
   }
 
   // ===== 事件绑定 =====
@@ -544,14 +536,36 @@
         || data?.subtitle?.url
         || null;
 
-      setStatus(data);
-      playIfPossible(data);     // ✅ 一句话：能播就播，有字幕就挂
-      // （可选）仍想看进度的话，再决定要不要订阅：
-      const st = String(data.status || '').toLowerCase();
-      if (!['finished','published','failed','canceled'].includes(st)) {
-        subscribeJob(jobId);    // 想要继续看进度就保留；不想看就删掉
-      }
+      // 状态分流
+      switch (String(data.status || '').toLowerCase()) {
+        case 'finished':
+        case 'published': {
+          const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || data.result?.path;
+          if (finalUrl) switchSourceKeepPosition(finalUrl);
+          if (subUrl) addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true });
+          // 下载按钮指向带字幕版本（如有）
+          if (pb.withSubUrl) {
+            els.downloadMp4.href = absUrl(pb.withSubUrl);
+            els.downloadMp4.setAttribute('download', `${sanitizeFilename(data.info?.title || lastTitle)}.mp4`);
+            els.downloadMp4.target = '_blank';
+          }
+          // 不清理 localStorage：你之前说只在新任务时清理
+          break;
+        }
+  
+        case 'failed':
+        case 'canceled': {
+          // 展示失败/取消状态即可；保留 jobId，用户可查看或重试
+          // 这里不自动订阅
+          break;
+        }
 
+        default: {
+          // 任何运行中/等待中的状态：直接恢复订阅
+          subscribeJob(jobId);
+          break;
+        }
+      }
     } catch (e) {
       console.error('恢复任务失败:', e);
     }
