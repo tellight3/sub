@@ -245,19 +245,44 @@
       try { msg = JSON.parse(ev.data); } catch { return; }
       setStatus(msg);
 
-      // 1) 快照
+
+      // 1) 首帧快照
       if (msg.type === 'snapshot') {
         lastSnapshot = msg;
         const t = (msg.info && (msg.info.title || (msg.info.details && msg.info.details.title))) || lastTitle;
         if (t) lastTitle = sanitizeFilename(t);
-
+      
+        const pb = (msg.result && msg.result.playback) || {};
+        const maybePlayable = pb.withSubUrl || pb.videoUrl || pb.originalUrl || (msg.result && msg.result.path);
+      
+        // A) 原逻辑：已完成/已发布 → 直接播 + 挂字幕
         if (msg.status === 'finished' || msg.status === 'PUBLISHED') {
-          const pb = msg.result && msg.result.playback || {};
-          const finalUrl = pb.withSubUrl || pb.videoUrl || pb.originalUrl || (msg.result && msg.result.path);
+          const finalUrl = maybePlayable;
           if (finalUrl) { switchSourceKeepPosition(finalUrl); autoPlay(); }
           const subUrl = pickSubtitleUrl(msg);
           if (subUrl) { addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true }); setSubtitleDownload(subUrl); }
+          return;
         }
+
+        // ✅ B) 新增兜底：下载已成功但未识别（如 WAITING_WHISPER 等），且手里已有可播 MP4
+        // 触发条件：状态不是 finished/published，但有 mp4 链接，或 message 提示“下载成功”
+        if (maybePlayable && /\.mp4(\?|$)/i.test(maybePlayable)) {
+          // 可选：进一步限定，只在“下载成功/已下载/WAITING_*”这类状态自动播
+          const s = String(msg.status || '').toUpperCase();
+          const okToAutoPlayEarly =
+            /WAITING|DOWNLOADED|READY|SUCCESS/i.test(msg.message || '') ||  // 例如 "下载成功"
+            s.includes('WAITING') || s.includes('DOWN') || s.includes('READY');
+      
+          if (okToAutoPlayEarly) {
+            switchSourceKeepPosition(maybePlayable);
+            autoPlay();
+            // 可能此时还没有字幕，但如果快照里带了，也顺便挂上
+            const subUrl = pickSubtitleUrl(msg);
+            if (subUrl) { addVttTrackToVideo(els.player, subUrl, { lang: 'zh', label: '中文', makeDefault: true }); setSubtitleDownload(subUrl); }
+            return;
+          }
+        }
+      
         return;
       }
 
