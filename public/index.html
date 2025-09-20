@@ -77,7 +77,13 @@
   let lastSubtitleUrl = null;
 
   // ===== 工具函数 =====
-  function absUrl(u){ return u && /^https?:\/\//i.test(u) ? u : `${API_BASE}${u || ''}`; }
+  // function absUrl(u){ return u && /^https?:\/\//i.test(u) ? u : `${API_BASE}${u || ''}`; }
+  function absUrl(u) {
+    if (!u) return null;
+    if (/^https?:\/\//i.test(u)) return u;     // 已是绝对 URL
+    const path = String(u).startsWith('/') ? u : '/' + String(u);
+    return `${API_BASE}${path}`;
+  }
   function sanitizeFilename(n){ return (n ? String(n) : 'video').trim().replace(/[\\/:*?"<>|]/g, '_'); }
   function fileNameFromPath(p){ if(!p) return null; const a=String(p).replace(/\\/g,'/').split('/'); return a[a.length-1]||null; }
   function titleFromUrl(u){
@@ -148,21 +154,44 @@
   // ===== 只要能播就播：抽取链接 + 切源 + 自动播 + 挂字幕 + 设置下载 =====
   function extractMedia(payload) {
     const pb = payload?.result?.playback || {};
-    const url =
+  
+    // 尽量拿到一个“可播/可下”的 URL
+    let url =
       payload?.url ||                      // play 事件
       pb.withSubUrl || pb.videoUrl || pb.originalUrl ||
-      payload?.result?.path ||             // 兜底：后端保存的文件路径
+      payload?.result?.path ||             // 兜底：后端内部路径 data/...
       null;
-
+  
+    // 如果是内部路径 "data/..."，转成 /download/<objectPath>?filename=<标题>.mp4
+    if (url && !/^https?:\/\//i.test(url)) {
+      if (/^data\//i.test(url)) {
+        const objPath = objectPathFromResultPath(url); // 你已有的工具函数
+        const title = sanitizeFilename(
+          pb.filename ||
+          payload?.info?.title ||
+          payload?.result?.details?.title ||
+          payload?.result?.details?.avid ||
+          payload?.result?.avid ||
+          'video'
+        );
+        url = `/download/${objPath}?filename=${encodeURIComponent(title)}.mp4`;
+      } else if (!url.startsWith('/')) {
+        // 不是 http(s)，也不是 data/，就确保有前导斜杠
+        url = '/' + url;
+      }
+    }
+  
+    // 字幕优先取 playback.subtitleUrl
     const subUrl =
       pb.subtitleUrl ||
       payload?.result?.subtitle?.url ||
       payload?.subtitleUrl ||
       payload?.subtitle?.url ||
       null;
-
+  
     return { url, subUrl };
   }
+    
   function playIfPossible(payload) {
     const { url, subUrl } = extractMedia(payload);
     if (!url) return;
