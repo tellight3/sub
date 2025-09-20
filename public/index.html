@@ -106,6 +106,28 @@
   }
   function setStatus(obj){ els.statusBox.textContent = JSON.stringify(obj, null, 2); }
 
+  // 从 URL 提取“人类可读”的显示名：优先 ?filename=，否则用路径名，并做 URL 解码
+  function displayNameFromUrl(u) {
+    if (!u) return null;
+    try {
+      const abs = absUrl(u);
+      const url = new URL(abs);
+      // 优先 query 里的 filename
+      const fromQuery = url.searchParams.get('filename');
+      if (fromQuery) return decodeURIComponent(fromQuery);
+  
+      // 否则取路径末尾的文件名
+      const base = fileNameFromPath(url.pathname);
+      return base ? decodeURIComponent(base) : null;
+    } catch {
+      // 非法 URL 或相对路径的兜底：尝试简单处理
+      const qIdx = String(u).indexOf('?');
+      const pathOnly = qIdx >= 0 ? String(u).slice(0, qIdx) : String(u);
+      const base = fileNameFromPath(pathOnly);
+      try { return base ? decodeURIComponent(base) : null; } catch { return base || null; }
+    }
+  }
+  
   // === 本地持久化（jobId + 浏览器轻指纹）===
   const LS_KEY_LAST = 'mmx:lastJob';
   function hashString(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h)^s.charCodeAt(i); return (h>>>0).toString(16).padStart(8,'0'); }
@@ -150,7 +172,7 @@
     };
     v.addEventListener('loadedmetadata', onReady);
 
-    els.nowPlaying.textContent = `正在播放：${fileNameFromPath(nextUrl) || 'video.mp4'}`;
+    els.nowPlaying.textContent = `正在播放：${displayNameFromUrl(nextUrl) || 'video.mp4'}`;
   }
 
   // ===== 只要能播就播：抽取链接 + 切源 + 自动播 + 挂字幕 + 设置下载 =====
