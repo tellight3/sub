@@ -84,6 +84,8 @@
     const path = String(u).startsWith('/') ? u : '/' + String(u);
     return `${API_BASE}${path}`;
   }
+
+  
   function sanitizeFilename(n){ return (n ? String(n) : 'video').trim().replace(/[\\/:*?"<>|]/g, '_'); }
   function fileNameFromPath(p){ if(!p) return null; const a=String(p).replace(/\\/g,'/').split('/'); return a[a.length-1]||null; }
   function titleFromUrl(u){
@@ -155,13 +157,14 @@
   function extractMedia(payload) {
     const pb = payload?.result?.playback || {};
   
-    // 尽量拿到一个“可播/可下”的 URL
+    // ✅ 播放 / 下载优先用 videoUrl，其次 originalUrl；再兜底 play 事件的 url / 本地路径
     let url =
-      payload?.url ||                      // play 事件
-      pb.withSubUrl || pb.videoUrl || pb.originalUrl ||
-      payload?.result?.path ||             // 兜底：后端内部路径 data/...
+      pb.videoUrl ||
+      pb.originalUrl ||
+      payload?.url ||                      // play 事件可能直接给
+      payload?.result?.path ||             // 兜底：内部路径 data/...
       null;
-  
+
     // 如果是内部路径 "data/..."，转成 /download/<objectPath>?filename=<标题>.mp4
     if (url && !/^https?:\/\//i.test(url)) {
       if (/^data\//i.test(url)) {
@@ -176,12 +179,11 @@
         );
         url = `/download/${objPath}?filename=${encodeURIComponent(title)}.mp4`;
       } else if (!url.startsWith('/')) {
-        // 不是 http(s)，也不是 data/，就确保有前导斜杠
-        url = '/' + url;
+        url = '/' + url; // 保证有前导斜杠
       }
     }
-  
-    // 字幕优先取 playback.subtitleUrl
+
+    // 字幕仍按之前规则取（与播放/下载优先级无关）
     const subUrl =
       pb.subtitleUrl ||
       payload?.result?.subtitle?.url ||
