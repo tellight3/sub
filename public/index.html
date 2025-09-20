@@ -420,5 +420,10 @@
 
   clearSubtitleDownload(); // 初始一次
 </script>
+  <div id="buildInfo" style="text-align:center; color:#999; font-size:12px; margin-top:20px;"></div>
+  <script>
+    document.getElementById('buildInfo').textContent =
+      '最后修改时间：' + document.lastModified;
+  </script>  
 </body>
 </html>
