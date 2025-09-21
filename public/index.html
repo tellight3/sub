@@ -47,22 +47,34 @@
       <div id="nowPlaying" class="muted"></div>
     </div>
     <!-- 统一计费弹窗 -->
-    <div id="quoteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);">
-      <div style="max-width:420px;margin:10% auto;background:#121a2b;border:1px solid #223;border-radius:12px;padding:16px">
+    <div id="quoteModal"
+         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999;">
+      <div style="max-width:420px; margin:10% auto; background:#121a2b;
+                  border:1px solid #223; border-radius:12px; padding:16px">
         <h3 style="margin:0 0 8px">确认下载</h3>
+    
         <div id="qTitle" class="muted" style="margin-bottom:8px"></div>
-        <div class="row" style="margin-bottom:8px">
+    
+        <div class="row" style="margin-bottom:4px">
           <label style="min-width:80px">兑换码</label>
           <input id="qCode" placeholder="可留空" style="flex:1">
         </div>
-        <div class="muted" style="margin-bottom:8px"> 提示：输入 <b>12345678</b> 可享受 100% 折扣（免费）</div>
-        <div class="row" style="justify-content:flex-end;margin-top:12px">
+        <div class="muted" style="margin-bottom:8px">
+          提示：输入 <b>12345678</b> 可享受 100% 折扣（免费）
+        </div>
+    
+        <!-- 试算结果区域（必须保留，JS 会写入这里） -->
+        <div id="qBreak" class="mono"
+             style="white-space:pre-line; background:#0f1524; border:1px solid #334154;
+                    border-radius:8px; padding:8px; min-height:3em; margin-top:6px;">
+        </div>
+    
+        <div class="row" style="justify-content:flex-end; margin-top:12px">
           <button id="qCancel">取消</button>
           <button id="qOk">开始下载</button>
         </div>
       </div>
     </div>
-  </div>
 
 <script>
   // ===== 后端 API 域名 =====
