@@ -46,6 +46,22 @@
       </div>
       <div id="nowPlaying" class="muted"></div>
     </div>
+    <!-- 统一计费弹窗 -->
+    <div id="quoteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);">
+      <div style="max-width:420px;margin:10% auto;background:#121a2b;border:1px solid #223;border-radius:12px;padding:16px">
+        <h3 style="margin:0 0 8px">确认下载</h3>
+        <div id="qTitle" class="muted" style="margin-bottom:8px"></div>
+        <div class="row" style="margin-bottom:8px">
+          <label style="min-width:80px">兑换码</label>
+          <input id="qCode" placeholder="可留空" style="flex:1">
+        </div>
+        <div id="qBreak" class="mono" style="white-space:pre-line; background:#0f1524;border:1px solid #334154;border-radius:8px;padding:8px"></div>
+        <div class="row" style="justify-content:flex-end;margin-top:12px">
+          <button id="qCancel">取消</button>
+          <button id="qOk">开始下载</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -356,11 +372,13 @@
 
     const sizeHuman = i.size_human || '未知';
     const durationHuman = i.duration_str || '未知';
-    const ok = window.confirm(`即将下载：\n\n标题：${lastTitle}\n大小：${sizeHuman}\n时长：${durationHuman}\n\n是否开始下载？`);
-    if (!ok) return;
-
-    // ✅ 改动点：这里不再直接 fetch /confirm，而是调用封装好的 confirmJob
-    await confirmJob(jobId, i.duration_seconds || 0);
+    // 打开统一计费弹窗（在里面完成试算与确认）
+    openQuoteModal({
+      jobId,
+      durationSeconds: Number(i.duration_seconds || 0),
+      title: lastTitle
+    });
+    // 注意：不在这里 confirm，不再弹第二/第三个对话框
   }
 
   // ===== 查询一次任务（同样可播即播）=====
@@ -414,6 +432,86 @@
     subscribeJob(jobId);
   }
 
+  // ===== 统一计费弹窗 =====
+  const quoteModal = document.getElementById('quoteModal');
+  const qTitle  = document.getElementById('qTitle');
+  const qCode   = document.getElementById('qCode');
+  const qBreak  = document.getElementById('qBreak');
+  const qCancel = document.getElementById('qCancel');
+  const qOk     = document.getElementById('qOk');
+
+  let _q_ctx = { jobId: null, durationSeconds: 0, title: 'video' };
+  
+  function loadSavedCode(){ return localStorage.getItem('PROMO_CODE') || ''; }
+  function saveSavedCode(v){ localStorage.setItem('PROMO_CODE', v || ''); }
+  
+  function openQuoteModal({jobId, durationSeconds, title}) {
+    _q_ctx = { jobId, durationSeconds, title };
+    qTitle.textContent = `标题：${title}    时长：${Math.round(durationSeconds||0)}s`;
+    qCode.value = loadSavedCode();
+    qBreak.textContent = '正在试算…';
+    quoteModal.style.display = 'block';
+    // 初次试算
+    doQuote();
+    // 聚焦输入
+    setTimeout(()=>qCode.focus(), 0);
+  }
+  
+  function closeQuoteModal() {
+    quoteModal.style.display = 'none';
+  }
+
+  async function doQuote() {
+    const code = (qCode.value||'').trim();
+    try {
+      const resp = await fetch(`${API_BASE}/api/pricing/quote`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ durationSeconds: _q_ctx.durationSeconds, code })
+      });
+      const d = await resp.json();
+      if (!resp.ok || !d.ok) throw new Error(d.message || 'quote failed');
+  
+      const lines = [
+        `计费： ${d.units} ${d.unitType} × $${(d.unitRateCents/100).toFixed(2)} = $${(d.subtotalCents/100).toFixed(2)}`,
+        `折扣： $${( (d.discounts?.reduce((s,x)=>s+(x.amount||0),0) || 0) /100).toFixed(2)}`,
+        `应付： $${(d.totalCents/100).toFixed(2)} ${d.currency}`,
+        code ? `当前兑换码： ${code}` : `未使用兑换码`
+      ];
+      qBreak.textContent = lines.join('\n');
+    } catch (e) {
+      qBreak.textContent = '试算失败：' + (e.message || e);
+    }
+  }
+
+  // 输入时自动试算（加点防抖）
+  let _q_timer=null;
+  qCode.addEventListener('input', ()=>{
+    clearTimeout(_q_timer);
+    _q_timer = setTimeout(doQuote, 300);
+  });
+
+  qCancel.onclick = closeQuoteModal;
+  
+  qOk.onclick = async () => {
+    const code = (qCode.value||'').trim();
+    saveSavedCode(code);              // 记住兑换码
+    // 直接确认并开始下载
+    const url = `${API_BASE}/api/jobs/${_q_ctx.jobId}/confirm?code=${encodeURIComponent(code)}`;
+    const resp = await fetch(url, { method: 'POST' });
+    const d = await resp.json();
+    if (!resp.ok || !d.ok) {
+      alert(d.error || d.message || '无法开始下载');
+      return;
+    }
+    closeQuoteModal();
+    // 订阅 SSE
+    subscribeJob(_q_ctx.jobId);
+  };
+
+
+  
+  
   // ===== 事件绑定 =====
   els.createByUrlBtn.onclick = createJobByUrl;
   els.queryBtn.onclick = queryJob;
