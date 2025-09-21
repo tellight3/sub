@@ -359,11 +359,8 @@
     const ok = window.confirm(`即将下载：\n\n标题：${lastTitle}\n大小：${sizeHuman}\n时长：${durationHuman}\n\n是否开始下载？`);
     if (!ok) return;
 
-    const res2 = await fetch(`${API_BASE}/api/jobs/${jobId}/confirm`, { method: 'POST' });
-    const data2 = await res2.json();
-    if (!res2.ok || !data2.ok) return alert(data2.error || data2.message || '无法开始下载');
-
-    subscribeJob(jobId);
+    // ✅ 改动点：这里不再直接 fetch /confirm，而是调用封装好的 confirmJob
+    await confirmJob(jobId, i.duration_seconds || 0);
   }
 
   // ===== 查询一次任务（同样可播即播）=====
@@ -374,6 +371,47 @@
     const data = await res.json();
     setStatus(data);
     playIfPossible(data);
+  }
+  // ===== 计费相关 =====
+  const PROMO_KEY = 'PROMO_CODE';
+
+  function loadCode(){ return localStorage.getItem(PROMO_KEY) || ''; }
+  function saveCode(v){ if (v) localStorage.setItem(PROMO_KEY, v); }
+  
+  // （可选）先问后端报价，仅展示（不落库）
+  async function showQuote(durationSeconds){
+    const code = loadCode();
+    const resp = await fetch(`${API_BASE}/api/pricing/quote`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ durationSeconds, code })
+    });
+    const q = await resp.json();
+    if (!resp.ok || !q.ok) return null;
+    const msg = `计费：${q.units} ${q.unitType} × $${(q.unitRateCents/100).toFixed(2)} = $${(q.subtotalCents/100).toFixed(2)}
+  折扣：$${(q.discounts?.reduce((s,d)=>s+(d.amount||0),0)/100).toFixed(2)}
+  应付：$${(q.totalCents/100).toFixed(2)}
+  当前兑换码：${code||'（无）'}`;
+    alert(msg);
+    return q;
+  }
+  
+  async function confirmJob(jobId, durationSeconds){
+    // 可选：先看看报价
+    await showQuote(durationSeconds);
+  
+    // 让用户可修改/输入兑换码（默认带上次的）
+    const cur = loadCode();
+    const code = window.prompt('如需使用兑换码，请输入（留空则不使用）：', cur) || '';
+    if (code !== cur) saveCode(code);
+  
+    const url = `${API_BASE}/api/jobs/${jobId}/confirm?code=${encodeURIComponent(code)}`;
+    const res = await fetch(url, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok || !data.ok){
+      alert(data.error || data.message || '无法开始下载');
+      return;
+    }
+    subscribeJob(jobId);
   }
 
   // ===== 事件绑定 =====
