@@ -353,11 +353,14 @@
         return;
       }
 
-      if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') { 
-        const url = msg.result?.subtitle?.url;
-        if (url) attachTrack(url);                
+      if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') {
+        let url = msg?.result?.subtitle?.url;
+        if (url && url.startsWith('/')) {
+          url = window.location.origin + url;   // 拼接域名
+        }
+        if (url) attachTrack(url);
         return;
-}
+      }
     
       // ✅ 翻译完成（比如中文），用译文替换原字幕
       if (msg.type === 'translated') {
