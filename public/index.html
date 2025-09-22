@@ -365,7 +365,9 @@
       if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') {
         const sub = msg?.result?.subtitle;
         const url = sub?.url;
-        const name = sub?.filename || 'subtitle.vtt';   // 后端若带了 filename，直接用
+        const base = (msg?.result?.details?.title || 'subtitle').trim();
+        const name = `${base}.vtt`;   // 用 title 作为文件名
+      
         if (url) {
           attachTrack(url);
           const $btn = document.getElementById('btnSubOrig');
@@ -380,7 +382,9 @@
       if (msg.type === 'translated') {
         const zh = msg?.result?.subtitle_translated?.zh || msg?.result?.subtitle_translated?.['zh-CN'];
         const url = zh?.url;
-        const name = zh?.filename || 'subtitle.zh.vtt'; // 直接用消息里的文件名
+        const base = (msg?.result?.details?.title || 'subtitle').trim();
+        const name = `${base}.zh.vtt`;   // 翻译后的字幕文件名
+      
         if (url) {
           attachTrack(url, /*replace=*/true);
           const $btn = document.getElementById('btnSubTrans');
