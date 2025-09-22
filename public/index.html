@@ -361,26 +361,33 @@
         els.statusBox.textContent = (summary + '\n' + els.statusBox.textContent);
         return;
       }
-
-      // ✅ 原始字幕就绪
+      // 原始字幕就绪
       if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') {
-        const url = msg?.result?.playback?.subtitleUrl || msg?.result?.subtitle?.url;
+        const sub = msg?.result?.subtitle;
+        const url = sub?.url;
+        const name = sub?.filename || 'subtitle.vtt';   // 后端若带了 filename，直接用
         if (url) {
           attachTrack(url);
-          setBtn(document.getElementById('btnSubOrig'), url, 'subtitle-original.vtt');
+          const $btn = document.getElementById('btnSubOrig');
+          $btn.href = /^https?:\/\//i.test(url) ? url : (API_BASE + (url.startsWith('/') ? url : '/' + url));
+          $btn.setAttribute('download', name);
+          $btn.classList.remove('disabled');
+          $btn.removeAttribute('disabled');
         }
         return;
       }
-
-      // ✅ 翻译完成
+      // 翻译完成：替换播放器字幕 + 点亮“翻译字幕”
       if (msg.type === 'translated') {
-        const url =
-          msg?.result?.subtitle_translated?.zh?.url ||
-          msg?.result?.subtitle_translated?.['zh-CN']?.url ||
-          msg?.result?.playback?.subtitleUrl;
+        const zh = msg?.result?.subtitle_translated?.zh || msg?.result?.subtitle_translated?.['zh-CN'];
+        const url = zh?.url;
+        const name = zh?.filename || 'subtitle.zh.vtt'; // 直接用消息里的文件名
         if (url) {
           attachTrack(url, /*replace=*/true);
-          setBtn(document.getElementById('btnSubTrans'), url, 'subtitle-zh.vtt');
+          const $btn = document.getElementById('btnSubTrans');
+          $btn.href = /^https?:\/\//i.test(url) ? url : (API_BASE + (url.startsWith('/') ? url : '/' + url));
+          $btn.setAttribute('download', name);
+          $btn.classList.remove('disabled');
+          $btn.removeAttribute('disabled');
         }
         return;
       }
@@ -588,9 +595,9 @@
 </script>
 
   <div id="buildInfo" style="text-align:center; color:#999; font-size:12px; margin-top:20px;"></div>
-  <script>
+<!--   <script>
     document.getElementById('buildInfo').textContent =
       '最后修改时间：' + document.lastModified;
-  </script>
+  </script> -->
 </body>
 </html>
