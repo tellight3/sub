@@ -42,8 +42,13 @@
       <div class="row">
         <a id="playM3U8" class="btn" href="#" target="_blank" rel="noopener">用 m3u8 播放</a>
         <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener">下载 MP4</a>
-        <a id="downloadVtt" class="btn" href="#" aria-disabled="true">下载字幕</a>
+        <a id="btnSubOrig" class="btn disabled" href="javascript:void(0)" disabled>原始字幕</a>
+        <a id="btnSubTrans" class="btn disabled" href="javascript:void(0)" disabled>翻译字幕</a>
       </div>
+      <style>
+        .btn { padding:6px 10px; border:1px solid #345; border-radius:8px; text-decoration:none; }
+        .btn.disabled { opacity:.5; pointer-events:none; }
+      </style>
       <div id="nowPlaying" class="muted"></div>
     </div>
     <!-- 统一计费弹窗 -->
@@ -303,12 +308,51 @@
     lastSubtitleUrl = null;
     els.downloadVtt.setAttribute('aria-disabled', 'true');
   }
+  
+  function makeAbs(u) {
+    if (!u) return "";
+    return /^https?:\/\//i.test(u) ? u : (window.location.origin + u);
+  }
+  function setBtn($a, url, filename) {
+    if (!$a) return;
+    if (url) {
+      const abs = makeAbs(url);
+      $a.href = abs;
+      if (filename) $a.setAttribute('download', filename);
+      $a.classList.remove('disabled');
+      $a.removeAttribute('disabled');
+    } else {
+      $a.href = 'javascript:void(0)';
+      $a.removeAttribute('download');
+      $a.classList.add('disabled');
+      $a.setAttribute('disabled', 'disabled');
+    }
+  }
 
+  // 建议：封装挂载字幕（replace=true 表示替换已有轨道）
+  function attachTrack(url, replace=false) {
+    const video = document.querySelector('video');
+    if (!video || !url) return;
+    if (replace) {
+      [...video.querySelectorAll('track[kind="subtitles"]')].forEach(t => t.remove());
+    }
+    const track = document.createElement('track');
+    track.kind = 'subtitles';
+    track.label = '字幕';
+    track.srclang = 'auto';
+    track.default = true;
+    track.src = makeAbs(url);
+    video.appendChild(track);
+  }
+
+  
   // ===== SSE 订阅（统一“可播即播”）=====
   function subscribeJob(jobId) {
     if (!jobId) return alert('没有 jobId');
     if (es) es.close();
     es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
+    setBtn(document.getElementById('btnSubOrig'), null);
+    setBtn(document.getElementById('btnSubTrans'), null);
 
     es.onmessage = (ev) => {
       let msg; try { msg = JSON.parse(ev.data); } catch { return; }
@@ -353,25 +397,29 @@
         return;
       }
 
+      // ✅ 原始字幕就绪
       if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') {
-        let url = msg?.result?.subtitle?.url;
-        if (url && url.startsWith('/')) {
-          url = window.location.origin + url;   // 拼接域名
+        const url = msg?.result?.playback?.subtitleUrl || msg?.result?.subtitle?.url;
+        if (url) {
+          attachTrack(url);                               // 先挂原始字幕
+          setBtn(document.getElementById('btnSubOrig'), url, 'subtitle-original.vtt');  // 点亮“原始字幕”
         }
-        if (url) attachTrack(url);
         return;
       }
     
-      // ✅ 翻译完成（比如中文），用译文替换原字幕
+      // ✅ 翻译完成：替换播放器字幕 + 点亮“翻译字幕”
       if (msg.type === 'translated') {
-        // 你的后端是按 target_lang 塞的：result.subtitle_translated[lang].url
-        // 例如中文 key 是 'zh'
         const url =
           msg?.result?.subtitle_translated?.zh?.url ||
-          msg?.result?.subtitle_translated?.["zh-CN"]?.url;
-        if (url) attachTrack(url);
+          msg?.result?.subtitle_translated?.['zh-CN']?.url ||
+          msg?.result?.playback?.subtitleUrl;            // 兜底
+        if (url) {
+          attachTrack(url, /*replace=*/true);
+          setBtn(document.getElementById('btnSubTrans'), url, 'subtitle-zh.vtt');       // 点亮“翻译字幕”
+        }
         return;
       }
+
     };
 
     es.onerror = () => { /* 可选：自动重连 */ };
