@@ -352,11 +352,12 @@
         els.statusBox.textContent = (summary + '\n' + els.statusBox.textContent);
         return;
       }
-      if (msg.type === 'subtitle_ready') {
-        const url = msg?.result?.playback?.subtitleUrl || msg?.result?.subtitle?.url;
-        if (url) attachTrack(url);
+
+      if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') {
+        const url = msg?.result?.playback?.subtitleUrl || msg?.result?.subtitle?.url;   
+        if (url) attachTrack(url);                
         return;
-      }
+}
     
       // ✅ 翻译完成（比如中文），用译文替换原字幕
       if (msg.type === 'translated') {
