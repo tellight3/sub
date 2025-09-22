@@ -352,6 +352,22 @@
         els.statusBox.textContent = (summary + '\n' + els.statusBox.textContent);
         return;
       }
+      if (msg.type === 'subtitle_ready') {
+        const url = msg?.result?.playback?.subtitleUrl || msg?.result?.subtitle?.url;
+        if (url) attachTrack(url);
+        return;
+      }
+    
+      // ✅ 翻译完成（比如中文），用译文替换原字幕
+      if (msg.type === 'translated') {
+        // 你的后端是按 target_lang 塞的：result.subtitle_translated[lang].url
+        // 例如中文 key 是 'zh'
+        const url =
+          msg?.result?.subtitle_translated?.zh?.url ||
+          msg?.result?.subtitle_translated?.["zh-CN"]?.url;
+        if (url) attachTrack(url);
+        return;
+      }
     };
 
     es.onerror = () => { /* 可选：自动重连 */ };
