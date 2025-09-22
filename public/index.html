@@ -353,8 +353,8 @@
         return;
       }
 
-      if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') {
-        const url = msg?.result?.playback?.subtitleUrl || msg?.result?.subtitle?.url;   
+      if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') { 
+        const url = msg.result?.subtitle?.url;
         if (url) attachTrack(url);                
         return;
 }
