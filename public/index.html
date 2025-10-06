@@ -9,6 +9,18 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
   <style>
     .btn[aria-disabled="true"] { opacity:.5; pointer-events:none; cursor:not-allowed; }
+
+    /* —— 字幕样式：透明背景 + 小字号 —— */
+    video::cue {
+      background: rgba(0,0,0,0);    /* 完全透明 */
+      color: #fff;
+      font-size: 14px;              /* 可改 12px 更小 */
+      line-height: 1.25;
+      text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    }
+    /* WebKit 内核容器透明兜底 */
+    video::-webkit-media-text-track-display { background: transparent !important; }
+    video::-webkit-media-text-track-container { background: transparent !important; }
   </style>
 </head>
 <body>
@@ -58,20 +70,23 @@
                   border:1px solid #223; border-radius:12px; padding:16px">
         <h3 style="margin:0 0 8px">确认下载</h3>
         <div id="qTitle" class="muted" style="margin-bottom:8px"></div>
-        <div class="row" style="margin-bottom:4px">
-            <label style="min-width:80px">目标语言</label>
-              <select id="qLang" style="flex:1">
-                <!-- 选项由 JS 动态填充 -->
-              </select>
+
+        <!-- 目标语言 + 兑换码同一行 -->
+        <div class="row" style="gap:8px; align-items:center; margin-bottom:4px">
+          <label style="min-width:80px">目标语言</label>
+          <select id="qLang" style="flex:1; padding:4px; border-radius:6px; border:1px solid #334154; background:#0f1524; color:#fff;">
+            <!-- 选项由 JS 动态填充 -->
+          </select>
           <label style="min-width:80px">兑换码</label>
-          <input id="qCode" placeholder="可留空" style="flex:1">
+          <input id="qCode" placeholder="可留空" style="flex:1; padding:4px; border-radius:6px; border:1px solid #334154; background:#0f1524; color:#fff;">
         </div>
+
         <div class="muted" style="color:#6ee7b7; font-weight:600; margin-bottom:8px">🎁 输入 <b>12345678</b> 可免单（100% 折扣）</div>
         <div id="qBreak" class="mono"
              style="white-space:pre-line; background:#0f1524; border:1px solid #334154;
                     border-radius:8px; padding:8px; min-height:3em; margin-top:6px;">
         </div>
-        <div class="row" style="justify-content:flex-end; margin-top:12px">
+        <div class="row" style="justify-content:flex-end; margin-top:12px; gap:8px">
           <button id="qCancel">取消</button>
           <button id="qOk">开始下载</button>
         </div>
@@ -262,6 +277,48 @@
     }, 0);
   }
 
+  // ===== 将所有字幕 cues 贴底（覆盖 VTT 内置位置）=====
+  function styleAllCues(videoEl, opts = {}) {
+    const {
+      line = 95,          // 百分比，从顶部算；配合 snapToLines=false 接近底部
+      position = 50,      // 水平居中
+      size = 100,         // 宽度百分比
+      align = 'center',
+      snapToLines = false // 关闭按行对齐，使用百分比定位
+    } = opts;
+
+    if (!videoEl || !videoEl.textTracks) return;
+
+    const applyToTrack = (track) => {
+      const apply = () => {
+        const cues = track.cues || [];
+        for (let i = 0; i < cues.length; i++) {
+          const cue = cues[i];
+          try {
+            if ('snapToLines' in cue) cue.snapToLines = snapToLines;
+            if ('line' in cue) cue.line = line;
+            if ('position' in cue) cue.position = position;
+            if ('size' in cue) cue.size = size;
+            if ('align' in cue) cue.align = align;
+          } catch {}
+        }
+      };
+      apply();
+      track.removeEventListener('cuechange', apply);
+      track.addEventListener('cuechange', apply);
+    };
+
+    for (const track of videoEl.textTracks) {
+      try { track.mode = 'showing'; } catch {}
+      if (track.readyState === 2) {
+        applyToTrack(track);
+      } else {
+        const onload = () => { applyToTrack(track); track.removeEventListener('load', onload); };
+        track.addEventListener('load', onload);
+      }
+    }
+  }
+
   // ===== 创建并挂载 VTT track =====
   function addVttTrackToVideo(videoEl, vttUrl, { lang='zh', label='中文', makeDefault=true } = {}) {
     if (!videoEl || !vttUrl) return;
@@ -275,10 +332,12 @@
     videoEl.appendChild(track);
     track.addEventListener('load', () => {
       try { const tt = videoEl.textTracks; if (tt && tt[0]) tt[0].mode = 'showing'; } catch {}
+      styleAllCues(videoEl, { line: 95, position: 50, size: 100, align: 'center', snapToLines: false });
     });
   }
   els.player.addEventListener('loadedmetadata', () => {
     try { const tt = els.player.textTracks; if (tt && tt[0]) tt[0].mode = 'showing'; } catch {}
+    styleAllCues(els.player, { line: 95, position: 50, size: 100, align: 'center', snapToLines: false });
   });
 
   function makeAbs(u) {
@@ -301,7 +360,7 @@
     }
   }
 
-  // 建议：封装挂载字幕（replace=true 表示替换已有轨道）
+  // 挂载/替换字幕轨道（增加贴底处理）
   function attachTrack(url, replace=false) {
     const video = document.querySelector('video');
     if (!video || !url) return;
@@ -315,6 +374,9 @@
     track.default = true;
     track.src = makeAbs(url);
     video.appendChild(track);
+    track.addEventListener('load', () => {
+      styleAllCues(video, { line: 95, position: 50, size: 100, align: 'center', snapToLines: false });
+    });
   }
 
   // ===== SSE 订阅 =====
@@ -370,8 +432,7 @@
         const sub = msg?.result?.subtitle;
         const url = sub?.url;
         const base = (msg?.result?.details?.title || 'subtitle').trim();
-        const name = `${base}.vtt`;   // 用 title 作为文件名
-      
+        const name = `${base}.vtt`;
         if (url) {
           attachTrack(url);
           const $btn = document.getElementById('btnSubOrig');
@@ -382,13 +443,12 @@
         }
         return;
       }
-      // 翻译完成：替换播放器字幕 + 点亮“翻译字幕”
+      // 翻译完成
       if (msg.type === 'translated') {
         const zh = msg?.result?.subtitle_translated?.zh || msg?.result?.subtitle_translated?.['zh-CN'];
         const url = zh?.url;
         const base = (msg?.result?.details?.title || 'subtitle').trim();
-        const name = `${base}.zh.vtt`;   // 翻译后的字幕文件名
-      
+        const name = `${base}.zh.vtt`;
         if (url) {
           attachTrack(url, /*replace=*/true);
           const $btn = document.getElementById('btnSubTrans');
@@ -429,7 +489,6 @@
     const i = (data && data.probe && data.probe.info) || {};
     lastTitle = sanitizeFilename(i.title || titleFromUrl(url) || 'video');
 
-    // 打开统一计费弹窗
     openQuoteModal({
       jobId,
       durationSeconds: Number(i.duration_seconds || 0),
@@ -437,7 +496,7 @@
     });
   }
 
-  // ===== 查询一次任务（同样可播即播）=====
+  // ===== 查询一次任务 =====
   async function queryJob() {
     const id = (els.jobId.value || '').trim();
     if (!id) return alert('请填写 job_id');
@@ -447,14 +506,12 @@
     playIfPossible(data);
   }
 
-  // ===== 计费相关 =====
+  // ===== 计费 & 语言 =====
   const PROMO_KEY = 'PROMO_CODE';
   function loadCode(){ return localStorage.getItem(PROMO_KEY) || ''; }
   function saveCode(v){ if (v) localStorage.setItem(PROMO_KEY, v); }
-  // ===== 语言设置（默认浏览器语言 + 本地记忆）=====
+
   const LANG_KEY = 'PREFERRED_LANG';
-  
-  // 常见目标语言（可按需增删/排序）
   const LANGUAGE_OPTIONS = [
     { value: 'auto',  label: '自动检测 (auto)' },
     { value: 'zh-CN', label: '简体中文 (zh-CN)' },
@@ -473,28 +530,20 @@
     { value: 'th',    label: 'ไทย (th)' },
     { value: 'pt-BR', label: 'Português (Brasil, pt-BR)' }
   ];
-
-  // 获取默认语言：优先本地记忆，其次浏览器语言（标准化为我们的列表）
   function getDefaultLang() {
     const saved = localStorage.getItem(LANG_KEY);
     if (saved) return saved;
-  
     let nav = (navigator.language || 'en').toLowerCase();
-    // 把类似 zh、zh-hans、zh-cn 统一成 zh-CN；zh-hant/zh-tw -> zh-TW；pt-br -> pt-BR 等
     if (nav.startsWith('zh')) {
       if (/-tw|zh\-hant|traditional/.test(nav)) return 'zh-TW';
       return 'zh-CN';
     }
     if (nav.startsWith('pt-br')) return 'pt-BR';
-  
-    // 截断成主语言码（如 en-US -> en）
     const base = nav.split('-')[0];
     const exist = LANGUAGE_OPTIONS.some(x => x.value === base);
     return exist ? base : 'en';
   }
-
-  function savePreferredLang(v){ localStorage.setItem(LANG_KEY, v); }
-  
+  function savePreferredLang(v){ localStorage.setItem(LANG_KEY, v || ''); }
   function populateLangSelect($sel, selected) {
     if (!$sel) return;
     $sel.innerHTML = '';
@@ -507,6 +556,7 @@
     $sel.value = selected && LANGUAGE_OPTIONS.some(x => x.value === selected)
       ? selected : getDefaultLang();
   }
+
   async function showQuote(durationSeconds){
     const code = loadCode();
     const resp = await fetch(`${API_BASE}/api/pricing/quote`, {
@@ -516,27 +566,11 @@
     const q = await resp.json();
     if (!resp.ok || !q.ok) return null;
     const msg = `计费：${q.units} ${q.unitType} × $${(q.unitRateCents/100).toFixed(2)} = $${(q.subtotalCents/100).toFixed(2)}
-  折扣：$${(q.discounts?.reduce((s,d)=>s+(d.amount||0),0)/100).toFixed(2)}
-  应付：$${(q.totalCents/100).toFixed(2)}
-  当前兑换码：${code||'（无）'}`;
+折扣：$${(q.discounts?.reduce((s,d)=>s+(d.amount||0),0)/100).toFixed(2)}
+应付：$${(q.totalCents/100).toFixed(2)}
+当前兑换码：${code||'（无）'}`;
     alert(msg);
     return q;
-  }
-
-  async function confirmJob(jobId, durationSeconds){
-    await showQuote(durationSeconds);
-    const cur = loadCode();
-    const code = window.prompt('如需使用兑换码，请输入（留空则不使用）：', cur) || '';
-    if (code !== cur) saveCode(code);
-
-    const url = `${API_BASE}/api/jobs/${jobId}/confirm?code=${encodeURIComponent(code)}`;
-    const res = await fetch(url, { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok || !data.ok){
-      alert(data.error || data.message || '无法开始下载');
-      return;
-    }
-    subscribeJob(jobId);
   }
 
   // ===== 统一计费弹窗 =====
@@ -557,8 +591,7 @@
     qTitle.textContent = `标题：${title}    时长：${Math.round(durationSeconds||0)}s`;
     qCode.value = loadSavedCode();
     qBreak.textContent = '正在试算…';
-    // 初始化语言选择：优先本地记忆；否则浏览器语言
-    populateLangSelect(qLang, localStorage.getItem(LANG_KEY));
+    populateLangSelect(qLang, localStorage.getItem(LANG_KEY)); // 初始化语言
     quoteModal.style.display = 'block';
     doQuote();
     setTimeout(()=>qCode.focus(), 0);
@@ -578,7 +611,7 @@
       });
       const d = await resp.json();
       if (!resp.ok || !d.ok) throw new Error(d.message || 'quote failed');
-      
+
       const lang = (qLang.value||getDefaultLang());
       const lines = [
         `计费： ${d.units} ${d.unitType} × $${(d.unitRateCents/100).toFixed(2)} = $${(d.subtotalCents/100).toFixed(2)}`,
@@ -604,13 +637,12 @@
   qOk.onclick = async () => {
     const code = (qCode.value||'').trim();
     const lang = (qLang.value||'').trim() || getDefaultLang();
-  
     saveSavedCode(code);
     savePreferredLang(lang);
-  
+
     const url = `${API_BASE}/api/jobs/${_q_ctx.jobId}/confirm?` +
                 `code=${encodeURIComponent(code)}&lang=${encodeURIComponent(lang)}`;
-  
+
     const resp = await fetch(url, { method: 'POST' });
     const d = await resp.json();
     if (!resp.ok || !d.ok) {
