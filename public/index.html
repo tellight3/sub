@@ -11,12 +11,21 @@
     .btn[aria-disabled="true"] { opacity:.5; pointer-events:none; cursor:not-allowed; }
 
     /* —— 字幕样式：透明背景 + 小字号 —— */
-    video::cue {
-      background: rgba(0,0,0,0);    /* 完全透明 */
+    .player::cue
+      background: rgba(0, 0, 0, 0);  /* 完全透明 */
       color: #fff;
-      font-size: 14px;              /* 可改 12px 更小 */
-      line-height: 1.25;
-      text-shadow: 0 1px 2px rgba(0,0,0,.6);
+      font-size: 14px;               /* 字体小一点 */
+      line-height: 1.1;              /* 行距更紧 */
+      text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
+      position: absolute;
+      bottom: 3%;
+      text-align: center;
+    }
+
+    
+    /* 可选：让字幕始终居中对齐 */
+    .subtitle-custom::cue(c) {
+      text-align: center;
     }
     /* WebKit 内核容器透明兜底 */
     video::-webkit-media-text-track-display { background: transparent !important; }
@@ -49,7 +58,7 @@
     <!-- 播放 & 下载区 -->
     <div class="card">
       <h2>在线播放 / 下载</h2>
-      <video id="player" controls playsinline muted autoplay crossorigin="anonymous" class="player"></video>
+      <video id="player" class="player subtitle-custom" controls playsinline muted autoplay crossorigin="anonymous"></video>
       <div class="row">
         <a id="playM3U8" class="btn" href="#" target="_blank" rel="noopener">用 m3u8 播放</a>
         <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener">下载 MP4</a>
