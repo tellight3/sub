@@ -59,6 +59,10 @@
         <h3 style="margin:0 0 8px">确认下载</h3>
         <div id="qTitle" class="muted" style="margin-bottom:8px"></div>
         <div class="row" style="margin-bottom:4px">
+            <label style="min-width:80px">目标语言</label>
+              <select id="qLang" style="flex:1">
+                <!-- 选项由 JS 动态填充 -->
+              </select>
           <label style="min-width:80px">兑换码</label>
           <input id="qCode" placeholder="可留空" style="flex:1">
         </div>
@@ -447,7 +451,62 @@
   const PROMO_KEY = 'PROMO_CODE';
   function loadCode(){ return localStorage.getItem(PROMO_KEY) || ''; }
   function saveCode(v){ if (v) localStorage.setItem(PROMO_KEY, v); }
+  // ===== 语言设置（默认浏览器语言 + 本地记忆）=====
+  const LANG_KEY = 'PREFERRED_LANG';
+  
+  // 常见目标语言（可按需增删/排序）
+  const LANGUAGE_OPTIONS = [
+    { value: 'auto',  label: '自动检测 (auto)' },
+    { value: 'zh-CN', label: '简体中文 (zh-CN)' },
+    { value: 'zh-TW', label: '繁體中文 (zh-TW)' },
+    { value: 'en',    label: 'English (en)' },
+    { value: 'ja',    label: '日本語 (ja)' },
+    { value: 'ko',    label: '한국어 (ko)' },
+    { value: 'es',    label: 'Español (es)' },
+    { value: 'fr',    label: 'Français (fr)' },
+    { value: 'de',    label: 'Deutsch (de)' },
+    { value: 'ru',    label: 'Русский (ru)' },
+    { value: 'ar',    label: 'العربية (ar)' },
+    { value: 'hi',    label: 'हिन्दी (hi)' },
+    { value: 'id',    label: 'Bahasa Indonesia (id)' },
+    { value: 'vi',    label: 'Tiếng Việt (vi)' },
+    { value: 'th',    label: 'ไทย (th)' },
+    { value: 'pt-BR', label: 'Português (Brasil, pt-BR)' }
+  ];
 
+  // 获取默认语言：优先本地记忆，其次浏览器语言（标准化为我们的列表）
+  function getDefaultLang() {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved) return saved;
+  
+    let nav = (navigator.language || 'en').toLowerCase();
+    // 把类似 zh、zh-hans、zh-cn 统一成 zh-CN；zh-hant/zh-tw -> zh-TW；pt-br -> pt-BR 等
+    if (nav.startsWith('zh')) {
+      if (/-tw|zh\-hant|traditional/.test(nav)) return 'zh-TW';
+      return 'zh-CN';
+    }
+    if (nav.startsWith('pt-br')) return 'pt-BR';
+  
+    // 截断成主语言码（如 en-US -> en）
+    const base = nav.split('-')[0];
+    const exist = LANGUAGE_OPTIONS.some(x => x.value === base);
+    return exist ? base : 'en';
+  }
+
+  function savePreferredLang(v){ localStorage.setItem(LANG_KEY, v); }
+  
+  function populateLangSelect($sel, selected) {
+    if (!$sel) return;
+    $sel.innerHTML = '';
+    LANGUAGE_OPTIONS.forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt.value;
+      o.textContent = opt.label;
+      $sel.appendChild(o);
+    });
+    $sel.value = selected && LANGUAGE_OPTIONS.some(x => x.value === selected)
+      ? selected : getDefaultLang();
+  }
   async function showQuote(durationSeconds){
     const code = loadCode();
     const resp = await fetch(`${API_BASE}/api/pricing/quote`, {
@@ -483,6 +542,7 @@
   // ===== 统一计费弹窗 =====
   const quoteModal = document.getElementById('quoteModal');
   const qTitle  = document.getElementById('qTitle');
+  const qLang = document.getElementById('qLang');
   const qCode   = document.getElementById('qCode');
   const qBreak  = document.getElementById('qBreak');
   const qCancel = document.getElementById('qCancel');
@@ -497,6 +557,8 @@
     qTitle.textContent = `标题：${title}    时长：${Math.round(durationSeconds||0)}s`;
     qCode.value = loadSavedCode();
     qBreak.textContent = '正在试算…';
+    // 初始化语言选择：优先本地记忆；否则浏览器语言
+    populateLangSelect(qLang, localStorage.getItem(LANG_KEY));
     quoteModal.style.display = 'block';
     doQuote();
     setTimeout(()=>qCode.focus(), 0);
@@ -516,12 +578,14 @@
       });
       const d = await resp.json();
       if (!resp.ok || !d.ok) throw new Error(d.message || 'quote failed');
-
+      
+      const lang = (qLang.value||getDefaultLang());
       const lines = [
         `计费： ${d.units} ${d.unitType} × $${(d.unitRateCents/100).toFixed(2)} = $${(d.subtotalCents/100).toFixed(2)}`,
         `折扣： $${( (d.discounts?.reduce((s,x)=>s+(x.amount||0),0) || 0) /100).toFixed(2)}`,
         `应付： $${(d.totalCents/100).toFixed(2)} ${d.currency}`,
-        code ? `当前兑换码： ${code}` : `未使用兑换码`
+        code ? `当前兑换码： ${code}` : `未使用兑换码`,
+        `目标语言： ${lang}`
       ];
       qBreak.textContent = lines.join('\n');
     } catch (e) {
@@ -539,8 +603,14 @@
 
   qOk.onclick = async () => {
     const code = (qCode.value||'').trim();
+    const lang = (qLang.value||'').trim() || getDefaultLang();
+  
     saveSavedCode(code);
-    const url = `${API_BASE}/api/jobs/${_q_ctx.jobId}/confirm?code=${encodeURIComponent(code)}`;
+    savePreferredLang(lang);
+  
+    const url = `${API_BASE}/api/jobs/${_q_ctx.jobId}/confirm?` +
+                `code=${encodeURIComponent(code)}&lang=${encodeURIComponent(lang)}`;
+  
     const resp = await fetch(url, { method: 'POST' });
     const d = await resp.json();
     if (!resp.ok || !d.ok) {
