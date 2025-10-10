@@ -423,19 +423,22 @@
     return /^https?:\/\//i.test(u) ? u : (window.location.origin + u);
   }
   function setBtn($a, url, filename) {
-    if (!$a) return;
-    if (url) {
-      const abs = makeAbs(url);
-      $a.href = abs;
-      if (filename) $a.setAttribute('download', filename);
-      $a.classList.remove('disabled');
-      $a.removeAttribute('disabled');
-    } else {
-      $a.href = 'javascript:void(0)';
-      $a.removeAttribute('download');
-      $a.classList.add('disabled');
-      $a.setAttribute('disabled', 'disabled');
-    }
+   if (!$a) return;
+   if (url) {
+     // 关键：用 API_BASE 处理相对路径，或直接用上面的 absUrl()
+     const abs = /^https?:\/\//i.test(url)
+       ? url
+       : (url.startsWith('/') ? `${API_BASE}${url}` : `${API_BASE}/${url}`);
+     $a.href = abs;
+     if (filename) $a.setAttribute('download', filename);
+     $a.classList.remove('disabled');
+     $a.removeAttribute('disabled');
+   } else {
+     $a.href = 'javascript:void(0)';
+     $a.removeAttribute('download');
+     $a.classList.add('disabled');
+     $a.setAttribute('disabled', 'disabled');
+   }
   }
 
   // 挂载/替换字幕轨道（增加贴底处理）
