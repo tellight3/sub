@@ -11,18 +11,18 @@
     .btn[aria-disabled="true"] { opacity:.5; pointer-events:none; cursor:not-allowed; }
 
     /* —— 字幕样式：透明背景 + 小字号 —— */
-    .player::cue
-      background: rgba(0, 0, 0, 0.25);  /* 完全透明 */
+    /* [MOD] 补上花括号 */
+    .player::cue {
+      background: rgba(0, 0, 0, 0.25);
       color: #fff;
-      font-size: 14px;               /* 字体小一点 */
-      line-height: 1.1;              /* 行距更紧 */
+      font-size: 14px;
+      line-height: 1.1;
       text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
       position: absolute;
       bottom: 3%;
       text-align: center;
     }
 
-    
     /* 可选：让字幕始终居中对齐 */
     .subtitle-custom::cue(c) {
       text-align: center;
@@ -77,7 +77,7 @@
          style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999;">
       <div style="max-width:420px; margin:10% auto; background:#121a2b;
                   border:1px solid #223; border-radius:12px; padding:16px">
-        <h3>确认下载</h3>
+        <h3 style="margin:0 0 8px">确认下载</h3>
         <div id="qTitle" class="muted" style="margin-bottom:8px"></div>
 
         <!-- 目标语言 + 兑换码同一行 -->
@@ -128,14 +128,12 @@
   let lastObjectPath = null;
   let lastMp4Url = null;
 
-  // [MOD] 新增：用于 UI 展示的人类可读标题（与下载名分离）
-  let displayTitle = 'video';
-
   // ===== 工具函数 =====
   function absUrl(u) {
     if (!u) return null;
     if (/^https?:\/\//i.test(u)) return u;
     const path = String(u).startsWith('/') ? u : '/' + String(u);
+    // [MOD] 修复模板字符串
     return `${API_BASE}${path}`;
   }
 
@@ -155,6 +153,7 @@
   }
   function toFileUrlFromResult(result){
     const objPath=objectPathFromResultPath(result && result.path);
+    // [MOD] 修复模板字符串
     return objPath ? `${API_BASE}/files/${objPath}` : null;
   }
   function setStatus(obj){ els.statusBox.textContent = JSON.stringify(obj, null, 2); }
@@ -185,9 +184,19 @@
     const tz=(Intl.DateTimeFormat().resolvedOptions().timeZone)||'';
     const plat=navigator.platform||'';
     const dpr=String(window.devicePixelRatio||1);
+    // [MOD] 修复模板字符串
     const scr=(window.screen && `${screen.width}x${screen.height}@${screen.colorDepth||24}`)||'';
-    let gl=''; try{ const c=document.createElement('canvas'); const g=c.getContext('webgl')||c.getContext('experimental-webgl');
-      if(g){ const dbg=g.getExtension('WEBGL_debug_renderer_info'); const ven=dbg?g.getParameter(dbg.UNMASKED_VENDOR_WEBGL):''; const ren=dbg?g.getParameter(dbg.UNMASKED_RENDERER_WEBGL):''; gl=`${ven}|${ren}`; }
+    let gl='';
+    try{
+      const c=document.createElement('canvas');
+      const g=c.getContext('webgl')||c.getContext('experimental-webgl');
+      if(g){
+        const dbg=g.getExtension('WEBGL_debug_renderer_info');
+        const ven=dbg?g.getParameter(dbg.UNMASKED_VENDOR_WEBGL):'';
+        const ren=dbg?g.getParameter(dbg.UNMASKED_RENDERER_WEBGL):'';
+        // [MOD] 修复模板字符串
+        gl=`${ven}|${ren}`;
+      }
     }catch{}
     return hashString([ua,lang,tz,plat,dpr,scr,gl].join('|'));
   }
@@ -202,14 +211,10 @@
     else { window.open(m3u8Url,'_blank'); }
   }
 
-
   // —— 清空所有字幕轨道，并禁用遗留的 textTracks ——
   function clearAllSubtitleTracks(videoEl, alsoDisableTextTracks = true) {
     if (!videoEl) return;
-    // 移除所有 <track>
     try { [...videoEl.querySelectorAll('track')].forEach(t => t.remove()); } catch {}
-  
-    // 禁用已解析的 textTracks，并尽量移除残留 cues
     try {
       if (alsoDisableTextTracks && videoEl.textTracks) {
         for (const tr of videoEl.textTracks) {
@@ -222,12 +227,12 @@
       }
     } catch {}
   }
+
   // ===== 平滑切源（保留进度/状态） =====
   function switchSourceKeepPosition(nextUrl){
     if(!nextUrl) return;
     const v=els.player;
 
-    // ★ 第一次/每次切源前，清空遗留字幕轨道
     clearAllSubtitleTracks(v, /*alsoDisableTextTracks=*/true);
     const wasPaused=v.paused;
     const t=v.currentTime||0;
@@ -243,7 +248,7 @@
     };
     v.addEventListener('loadedmetadata', onReady);
 
-    // [MOD] 删除这里对 nowPlaying 的覆盖，避免把标题改成文件名
+    // [MOD] 保持标题由业务层决定，不在此处覆盖
     // els.nowPlaying.textContent = `正在播放：${displayNameFromUrl(nextUrl) || 'video.mp4'}`;
   }
 
@@ -268,35 +273,36 @@
           payload?.result?.avid ||
           'video'
         );
+        // [MOD] 修复模板字符串
         url = `/download/${objPath}?filename=${encodeURIComponent(title)}.mp4`;
       } else if (!url.startsWith('/')) {
         url = '/' + url;
       }
     }
 
+    // [MOD] 这里不直接返回 subUrl，实际用时在 playIfPossible 内联判断“原始/翻译”
     const subUrl =
-      pb.subtitleUrl ||
-      payload?.result?.subtitle?.url ||
-      payload?.subtitleUrl ||
-      payload?.subtitle?.url ||
+      (payload?.result?.subtitle?.url) ||
+      (payload?.subtitleUrl) ||
+      (payload?.subtitle?.url) ||
       null;
 
     return { url, subUrl };
   }
 
   function playIfPossible(payload) {
-    const { url, subUrl } = extractMedia(payload);
+    const { url } = extractMedia(payload);
     if (!url) return;
 
-    // [MOD] 在切源前先确定“展示标题”，并显示（只显示标题，不带语言）
-    const rawTitle =
-      (payload?.info?.title) ||
-      (payload?.result?.details?.title) ||
+    // [MOD] 初次显示标题
+    const niceTitle =
+      payload?.info?.title ||
+      payload?.result?.details?.title ||
       titleFromUrl(url) ||
-      displayTitle ||
+      lastTitle ||
       'video';
-    displayTitle = rawTitle;                       // UI 用
-    els.nowPlaying.textContent = `正在播放：${displayTitle}`;
+    document.getElementById('nowPlaying').textContent = `正在播放：${niceTitle}`;
+    lastTitle = sanitizeFilename(niceTitle);
 
     switchSourceKeepPosition(url);
 
@@ -308,11 +314,37 @@
     v.addEventListener('canplay', once, { once: true });
     v.addEventListener('loadeddata', once, { once: true });
 
-    if (subUrl) {
-      addVttTrackToVideo(els.player, subUrl, { lang: 'auto', label: '原始字幕', makeDefault: true });
-      setBtn(document.getElementById('btnSubOrig'), subUrl, 'subtitle-original.vtt');
+    // [MOD] 字幕：优先翻译，其次原始；并点亮两个按钮（若有）
+    // 翻译字幕可能在 result.subtitle_translated[lang].url，或 playback.subtitleUrl（后端常见）
+    let transUrl = null, transLang = null;
+    const tmap = payload?.result?.subtitle_translated || {};
+    const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
+    if (tmap && typeof tmap === 'object') {
+      if (pref && tmap[pref]?.url) { transUrl = tmap[pref].url; transLang = pref; }
+      if (!transUrl) {
+        for (const k of Object.keys(tmap)) {
+          if (tmap[k]?.url) { transUrl = tmap[k].url; transLang = k; break; }
+        }
+      }
+    }
+    if (!transUrl) { // 兜底：playback.subtitleUrl 多数情况下是翻译后的 VTT
+      const pb = payload?.result?.playback || {};
+      if (pb.subtitleUrl) { transUrl = pb.subtitleUrl; transLang = transLang || 'trans'; }
     }
 
+    const origUrl = payload?.result?.subtitle?.url || null;
+
+    const chosen = transUrl || origUrl;
+    if (chosen) {
+      addVttTrackToVideo(els.player, chosen, { lang: 'auto', label: transUrl ? '翻译字幕' : '原始字幕', makeDefault: true });
+    }
+
+    // 点亮两个按钮（有就点亮）
+    const baseTitle = (payload?.result?.details?.title || payload?.info?.path?.title || niceTitle || 'subtitle').trim();
+    setBtn(document.getElementById('btnSubOrig'),  origUrl, `${baseTitle}.vtt`);
+    setBtn(document.getElementById('btnSubTrans'), transUrl, `${baseTitle}.${transLang || 'trans'}.vtt`);
+
+    // 下载 MP4
     setTimeout(() => {
       const src = els.player.currentSrc || absUrl(url);
       if (src && /\.mp4(\?|$)/i.test(src)) {
@@ -425,6 +457,172 @@
     });
   }
 
+  // ===== SSE 订阅 =====
+  function subscribeJob(jobId) {
+    if (!jobId) return alert('没有 jobId');
+    if (es) es.close();
+    // [MOD] 修复模板字符串
+    es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
+    setBtn(document.getElementById('btnSubOrig'), null);
+    setBtn(document.getElementById('btnSubTrans'), null);
+
+    es.onmessage = (ev) => {
+      let msg; try { msg = JSON.parse(ev.data); } catch { return; }
+      if (msg.type === 'heartbeat') return;
+      setStatus(msg);
+
+      if (msg.type === 'snapshot') {
+        lastSnapshot = msg;
+        const t = (msg.info && (msg.info.title || (msg.info.details && msg.info.details.title))) || lastTitle;
+        if (t) lastTitle = sanitizeFilename(t);
+        playIfPossible(msg);
+        // [MOD] snapshot 也尝试点亮按钮（部分后端会一次性给齐）
+        const base = (msg?.result?.details?.title || msg?.info?.path?.title || t || 'subtitle').trim();
+        const orig = msg?.result?.subtitle?.url || null;
+        // 翻译优先
+        let trans = null, k = null;
+        const tmap = msg?.result?.subtitle_translated || {};
+        const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
+        if (tmap && typeof tmap === 'object') {
+          if (pref && tmap[pref]?.url) { trans = tmap[pref].url; k = pref; }
+          if (!trans) { for (const kk of Object.keys(tmap)) { if (tmap[kk]?.url) { trans = tmap[kk].url; k = kk; break; } } }
+        }
+        if (!trans) { const pb = msg?.result?.playback || {}; if (pb.subtitleUrl) { trans = pb.subtitleUrl; k = k || 'trans'; } }
+        setBtn(document.getElementById('btnSubOrig'),  orig, `${base}.vtt`);
+        setBtn(document.getElementById('btnSubTrans'), trans, `${base}.${k || 'trans'}.vtt`);
+        return;
+      }
+
+      if (msg.type === 'play') {
+        playIfPossible(msg);
+        return;
+      }
+
+      // [MOD] 统一处理 finished / published
+      if (msg.type === 'finished' || msg.type === 'published') {
+        playIfPossible(msg);
+        // 同步点亮按钮
+        const base = (msg?.result?.details?.title || msg?.info?.path?.title || lastTitle || 'subtitle').trim();
+        const orig = msg?.result?.subtitle?.url || null;
+        let trans = null, k = null;
+        const tmap = msg?.result?.subtitle_translated || {};
+        const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
+        if (tmap && typeof tmap === 'object') {
+          if (pref && tmap[pref]?.url) { trans = tmap[pref].url; k = pref; }
+          if (!trans) { for (const kk of Object.keys(tmap)) { if (tmap[kk]?.url) { trans = tmap[kk].url; k = kk; break; } } }
+        }
+        if (!trans) { const pb = msg?.result?.playback || {}; if (pb.subtitleUrl) { trans = pb.subtitleUrl; k = k || 'trans'; } }
+        setBtn(document.getElementById('btnSubOrig'),  orig, `${base}.vtt`);
+        setBtn(document.getElementById('btnSubTrans'), trans, `${base}.${k || 'trans'}.vtt`);
+        if (es) { es.close(); es = null; }
+        return;
+      }
+
+      if (msg.type === 'failed' || msg.type === 'canceled') {
+        if (es) { es.close(); es = null; }
+        return;
+      }
+
+      if (msg.type === 'progress') {
+        const percent = msg.percent != null ? Number(msg.percent).toFixed(1) : null;
+        // [MOD] 修复模板字符串
+        const summary = [`[${msg.backend || '-'}][${msg.stage || '-'}]`, percent != null ? `${percent}%` : '', msg.speedHuman ? ` | ${msg.speedHuman}` : ''].join('');
+        els.statusBox.textContent = (summary + '\n' + els.statusBox.textContent);
+        return;
+      }
+
+      // 原始字幕就绪
+      if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') {
+        const sub = msg?.result?.subtitle;
+        const url = sub?.url;
+        const base = (msg?.result?.details?.title || 'subtitle').trim();
+        // [MOD] 修复模板字符串
+        const name = `${base}.vtt`;
+        if (url) {
+          attachTrack(url);
+          const $btn = document.getElementById('btnSubOrig');
+          $btn.href = /^https?:\/\//i.test(url) ? url : (API_BASE + (url.startsWith('/') ? url : '/' + url));
+          $btn.setAttribute('download', name);
+          $btn.classList.remove('disabled');
+          $btn.removeAttribute('disabled');
+        }
+        return;
+      }
+
+      // 翻译完成
+      if (msg.type === 'translated') {
+        const tmap = msg?.result?.subtitle_translated || {};
+        let k = null, url = null;
+        const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
+        if (pref && tmap[pref]?.url) { k = pref; url = tmap[pref].url; }
+        if (!url) { for (const kk of Object.keys(tmap)) { if (tmap[kk]?.url) { k = kk; url = tmap[kk].url; break; } } }
+        if (!url) { url = msg?.result?.playback?.subtitleUrl || null; k = k || 'trans'; }
+
+        const base = (msg?.result?.details?.title || 'subtitle').trim();
+        // [MOD] 修复模板字符串
+        const name = `${base}.${k || 'trans'}.vtt`;
+        if (url) {
+          attachTrack(url, /*replace=*/true);
+          const $btn = document.getElementById('btnSubTrans');
+          $btn.href = /^https?:\/\//i.test(url) ? url : (API_BASE + (url.startsWith('/') ? url : '/' + url));
+          $btn.setAttribute('download', name);
+          $btn.classList.remove('disabled');
+          $btn.removeAttribute('disabled');
+
+          // [MOD] 更新标题：标题 · 语言
+          document.getElementById('nowPlaying').textContent = `正在播放：${base} · ${k || 'trans'}`;
+        }
+        return;
+      }
+    };
+
+    es.onerror = () => { /* 可选：自动重连 */ };
+    return es;
+  }
+
+  // ===== 创建任务（先探测→确认→订阅）=====
+  async function createJobByUrl() {
+    const url = els.videoUrl.value.trim();
+    if (!url) return alert('请填写视频链接');
+
+    setBtn(document.getElementById('btnSubOrig'), null);
+    setBtn(document.getElementById('btnSubTrans'), null);
+    clearLastJob();
+
+    // [MOD] 修复模板字符串
+    const res = await fetch(`${API_BASE}/api/jobs`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ sourceUrl: url })
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.message || '创建失败');
+
+    const jobId = data.jobId;
+    els.jobId.value = jobId;
+    saveLastJob(jobId);
+
+    const i = (data && data.probe && data.probe.info) || {};
+    lastTitle = sanitizeFilename(i.title || titleFromUrl(url) || 'video');
+
+    openQuoteModal({
+      jobId,
+      durationSeconds: Number(i.duration_seconds || 0),
+      title: lastTitle
+    });
+  }
+
+  // ===== 查询一次任务 =====
+  async function queryJob() {
+    const id = (els.jobId.value || '').trim();
+    if (!id) return alert('请填写 job_id');
+    // [MOD] 修复模板字符串
+    const res = await fetch(`${API_BASE}/api/jobs/${id}`);
+    const data = await res.json();
+    setStatus(data);
+    playIfPossible(data);
+  }
+
   // ===== 计费 & 语言 =====
   const PROMO_KEY = 'PROMO_CODE';
   function loadCode(){ return localStorage.getItem(PROMO_KEY) || ''; }
@@ -476,22 +674,17 @@
       ? selected : getDefaultLang();
   }
 
-  // [MOD] 新增：把语言代码转成标签（UI 展示用）
-  function getLangLabel(code){
-    if(!code) return '';
-    const hit = LANGUAGE_OPTIONS.find(x => x.value.toLowerCase() === String(code).toLowerCase());
-    return hit ? hit.label : code;
-  }
-
   async function showQuote(durationSeconds){
     const code = loadCode();
+    // [MOD] 修复模板/字符串
     const resp = await fetch(`${API_BASE}/api/pricing/quote`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ durationSeconds, code })
     });
     const q = await resp.json();
     if (!resp.ok || !q.ok) return null;
-    const msg = `计费：${q.units} ${q.unitType} × $${(q.unitRateCents/100).toFixed(2)} = $${(q.subtotalCents/100).toFixed(2)}
+    const msg =
+`计费：${q.units} ${q.unitType} × $${(q.unitRateCents/100).toFixed(2)} = $${(q.subtotalCents/100).toFixed(2)}
 折扣：$${(q.discounts?.reduce((s,d)=>s+(d.amount||0),0)/100).toFixed(2)}
 应付：$${(q.totalCents/100).toFixed(2)}
 当前兑换码：${code||'（无）'}`;
@@ -499,155 +692,39 @@
     return q;
   }
 
-  // ===== SSE 订阅 =====
-  function subscribeJob(jobId) {
-    if (!jobId) return alert('没有 jobId');
-    if (es) es.close();
-    es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
-    setBtn(document.getElementById('btnSubOrig'), null);
-    setBtn(document.getElementById('btnSubTrans'), null);
+  // ===== 统一计费弹窗 =====
+  const quoteModal = document.getElementById('quoteModal');
+  const qTitle  = document.getElementById('qTitle');
+  const qLang = document.getElementById('qLang');
+  const qCode   = document.getElementById('qCode');
+  const qBreak  = document.getElementById('qBreak');
+  const qCancel = document.getElementById('qCancel');
+  const qOk     = document.getElementById('qOk');
 
-    es.onmessage = (ev) => {
-      let msg; try { msg = JSON.parse(ev.data); } catch { return; }
-      if (msg.type === 'heartbeat') return;
-      setStatus(msg);
+  let _q_ctx = { jobId: null, durationSeconds: 0, title: 'video' };
+  function loadSavedCode(){ return localStorage.getItem('PROMO_CODE') || ''; }
+  function saveSavedCode(v){ localStorage.setItem('PROMO_CODE', v || ''); }
 
-      if (msg.type === 'snapshot') {
-        lastSnapshot = msg;
-        const t = (msg.info && (msg.info.title || (msg.info.details && msg.info.details.title))) || lastTitle;
-        // [MOD] 同步设置“展示标题”和“下载名”
-        if (t) {
-          displayTitle = t;                 // UI 展示
-          lastTitle = sanitizeFilename(t);  // 下载文件名
-          els.nowPlaying.textContent = `正在播放：${displayTitle}`;
-        }
-        playIfPossible(msg);
-        return;
-      }
-
-      if (msg.type === 'play') {
-        playIfPossible(msg);
-        return;
-      }
-
-      if (msg.type === 'finished') {
-        playIfPossible(msg);
-        if (es) { es.close(); es = null; }
-        return;
-      }
-
-      if (msg.type === 'published') {
-        playIfPossible(msg);
-        return;
-      }
-
-      if (msg.type === 'failed' || msg.type === 'canceled') {
-        if (es) { es.close(); es = null; }
-        return;
-      }
-
-      if (msg.type === 'progress') {
-        const percent = msg.percent != null ? Number(msg.percent).toFixed(1) : null;
-        const summary = [`[${msg.backend || '-'}][${msg.stage || '-'}]`, percent != null ? `${percent}%` : '', msg.speedHuman ? ` | ${msg.speedHuman}` : ''].join('');
-        els.statusBox.textContent = (summary + '\n' + els.statusBox.textContent);
-        return;
-      }
-      // 原始字幕就绪
-      if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') {
-        const sub = msg?.result?.subtitle;
-        const url = sub?.url;
-        const base = (msg?.result?.details?.title || 'subtitle').trim();
-        const name = `${base}.vtt`;
-        if (url) {
-          attachTrack(url);
-          const $btn = document.getElementById('btnSubOrig');
-          $btn.href = /^https?:\/\//i.test(url) ? url : (API_BASE + (url.startsWith('/') ? url : '/' + url));
-          $btn.setAttribute('download', name);
-          $btn.classList.remove('disabled');
-          $btn.removeAttribute('disabled');
-          // （保持只显示标题，不追加语言）
-          els.nowPlaying.textContent = `正在播放：${displayTitle}`;
-        }
-        return;
-      }
-      // 翻译完成
-      if (msg.type === 'translated') {
-        // 兼容你现有结构：优先找 zh / zh-CN；若没有就照样挂载第一个可用
-        const tmap = msg?.result?.subtitle_translated || {};
-        let pickedKey = null, pickedUrl = null;
-        for (const k of Object.keys(tmap)) {
-          if (tmap[k]?.url) { pickedKey = k; pickedUrl = tmap[k].url; break; }
-        }
-        const url = pickedUrl || tmap?.zh?.url || tmap?.['zh-CN']?.url || null;
-
-        const base = (msg?.result?.details?.title || 'subtitle').trim();
-        const name = `${base}.${(pickedKey||'trans')}.vtt`;
-        if (url) {
-          attachTrack(url, /*replace=*/true);
-          const $btn = document.getElementById('btnSubTrans');
-          $btn.href = /^https?:\/\//i.test(url) ? url : (API_BASE + (url.startsWith('/') ? url : '/' + url));
-          $btn.setAttribute('download', name);
-          $btn.classList.remove('disabled');
-          $btn.removeAttribute('disabled');
-
-          // [MOD] 显示「标题 + 语言」
-          const langChosen = localStorage.getItem(LANG_KEY) || pickedKey || 'auto';
-          els.nowPlaying.textContent = `正在播放：${displayTitle} · ${getLangLabel(langChosen)}`;
-        }
-        return;
-      }
-    };
-
-    es.onerror = () => { /* 可选：自动重连 */ };
-    return es;
+  function openQuoteModal({jobId, durationSeconds, title}) {
+    _q_ctx = { jobId, durationSeconds, title };
+    // [MOD] 修复模板字符串
+    qTitle.textContent = `标题：${title}    时长：${Math.round(durationSeconds||0)}s`;
+    qCode.value = loadSavedCode();
+    qBreak.textContent = '正在试算…';
+    populateLangSelect(qLang, localStorage.getItem(LANG_KEY)); // 初始化语言
+    quoteModal.style.display = 'block';
+    doQuote();
+    setTimeout(()=>qCode.focus(), 0);
   }
 
-  // ===== 创建任务（先探测→确认→订阅）=====
-  async function createJobByUrl() {
-    const url = els.videoUrl.value.trim();
-    if (!url) return alert('请填写视频链接');
-
-    setBtn(document.getElementById('btnSubOrig'), null);
-    setBtn(document.getElementById('btnSubTrans'), null);
-    clearLastJob();
-
-    const res = await fetch(`${API_BASE}/api/jobs`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ sourceUrl: url })
-    });
-    const data = await res.json();
-    if (!res.ok) return alert(data.message || '创建失败');
-
-    const jobId = data.jobId;
-    els.jobId.value = jobId;
-    saveLastJob(jobId);
-
-    const i = (data && data.probe && data.probe.info) || {};
-    // [MOD] 同步设置展示标题 & 下载名
-    displayTitle = i.title || titleFromUrl(url) || 'video';
-    lastTitle = sanitizeFilename(displayTitle);
-
-    openQuoteModal({
-      jobId,
-      durationSeconds: Number(i.duration_seconds || 0),
-      title: displayTitle // [MOD] 用展示标题，而不是已 sanitize 的 lastTitle
-    });
-  }
-
-  // ===== 查询一次任务 =====
-  async function queryJob() {
-    const id = (els.jobId.value || '').trim();
-    if (!id) return alert('请填写 job_id');
-    const res = await fetch(`${API_BASE}/api/jobs/${id}`);
-    const data = await res.json();
-    setStatus(data);
-    playIfPossible(data);
+  function closeQuoteModal() {
+    quoteModal.style.display = 'none';
   }
 
   async function doQuote() {
     const code = (qCode.value||'').trim();
     try {
+      // [MOD] 修复模板字符串
       const resp = await fetch(`${API_BASE}/api/pricing/quote`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -670,34 +747,6 @@
     }
   }
 
-  // ===== 统一计费弹窗 =====
-  const quoteModal = document.getElementById('quoteModal');
-  const qTitle  = document.getElementById('qTitle');
-  const qLang = document.getElementById('qLang');
-  const qCode   = document.getElementById('qCode');
-  const qBreak  = document.getElementById('qBreak');
-  const qCancel = document.getElementById('qCancel');
-  const qOk     = document.getElementById('qOk');
-
-  let _q_ctx = { jobId: null, durationSeconds: 0, title: 'video' };
-  function loadSavedCode(){ return localStorage.getItem('PROMO_CODE') || ''; }
-  function saveSavedCode(v){ localStorage.setItem('PROMO_CODE', v || ''); }
-
-  function openQuoteModal({jobId, durationSeconds, title}) {
-    _q_ctx = { jobId, durationSeconds, title };
-    qTitle.textContent = `标题：${title}    时长：${Math.round(durationSeconds||0)}s`;
-    qCode.value = loadSavedCode();
-    qBreak.textContent = '正在试算…';
-    populateLangSelect(qLang, localStorage.getItem(LANG_KEY)); // 初始化语言
-    quoteModal.style.display = 'block';
-    doQuote();
-    setTimeout(()=>qCode.focus(), 0);
-  }
-
-  function closeQuoteModal() {
-    quoteModal.style.display = 'none';
-  }
-
   let _q_timer=null;
   qCode.addEventListener('input', ()=>{
     clearTimeout(_q_timer);
@@ -712,8 +761,8 @@
     saveSavedCode(code);
     savePreferredLang(lang);
 
-    const url = `${API_BASE}/api/jobs/${_q_ctx.jobId}/confirm?` +
-                `code=${encodeURIComponent(code)}&lang=${encodeURIComponent(lang)}`;
+    // [MOD] 修复模板字符串
+    const url = `${API_BASE}/api/jobs/${_q_ctx.jobId}/confirm?code=${encodeURIComponent(code)}&lang=${encodeURIComponent(lang)}`;
 
     const resp = await fetch(url, { method: 'POST' });
     const d = await resp.json();
@@ -756,6 +805,7 @@
     els.jobId.value = jobId;
 
     try {
+      // [MOD] 修复模板字符串
       const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
       if (!res.ok) return;
       const data = await res.json();
@@ -763,7 +813,8 @@
       playIfPossible(data);
 
       const st = String(data.status || '').toLowerCase();
-      if (!['finished','published','failed','canceled'].includes(st)) {
+      // [MOD] 统一判断：finished / published 都视作终态
+      if (!(st === 'finished' || st === 'published' || st === 'failed' || st === 'canceled')) {
         subscribeJob(jobId);
       }
     } catch (e) {
