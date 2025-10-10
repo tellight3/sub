@@ -77,7 +77,7 @@
          style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999;">
       <div style="max-width:420px; margin:10% auto; background:#121a2b;
                   border:1px solid #223; border-radius:12px; padding:16px">
-        <h3 style="margin:0 0 8px">确认下载</h3>
+        <h3>确认下载</h3>
         <div id="qTitle" class="muted" style="margin-bottom:8px"></div>
 
         <!-- 目标语言 + 兑换码同一行 -->
@@ -127,6 +127,9 @@
   let lastTitle = 'video';
   let lastObjectPath = null;
   let lastMp4Url = null;
+
+  // [MOD] 新增：用于 UI 展示的人类可读标题（与下载名分离）
+  let displayTitle = 'video';
 
   // ===== 工具函数 =====
   function absUrl(u) {
@@ -212,7 +215,6 @@
         for (const tr of videoEl.textTracks) {
           try { tr.mode = 'disabled'; } catch {}
           const cues = tr.cues || [];
-          // 注意：某些实现不允许遍历时 removeCue，同步拷贝一下
           const list = [];
           for (let i = 0; i < cues.length; i++) list.push(cues[i]);
           for (const c of list) { try { tr.removeCue(c); } catch {} }
@@ -241,7 +243,8 @@
     };
     v.addEventListener('loadedmetadata', onReady);
 
-    els.nowPlaying.textContent = `正在播放：${displayNameFromUrl(nextUrl) || 'video.mp4'}`;
+    // [MOD] 删除这里对 nowPlaying 的覆盖，避免把标题改成文件名
+    // els.nowPlaying.textContent = `正在播放：${displayNameFromUrl(nextUrl) || 'video.mp4'}`;
   }
 
   // ===== 只要能播就播：抽取链接 + 切源 + 自动播 + 挂字幕 + 设置下载 =====
@@ -285,6 +288,16 @@
     const { url, subUrl } = extractMedia(payload);
     if (!url) return;
 
+    // [MOD] 在切源前先确定“展示标题”，并显示（只显示标题，不带语言）
+    const rawTitle =
+      (payload?.info?.title) ||
+      (payload?.result?.details?.title) ||
+      titleFromUrl(url) ||
+      displayTitle ||
+      'video';
+    displayTitle = rawTitle;                       // UI 用
+    els.nowPlaying.textContent = `正在播放：${displayTitle}`;
+
     switchSourceKeepPosition(url);
 
     const v = els.player;
@@ -313,11 +326,11 @@
   // ===== 将所有字幕 cues 贴底（覆盖 VTT 内置位置）=====
   function styleAllCues(videoEl, opts = {}) {
     const {
-      line = 95,          // 百分比，从顶部算；配合 snapToLines=false 接近底部
-      position = 50,      // 水平居中
-      size = 100,         // 宽度百分比
+      line = 95,
+      position = 50,
+      size = 100,
       align = 'center',
-      snapToLines = false // 关闭按行对齐，使用百分比定位
+      snapToLines = false
     } = opts;
 
     if (!videoEl || !videoEl.textTracks) return;
@@ -412,133 +425,6 @@
     });
   }
 
-  // ===== SSE 订阅 =====
-  function subscribeJob(jobId) {
-    if (!jobId) return alert('没有 jobId');
-    if (es) es.close();
-    es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
-    setBtn(document.getElementById('btnSubOrig'), null);
-    setBtn(document.getElementById('btnSubTrans'), null);
-
-    es.onmessage = (ev) => {
-      let msg; try { msg = JSON.parse(ev.data); } catch { return; }
-      if (msg.type === 'heartbeat') return;
-      setStatus(msg);
-
-      if (msg.type === 'snapshot') {
-        lastSnapshot = msg;
-        const t = (msg.info && (msg.info.title || (msg.info.details && msg.info.details.title))) || lastTitle;
-        if (t) lastTitle = sanitizeFilename(t);
-        playIfPossible(msg);
-        return;
-      }
-
-      if (msg.type === 'play') {
-        playIfPossible(msg);
-        return;
-      }
-
-      if (msg.type === 'finished') {
-        playIfPossible(msg);
-        if (es) { es.close(); es = null; }
-        return;
-      }
-
-      if (msg.type === 'published') {
-        playIfPossible(msg);
-        return;
-      }
-
-      if (msg.type === 'failed' || msg.type === 'canceled') {
-        if (es) { es.close(); es = null; }
-        return;
-      }
-
-      if (msg.type === 'progress') {
-        const percent = msg.percent != null ? Number(msg.percent).toFixed(1) : null;
-        const summary = [`[${msg.backend || '-'}][${msg.stage || '-'}]`, percent != null ? `${percent}%` : '', msg.speedHuman ? ` | ${msg.speedHuman}` : ''].join('');
-        els.statusBox.textContent = (summary + '\n' + els.statusBox.textContent);
-        return;
-      }
-      // 原始字幕就绪
-      if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') {
-        const sub = msg?.result?.subtitle;
-        const url = sub?.url;
-        const base = (msg?.result?.details?.title || 'subtitle').trim();
-        const name = `${base}.vtt`;
-        if (url) {
-          attachTrack(url);
-          const $btn = document.getElementById('btnSubOrig');
-          $btn.href = /^https?:\/\//i.test(url) ? url : (API_BASE + (url.startsWith('/') ? url : '/' + url));
-          $btn.setAttribute('download', name);
-          $btn.classList.remove('disabled');
-          $btn.removeAttribute('disabled');
-        }
-        return;
-      }
-      // 翻译完成
-      if (msg.type === 'translated') {
-        const zh = msg?.result?.subtitle_translated?.zh || msg?.result?.subtitle_translated?.['zh-CN'];
-        const url = zh?.url;
-        const base = (msg?.result?.details?.title || 'subtitle').trim();
-        const name = `${base}.zh.vtt`;
-        if (url) {
-          attachTrack(url, /*replace=*/true);
-          const $btn = document.getElementById('btnSubTrans');
-          $btn.href = /^https?:\/\//i.test(url) ? url : (API_BASE + (url.startsWith('/') ? url : '/' + url));
-          $btn.setAttribute('download', name);
-          $btn.classList.remove('disabled');
-          $btn.removeAttribute('disabled');
-        }
-        return;
-      }
-    };
-
-    es.onerror = () => { /* 可选：自动重连 */ };
-    return es;
-  }
-
-  // ===== 创建任务（先探测→确认→订阅）=====
-  async function createJobByUrl() {
-    const url = els.videoUrl.value.trim();
-    if (!url) return alert('请填写视频链接');
-
-    setBtn(document.getElementById('btnSubOrig'), null);
-    setBtn(document.getElementById('btnSubTrans'), null);
-    clearLastJob();
-
-    const res = await fetch(`${API_BASE}/api/jobs`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ sourceUrl: url })
-    });
-    const data = await res.json();
-    if (!res.ok) return alert(data.message || '创建失败');
-
-    const jobId = data.jobId;
-    els.jobId.value = jobId;
-    saveLastJob(jobId);
-
-    const i = (data && data.probe && data.probe.info) || {};
-    lastTitle = sanitizeFilename(i.title || titleFromUrl(url) || 'video');
-
-    openQuoteModal({
-      jobId,
-      durationSeconds: Number(i.duration_seconds || 0),
-      title: lastTitle
-    });
-  }
-
-  // ===== 查询一次任务 =====
-  async function queryJob() {
-    const id = (els.jobId.value || '').trim();
-    if (!id) return alert('请填写 job_id');
-    const res = await fetch(`${API_BASE}/api/jobs/${id}`);
-    const data = await res.json();
-    setStatus(data);
-    playIfPossible(data);
-  }
-
   // ===== 计费 & 语言 =====
   const PROMO_KEY = 'PROMO_CODE';
   function loadCode(){ return localStorage.getItem(PROMO_KEY) || ''; }
@@ -590,6 +476,13 @@
       ? selected : getDefaultLang();
   }
 
+  // [MOD] 新增：把语言代码转成标签（UI 展示用）
+  function getLangLabel(code){
+    if(!code) return '';
+    const hit = LANGUAGE_OPTIONS.find(x => x.value.toLowerCase() === String(code).toLowerCase());
+    return hit ? hit.label : code;
+  }
+
   async function showQuote(durationSeconds){
     const code = loadCode();
     const resp = await fetch(`${API_BASE}/api/pricing/quote`, {
@@ -604,6 +497,177 @@
 当前兑换码：${code||'（无）'}`;
     alert(msg);
     return q;
+  }
+
+  // ===== SSE 订阅 =====
+  function subscribeJob(jobId) {
+    if (!jobId) return alert('没有 jobId');
+    if (es) es.close();
+    es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
+    setBtn(document.getElementById('btnSubOrig'), null);
+    setBtn(document.getElementById('btnSubTrans'), null);
+
+    es.onmessage = (ev) => {
+      let msg; try { msg = JSON.parse(ev.data); } catch { return; }
+      if (msg.type === 'heartbeat') return;
+      setStatus(msg);
+
+      if (msg.type === 'snapshot') {
+        lastSnapshot = msg;
+        const t = (msg.info && (msg.info.title || (msg.info.details && msg.info.details.title))) || lastTitle;
+        // [MOD] 同步设置“展示标题”和“下载名”
+        if (t) {
+          displayTitle = t;                 // UI 展示
+          lastTitle = sanitizeFilename(t);  // 下载文件名
+          els.nowPlaying.textContent = `正在播放：${displayTitle}`;
+        }
+        playIfPossible(msg);
+        return;
+      }
+
+      if (msg.type === 'play') {
+        playIfPossible(msg);
+        return;
+      }
+
+      if (msg.type === 'finished') {
+        playIfPossible(msg);
+        if (es) { es.close(); es = null; }
+        return;
+      }
+
+      if (msg.type === 'published') {
+        playIfPossible(msg);
+        return;
+      }
+
+      if (msg.type === 'failed' || msg.type === 'canceled') {
+        if (es) { es.close(); es = null; }
+        return;
+      }
+
+      if (msg.type === 'progress') {
+        const percent = msg.percent != null ? Number(msg.percent).toFixed(1) : null;
+        const summary = [`[${msg.backend || '-'}][${msg.stage || '-'}]`, percent != null ? `${percent}%` : '', msg.speedHuman ? ` | ${msg.speedHuman}` : ''].join('');
+        els.statusBox.textContent = (summary + '\n' + els.statusBox.textContent);
+        return;
+      }
+      // 原始字幕就绪
+      if (msg.type === 'subtitle_ready' || msg.type === 'whisper_done') {
+        const sub = msg?.result?.subtitle;
+        const url = sub?.url;
+        const base = (msg?.result?.details?.title || 'subtitle').trim();
+        const name = `${base}.vtt`;
+        if (url) {
+          attachTrack(url);
+          const $btn = document.getElementById('btnSubOrig');
+          $btn.href = /^https?:\/\//i.test(url) ? url : (API_BASE + (url.startsWith('/') ? url : '/' + url));
+          $btn.setAttribute('download', name);
+          $btn.classList.remove('disabled');
+          $btn.removeAttribute('disabled');
+          // （保持只显示标题，不追加语言）
+          els.nowPlaying.textContent = `正在播放：${displayTitle}`;
+        }
+        return;
+      }
+      // 翻译完成
+      if (msg.type === 'translated') {
+        // 兼容你现有结构：优先找 zh / zh-CN；若没有就照样挂载第一个可用
+        const tmap = msg?.result?.subtitle_translated || {};
+        let pickedKey = null, pickedUrl = null;
+        for (const k of Object.keys(tmap)) {
+          if (tmap[k]?.url) { pickedKey = k; pickedUrl = tmap[k].url; break; }
+        }
+        const url = pickedUrl || tmap?.zh?.url || tmap?.['zh-CN']?.url || null;
+
+        const base = (msg?.result?.details?.title || 'subtitle').trim();
+        const name = `${base}.${(pickedKey||'trans')}.vtt`;
+        if (url) {
+          attachTrack(url, /*replace=*/true);
+          const $btn = document.getElementById('btnSubTrans');
+          $btn.href = /^https?:\/\//i.test(url) ? url : (API_BASE + (url.startsWith('/') ? url : '/' + url));
+          $btn.setAttribute('download', name);
+          $btn.classList.remove('disabled');
+          $btn.removeAttribute('disabled');
+
+          // [MOD] 显示「标题 + 语言」
+          const langChosen = localStorage.getItem(LANG_KEY) || pickedKey || 'auto';
+          els.nowPlaying.textContent = `正在播放：${displayTitle} · ${getLangLabel(langChosen)}`;
+        }
+        return;
+      }
+    };
+
+    es.onerror = () => { /* 可选：自动重连 */ };
+    return es;
+  }
+
+  // ===== 创建任务（先探测→确认→订阅）=====
+  async function createJobByUrl() {
+    const url = els.videoUrl.value.trim();
+    if (!url) return alert('请填写视频链接');
+
+    setBtn(document.getElementById('btnSubOrig'), null);
+    setBtn(document.getElementById('btnSubTrans'), null);
+    clearLastJob();
+
+    const res = await fetch(`${API_BASE}/api/jobs`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ sourceUrl: url })
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.message || '创建失败');
+
+    const jobId = data.jobId;
+    els.jobId.value = jobId;
+    saveLastJob(jobId);
+
+    const i = (data && data.probe && data.probe.info) || {};
+    // [MOD] 同步设置展示标题 & 下载名
+    displayTitle = i.title || titleFromUrl(url) || 'video';
+    lastTitle = sanitizeFilename(displayTitle);
+
+    openQuoteModal({
+      jobId,
+      durationSeconds: Number(i.duration_seconds || 0),
+      title: displayTitle // [MOD] 用展示标题，而不是已 sanitize 的 lastTitle
+    });
+  }
+
+  // ===== 查询一次任务 =====
+  async function queryJob() {
+    const id = (els.jobId.value || '').trim();
+    if (!id) return alert('请填写 job_id');
+    const res = await fetch(`${API_BASE}/api/jobs/${id}`);
+    const data = await res.json();
+    setStatus(data);
+    playIfPossible(data);
+  }
+
+  async function doQuote() {
+    const code = (qCode.value||'').trim();
+    try {
+      const resp = await fetch(`${API_BASE}/api/pricing/quote`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ durationSeconds: _q_ctx.durationSeconds, code })
+      });
+      const d = await resp.json();
+      if (!resp.ok || !d.ok) throw new Error(d.message || 'quote failed');
+
+      const lang = (qLang.value||getDefaultLang());
+      const lines = [
+        `计费： ${d.units} ${d.unitType} × $${(d.unitRateCents/100).toFixed(2)} = $${(d.subtotalCents/100).toFixed(2)}`,
+        `折扣： $${( (d.discounts?.reduce((s,x)=>s+(x.amount||0),0) || 0) /100).toFixed(2)}`,
+        `应付： $${(d.totalCents/100).toFixed(2)} ${d.currency}`,
+        code ? `当前兑换码： ${code}` : `未使用兑换码`,
+        `目标语言： ${lang}`
+      ];
+      qBreak.textContent = lines.join('\n');
+    } catch (e) {
+      qBreak.textContent = '试算失败：' + (e.message || e);
+    }
   }
 
   // ===== 统一计费弹窗 =====
@@ -632,31 +696,6 @@
 
   function closeQuoteModal() {
     quoteModal.style.display = 'none';
-  }
-
-  async function doQuote() {
-    const code = (qCode.value||'').trim();
-    try {
-      const resp = await fetch(`${API_BASE}/api/pricing/quote`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ durationSeconds: _q_ctx.durationSeconds, code })
-      });
-      const d = await resp.json();
-      if (!resp.ok || !d.ok) throw new Error(d.message || 'quote failed');
-
-      const lang = (qLang.value||getDefaultLang());
-      const lines = [
-        `计费： ${d.units} ${d.unitType} × $${(d.unitRateCents/100).toFixed(2)} = $${(d.subtotalCents/100).toFixed(2)}`,
-        `折扣： $${( (d.discounts?.reduce((s,x)=>s+(x.amount||0),0) || 0) /100).toFixed(2)}`,
-        `应付： $${(d.totalCents/100).toFixed(2)} ${d.currency}`,
-        code ? `当前兑换码： ${code}` : `未使用兑换码`,
-        `目标语言： ${lang}`
-      ];
-      qBreak.textContent = lines.join('\n');
-    } catch (e) {
-      qBreak.textContent = '试算失败：' + (e.message || e);
-    }
   }
 
   let _q_timer=null;
