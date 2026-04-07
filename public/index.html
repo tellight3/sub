@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
   <style>
     .btn[aria-disabled="true"] { opacity:.5; pointer-events:none; cursor:not-allowed; }
+    .btn.disabled { opacity:.5; pointer-events:none; }
 
     .player::cue {
       background: rgba(0, 0, 0, 0.25);
@@ -21,14 +22,10 @@
       text-align: center;
     }
 
-    .subtitle-custom::cue(c) {
-      text-align: center;
-    }
+    .subtitle-custom::cue(c) { text-align: center; }
 
     video::-webkit-media-text-track-display { background: transparent !important; }
     video::-webkit-media-text-track-container { background: transparent !important; }
-
-    .btn.disabled { opacity:.5; pointer-events:none; }
   </style>
 </head>
 <body>
@@ -120,8 +117,7 @@
   function absUrl(u) {
     if (!u) return null;
     if (/^https?:\/\//i.test(u)) return u;
-    const path = String(u).startsWith('/') ? u : '/' + String(u);
-    return `${API_BASE}${path}`;
+    return `${API_BASE}${String(u).startsWith('/') ? u : '/' + u}`;
   }
 
   function sanitizeFilename(n){ return (n ? String(n) : 'video').trim().replace(/[\\/:*?"<>|]/g, '_'); }
@@ -138,15 +134,6 @@
     }
   }
 
-  function objectPathFromResultPath(p){
-    if(!p) return null;
-    let s = String(p).replace(/\\/g,'/');
-    const i = s.lastIndexOf('/data/');
-    if(i >= 0) s = s.slice(i + '/data/'.length);
-    else if (s.startsWith('data/')) s = s.slice('data/'.length);
-    return s;
-  }
-
   function setStatus(obj){
     els.statusBox.textContent = JSON.stringify(obj, null, 2);
   }
@@ -154,8 +141,7 @@
   function displayNameFromUrl(u) {
     if (!u) return null;
     try {
-      const abs = absUrl(u);
-      const url = new URL(abs);
+      const url = new URL(absUrl(u));
       const fromQuery = url.searchParams.get('filename');
       if (fromQuery) return decodeURIComponent(fromQuery);
       const base = fileNameFromPath(url.pathname);
@@ -190,17 +176,13 @@
     }catch{}
     return hashString([ua,lang,tz,plat,dpr,scr,gl].join('|'));
   }
-
   function saveLastJob(jobId){
     try{
       const fp=getBrowserFingerprint();
       localStorage.setItem(LS_KEY_LAST, JSON.stringify({ jobId, fp, createdAt: Date.now() }));
     }catch{}
   }
-
-  function clearLastJob(){
-    try{ localStorage.removeItem(LS_KEY_LAST); }catch{}
-  }
+  function clearLastJob(){ try{ localStorage.removeItem(LS_KEY_LAST); }catch{} }
 
   function setupHls(m3u8Url){
     const v = els.player;
@@ -236,7 +218,6 @@
   function switchSourceKeepPosition(nextUrl){
     if(!nextUrl) return;
     const v = els.player;
-
     clearAllSubtitleTracks(v, true);
 
     const wasPaused = v.paused;
@@ -263,30 +244,11 @@
       payload?.result?.path ||
       null;
 
-    if (url && !/^https?:\/\//i.test(url)) {
-      if (/^data\//i.test(url)) {
-        const objPath = objectPathFromResultPath(url);
-        const title = sanitizeFilename(
-          pb.filename ||
-          payload?.info?.title ||
-          payload?.result?.details?.title ||
-          payload?.result?.details?.avid ||
-          payload?.result?.avid ||
-          'video'
-        );
-        url = `/download/${objPath}?filename=${encodeURIComponent(title)}.mp4`;
-      } else if (!url.startsWith('/')) {
-        url = '/' + url;
-      }
+    if (url && !/^https?:\/\//i.test(url) && !url.startsWith('/')) {
+      url = '/' + url;
     }
 
-    const subUrl =
-      payload?.result?.subtitle?.url ||
-      payload?.subtitleUrl ||
-      payload?.subtitle?.url ||
-      null;
-
-    return { url, subUrl };
+    return { url };
   }
 
   function setBtn($a, url, filename) {
@@ -404,7 +366,7 @@
       lastTitle ||
       'video';
 
-    document.getElementById('nowPlaying').textContent = `正在播放：${niceTitle}`;
+    els.nowPlaying.textContent = `正在播放：${niceTitle}`;
     lastTitle = sanitizeFilename(niceTitle);
 
     switchSourceKeepPosition(url);
@@ -451,7 +413,7 @@
 
     setTimeout(() => {
       const src = els.player.currentSrc || absUrl(url);
-      if (src && /\.(mp4|m4v|webm|mov)(\?|$)/i.test(src)) {
+      if (src && /\.(mp4|m4v|webm|mov|m3u8)(\?|$)/i.test(src)) {
         lastMp4Url = src;
         els.downloadMp4.href = src;
         els.downloadMp4.setAttribute('download', `${sanitizeFilename(lastTitle)}.mp4`);
@@ -648,16 +610,25 @@
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        url,
+        url: url,
         outputDir: "data",
-        proxy: null
+        proxy: null,
+        priority: 0
       })
     });
 
-    const data = await res.json();
-    if (!res.ok) return alert(data.message || data.error || '创建失败');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(data.message || data.error || '创建失败');
+      return;
+    }
 
     const jobId = data.jobId;
+    if (!jobId) {
+      alert('创建失败');
+      return;
+    }
+
     els.jobId.value = jobId;
     saveLastJob(jobId);
 
