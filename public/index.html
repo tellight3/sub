@@ -684,8 +684,6 @@
         const unitsLabel = PRICING.unitType === 'minute' ? '分钟' : '单位';
 
         qBreak.textContent = [
-          `标题：${_q_ctx.title || 'video'}`,
-          `时长：${durText}`,
           `费用：${price.units} ${unitsLabel} -> ${priceText}（未扣除兑换码）`,
           code ? `兑换码：${code}` : `兑换码：无`,
           `目标语言：${lang}`
