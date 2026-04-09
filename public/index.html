@@ -765,7 +765,7 @@
         const rawCandidates = [normalizedTitle(i.title), normalizedTitle(details.title), normalizedTitle(resultDetails.title)];
         const backupCandidates = [details.avid, i.avid, resultDetails.avid, details.m3u8 ? titleFromUrl(details.m3u8) : null, titleFromUrl(url)];
 
-        let displayTitle = rawCandidates.find(isMeaningfulTitle) || backupCandidates.find(isMeaningfulTitle) || rawCandidates.find(Boolean) || backupCandidates.find(Boolean) || 'video';
+        let displayTitle = rawCandidates.find(Boolean) || backupCandidates.find(isMeaningfulTitle) || backupCandidates.find(Boolean) || 'video';
         lastTitle = sanitizeFilename(displayTitle);
 
         if (data.job?.status !== 'WAITING_CONFIRM') {
