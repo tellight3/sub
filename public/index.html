@@ -601,6 +601,15 @@
           ? selected : getDefaultLang();
       }
 
+      function ensureDetails(raw) {
+        if (!raw) return {};
+        if (typeof raw === 'string') {
+          try { return JSON.parse(raw); } catch { return {}; }
+        }
+        if (typeof raw === 'object') return raw;
+        return {};
+      }
+
       const quoteModal = document.getElementById('quoteModal');
       const qTitle = document.getElementById('qTitle');
       const qLang = document.getElementById('qLang');
@@ -701,7 +710,7 @@
         saveLastJob(jobId);
 
         const i = (data && data.job && data.job.info) || {};
-        const details = (i && typeof i.details === 'object') ? i.details : {};
+        const details = ensureDetails(i.details);
         lastTitle = sanitizeFilename(i.title || details.title || titleFromUrl(url) || 'video');
 
         if (data.job?.status !== 'WAITING_CONFIRM') {
@@ -714,8 +723,12 @@
           return;
         }
 
-        const durationSeconds = Number(details.duration_seconds ?? i.duration_seconds ?? 0) || 0;
-        const durationText = details.duration_str || i.duration_str || (durationSeconds ? `${Math.round(durationSeconds)}s` : '未知');
+        const durationSeconds = Number(details.duration_seconds ?? i.duration_seconds ?? details.duration ?? i.duration ?? 0) || 0;
+        const durationText = details.duration_str
+          || i.duration_str
+          || (typeof details.duration === 'string' ? details.duration : null)
+          || (typeof i.duration === 'string' ? i.duration : null)
+          || (durationSeconds ? `${Math.round(durationSeconds)}s` : '未知');
         openQuoteModal({
           jobId,
           durationSeconds,
