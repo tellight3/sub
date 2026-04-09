@@ -11,18 +11,25 @@
     .btn[aria-disabled="true"] { opacity:.5; pointer-events:none; cursor:not-allowed; }
     .btn.disabled { opacity:.5; pointer-events:none; }
 
+    /* 桌面保持原样 */
     .player::cue {
       background: rgba(0, 0, 0, 0.25);
       color: #fff;
       font-size: 14px;
       line-height: 1.1;
       text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
-      position: absolute;
-      bottom: 3%;
       text-align: center;
     }
 
     .subtitle-custom::cue(c) { text-align: center; }
+
+    /* 手机单独缩小字幕字号 */
+    @media (max-width: 768px) {
+      .player::cue {
+        font-size: 10px;
+        line-height: 1.1;
+      }
+    }
 
     video::-webkit-media-text-track-display { background: transparent !important; }
     video::-webkit-media-text-track-container { background: transparent !important; }
@@ -113,6 +120,16 @@
   let lastSnapshot = null;
   let lastTitle = 'video';
   let lastMp4Url = null;
+
+  function isMobileView() {
+    return window.innerWidth <= 768;
+  }
+
+  function cueStyleOptions() {
+    return isMobileView()
+      ? { line: 90, position: 50, size: 92, align: 'center', snapToLines: false }
+      : { line: 95, position: 50, size: 100, align: 'center', snapToLines: false };
+  }
 
   function absUrl(u) {
     if (!u) return null;
@@ -315,6 +332,7 @@
             if ('position' in cue) cue.position = position;
             if ('size' in cue) cue.size = size;
             if ('align' in cue) cue.align = align;
+            if ('vertical' in cue) cue.vertical = '';
           } catch {}
         }
       };
@@ -346,13 +364,17 @@
     videoEl.appendChild(track);
     track.addEventListener('load', () => {
       try { const tt = videoEl.textTracks; if (tt && tt[0]) tt[0].mode = 'showing'; } catch {}
-      styleAllCues(videoEl, { line: 95, position: 50, size: 100, align: 'center', snapToLines: false });
+      styleAllCues(videoEl, cueStyleOptions());
     });
   }
 
   els.player.addEventListener('loadedmetadata', () => {
     try { const tt = els.player.textTracks; if (tt && tt[0]) tt[0].mode = 'showing'; } catch {}
-    styleAllCues(els.player, { line: 95, position: 50, size: 100, align: 'center', snapToLines: false });
+    styleAllCues(els.player, cueStyleOptions());
+  });
+
+  window.addEventListener('resize', () => {
+    styleAllCues(els.player, cueStyleOptions());
   });
 
   function playIfPossible(payload) {
