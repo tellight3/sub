@@ -120,7 +120,7 @@
     <script>
       const API_BASE = 'https://mmx.multmatrix.com';
 
-      const PRICING = {
+      let PRICING = {
         unitType: 'minute',
         unitRateCents: 1,
         minUnits: 1,
@@ -746,7 +746,14 @@
 
         const i = (data && data.job && data.job.info) || {};
         const details = Object.assign({}, ensureDetails(i.details), ensureDetails(i.path));
-        const displayTitle = i.title || details.title || titleFromUrl(url) || 'video';
+        const displayTitle =
+          i.title
+          || details.title
+          || details.avid
+          || i.avid
+          || (details.m3u8 ? titleFromUrl(details.m3u8) : null)
+          || titleFromUrl(url)
+          || 'video';
         lastTitle = sanitizeFilename(displayTitle);
 
         if (data.job?.status !== 'WAITING_CONFIRM') {
@@ -853,3 +860,15 @@
 </body>
 
 </html>
+      async function loadPricing() {
+        try {
+          const resp = await fetch(`${API_BASE}/api/config`);
+          const data = await resp.json();
+          if (resp.ok && data?.pricing) {
+            PRICING = { ...PRICING, ...data.pricing };
+          }
+        } catch (err) {
+          console.warn('failed to load pricing', err);
+        }
+      }
+      loadPricing();
