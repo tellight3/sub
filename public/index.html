@@ -128,6 +128,15 @@
         currency: 'USD',
       };
 
+      function isMeaningfulTitle(title) {
+        if (!title) return false;
+        const t = String(title).trim();
+        if (!t) return false;
+        // treat pure numbers as non-meaningful (prefer avid)
+        if (/^\d+$/.test(t)) return false;
+        return true;
+      }
+
       const els = {
         videoUrl: document.getElementById('videoUrl'),
         createByUrlBtn: document.getElementById('createByUrlBtn'),
@@ -744,16 +753,14 @@
         els.jobId.value = jobId;
         saveLastJob(jobId);
 
-        const i = (data && data.job && data.job.info) || {};
+        const jobPayload = data && data.job || {};
+        const i = jobPayload.info || {};
         const details = Object.assign({}, ensureDetails(i.details), ensureDetails(i.path));
-        const displayTitle =
-          i.title
-          || details.title
-          || details.avid
-          || i.avid
-          || (details.m3u8 ? titleFromUrl(details.m3u8) : null)
-          || titleFromUrl(url)
-          || 'video';
+        const resultDetails = ensureDetails(jobPayload.result && jobPayload.result.details);
+        const rawCandidates = [i.title, details.title, resultDetails.title];
+        const backupCandidates = [details.avid, i.avid, resultDetails.avid, details.m3u8 ? titleFromUrl(details.m3u8) : null, titleFromUrl(url)];
+
+        let displayTitle = rawCandidates.find(isMeaningfulTitle) || backupCandidates.find(isMeaningfulTitle) || rawCandidates.find(Boolean) || backupCandidates.find(Boolean) || 'video';
         lastTitle = sanitizeFilename(displayTitle);
 
         if (data.job?.status !== 'WAITING_CONFIRM') {
