@@ -120,6 +120,14 @@
     <script>
       const API_BASE = 'https://mmx.multmatrix.com';
 
+      const PRICING = {
+        unitType: 'minute',
+        unitRateCents: 1,
+        minUnits: 1,
+        minBillCents: 0,
+        currency: 'USD',
+      };
+
       const els = {
         videoUrl: document.getElementById('videoUrl'),
         createByUrlBtn: document.getElementById('createByUrlBtn'),
@@ -618,10 +626,33 @@
       const qCancel = document.getElementById('qCancel');
       const qOk = document.getElementById('qOk');
 
-      let _q_ctx = { jobId: null, durationSeconds: 0, durationText: '未知', title: 'video' };
+      function formatCurrency(cents, currency = PRICING.currency) {
+        const symbol = currency === 'USD' ? '$' : (currency === 'CNY' ? '¥' : '');
+        const digits = currency === 'JPY' ? 0 : 2;
+        return `${symbol}${(cents / 100).toFixed(digits)} ${currency}`.trim();
+      }
+
+      function calcQuote(durationSeconds) {
+        let units = PRICING.minUnits;
+        if (PRICING.unitType === 'minute') {
+          const minutes = Math.ceil(Math.max(durationSeconds || 0, 0) / 60);
+          units = Math.max(PRICING.minUnits, minutes || 0);
+        } else {
+          units = Math.max(PRICING.minUnits, Math.ceil(durationSeconds || 0));
+        }
+        let subtotal = units * PRICING.unitRateCents;
+        let total = subtotal;
+        if (subtotal > 0) {
+          total = Math.max(PRICING.minBillCents, subtotal);
+        }
+        return { units, subtotalCents: subtotal, totalCents: total };
+      }
+
+      let _q_ctx = { jobId: null, durationSeconds: 0, durationText: '未知', title: 'video', price: null };
 
       function openQuoteModal({ jobId, durationSeconds, durationText, title }) {
-        _q_ctx = { jobId, durationSeconds, durationText, title };
+        const price = calcQuote(durationSeconds);
+        _q_ctx = { jobId, durationSeconds, durationText, title, price };
         const displayDur = durationText || `${Math.round(durationSeconds || 0)}s`;
         qTitle.textContent = `标题：${title}    时长：${displayDur}`;
         qCode.value = loadSavedCode();
@@ -639,10 +670,14 @@
         const code = (qCode.value || '').trim();
         const lang = (qLang.value || getDefaultLang());
         const durText = _q_ctx.durationText || `${Math.round(_q_ctx.durationSeconds || 0)}s`;
+        const price = _q_ctx.price || calcQuote(_q_ctx.durationSeconds || 0);
+        const priceText = formatCurrency(price.totalCents);
+        const unitsLabel = PRICING.unitType === 'minute' ? '分钟' : '单位';
 
         qBreak.textContent = [
           `标题：${_q_ctx.title || 'video'}`,
           `时长：${durText}`,
+          `费用：${price.units} ${unitsLabel} -> ${priceText}（未扣除兑换码）`,
           code ? `兑换码：${code}` : `兑换码：无`,
           `目标语言：${lang}`
         ].join('\n');
@@ -711,7 +746,8 @@
 
         const i = (data && data.job && data.job.info) || {};
         const details = Object.assign({}, ensureDetails(i.details), ensureDetails(i.path));
-        lastTitle = sanitizeFilename(i.title || details.title || titleFromUrl(url) || 'video');
+        const displayTitle = i.title || details.title || titleFromUrl(url) || 'video';
+        lastTitle = sanitizeFilename(displayTitle);
 
         if (data.job?.status !== 'WAITING_CONFIRM') {
           setStatus(data.job || data);
@@ -733,7 +769,7 @@
           jobId,
           durationSeconds,
           durationText,
-          title: lastTitle
+          title: displayTitle
         });
       }
 
