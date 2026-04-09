@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -8,8 +9,16 @@
   <link rel="stylesheet" href="/styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
   <style>
-    .btn[aria-disabled="true"] { opacity:.5; pointer-events:none; cursor:not-allowed; }
-    .btn.disabled { opacity:.5; pointer-events:none; }
+    .btn[aria-disabled="true"] {
+      opacity: .5;
+      pointer-events: none;
+      cursor: not-allowed;
+    }
+
+    .btn.disabled {
+      opacity: .5;
+      pointer-events: none;
+    }
 
     /* 桌面保持原样 */
     .player::cue {
@@ -21,7 +30,9 @@
       text-align: center;
     }
 
-    .subtitle-custom::cue(c) { text-align: center; }
+    .subtitle-custom::cue(c) {
+      text-align: center;
+    }
 
     /* 手机单独缩小字幕字号 */
     @media (max-width: 768px) {
@@ -31,10 +42,16 @@
       }
     }
 
-    video::-webkit-media-text-track-display { background: transparent !important; }
-    video::-webkit-media-text-track-container { background: transparent !important; }
+    video::-webkit-media-text-track-display {
+      background: transparent !important;
+    }
+
+    video::-webkit-media-text-track-container {
+      background: transparent !important;
+    }
   </style>
 </head>
+
 <body>
   <div class="container">
     <h1>视频字幕生成</h1>
@@ -58,7 +75,8 @@
 
     <div class="card">
       <h2>在线播放 / 下载</h2>
-      <video id="player" class="player subtitle-custom" controls playsinline muted autoplay crossorigin="anonymous"></video>
+      <video id="player" class="player subtitle-custom" controls playsinline muted autoplay
+        crossorigin="anonymous"></video>
       <div class="row">
         <a id="playM3U8" class="btn" href="#" target="_blank" rel="noopener">播放</a>
         <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener">下载 MP4</a>
@@ -68,8 +86,7 @@
       <div id="nowPlaying" class="muted"></div>
     </div>
 
-    <div id="quoteModal"
-         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999;">
+    <div id="quoteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999;">
       <div style="max-width:420px; margin:10% auto; background:#121a2b;
                   border:1px solid #223; border-radius:12px; padding:16px">
         <h3 style="margin:0 0 8px">确认下载</h3>
@@ -77,18 +94,19 @@
 
         <div class="row" style="gap:8px; align-items:center; margin-bottom:4px">
           <label style="min-width:80px">目标语言</label>
-          <select id="qLang" style="flex:1; padding:4px; border-radius:6px; border:1px solid #334154; background:#0f1524; color:#fff;"></select>
+          <select id="qLang"
+            style="flex:1; padding:4px; border-radius:6px; border:1px solid #334154; background:#0f1524; color:#fff;"></select>
 
           <label style="min-width:80px">兑换码</label>
-          <input id="qCode" placeholder="可留空" style="flex:1; padding:4px; border-radius:6px; border:1px solid #334154; background:#0f1524; color:#fff;">
+          <input id="qCode" placeholder="可留空"
+            style="flex:1; padding:4px; border-radius:6px; border:1px solid #334154; background:#0f1524; color:#fff;">
         </div>
 
         <div class="muted" style="color:#6ee7b7; font-weight:600; margin-bottom:8px">
           🎁 输入 <b>12345678</b> 可免单（100% 折扣）
         </div>
 
-        <div id="qBreak" class="mono"
-             style="white-space:pre-line; background:#0f1524; border:1px solid #334154;
+        <div id="qBreak" class="mono" style="white-space:pre-line; background:#0f1524; border:1px solid #334154;
                     border-radius:8px; padding:8px; min-height:3em; margin-top:6px;">
         </div>
 
@@ -99,657 +117,690 @@
       </div>
     </div>
 
-<script>
-  const API_BASE = 'https://mmx.multmatrix.com';
+    <script>
+      const API_BASE = 'https://mmx.multmatrix.com';
 
-  const els = {
-    videoUrl: document.getElementById('videoUrl'),
-    createByUrlBtn: document.getElementById('createByUrlBtn'),
-    jobId: document.getElementById('jobId'),
-    queryBtn: document.getElementById('queryBtn'),
-    sseBtn: document.getElementById('sseBtn'),
-    stopBtn: document.getElementById('stopBtn'),
-    statusBox: document.getElementById('statusBox'),
-    player: document.getElementById('player'),
-    playM3U8: document.getElementById('playM3U8'),
-    downloadMp4: document.getElementById('downloadMp4'),
-    nowPlaying: document.getElementById('nowPlaying'),
-  };
+      const els = {
+        videoUrl: document.getElementById('videoUrl'),
+        createByUrlBtn: document.getElementById('createByUrlBtn'),
+        jobId: document.getElementById('jobId'),
+        queryBtn: document.getElementById('queryBtn'),
+        sseBtn: document.getElementById('sseBtn'),
+        stopBtn: document.getElementById('stopBtn'),
+        statusBox: document.getElementById('statusBox'),
+        player: document.getElementById('player'),
+        playM3U8: document.getElementById('playM3U8'),
+        downloadMp4: document.getElementById('downloadMp4'),
+        nowPlaying: document.getElementById('nowPlaying'),
+      };
 
-  let es = null;
-  let lastSnapshot = null;
-  let lastTitle = 'video';
-  let lastMp4Url = null;
+      let es = null;
+      let lastSnapshot = null;
+      let lastTitle = 'video';
+      let lastMp4Url = null;
 
-  function isMobileView() {
-    return window.innerWidth <= 768;
-  }
-
-  function cueStyleOptions() {
-    return isMobileView()
-      ? { line: 90, position: 50, size: 92, align: 'center', snapToLines: false }
-      : { line: 95, position: 50, size: 100, align: 'center', snapToLines: false };
-  }
-
-  function absUrl(u) {
-    if (!u) return null;
-    if (/^https?:\/\//i.test(u)) return u;
-    return `${API_BASE}${String(u).startsWith('/') ? u : '/' + u}`;
-  }
-
-  function sanitizeFilename(n){ return (n ? String(n) : 'video').trim().replace(/[\\/:*?"<>|]/g, '_'); }
-  function fileNameFromPath(p){ if(!p) return null; const a=String(p).replace(/\\/g,'/').split('/'); return a[a.length-1]||null; }
-
-  function titleFromUrl(u){
-    try{
-      const url = new URL(u);
-      const base = fileNameFromPath(url.pathname);
-      return base ? base.replace(/\.(mp4|mkv|webm|mov|m4v|m3u8)$/i,'') : null;
-    } catch {
-      const base = fileNameFromPath(u);
-      return base ? base.replace(/\.(mp4|mkv|webm|mov|m4v|m3u8)$/i,'') : null;
-    }
-  }
-
-  function setStatus(obj){
-    els.statusBox.textContent = JSON.stringify(obj, null, 2);
-  }
-
-  function displayNameFromUrl(u) {
-    if (!u) return null;
-    try {
-      const url = new URL(absUrl(u));
-      const fromQuery = url.searchParams.get('filename');
-      if (fromQuery) return decodeURIComponent(fromQuery);
-      const base = fileNameFromPath(url.pathname);
-      return base ? decodeURIComponent(base) : null;
-    } catch {
-      const qIdx = String(u).indexOf('?');
-      const pathOnly = qIdx >= 0 ? String(u).slice(0, qIdx) : String(u);
-      const base = fileNameFromPath(pathOnly);
-      try { return base ? decodeURIComponent(base) : null; } catch { return base || null; }
-    }
-  }
-
-  const LS_KEY_LAST = 'mmx:lastJob';
-  function hashString(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h)^s.charCodeAt(i); return (h>>>0).toString(16).padStart(8,'0'); }
-  function getBrowserFingerprint(){
-    const ua=navigator.userAgent||'';
-    const lang=(navigator.languages&&navigator.languages.join(','))||navigator.language||'';
-    const tz=(Intl.DateTimeFormat().resolvedOptions().timeZone)||'';
-    const plat=navigator.platform||'';
-    const dpr=String(window.devicePixelRatio||1);
-    const scr=(window.screen && `${screen.width}x${screen.height}@${screen.colorDepth||24}`)||'';
-    let gl='';
-    try{
-      const c=document.createElement('canvas');
-      const g=c.getContext('webgl')||c.getContext('experimental-webgl');
-      if(g){
-        const dbg=g.getExtension('WEBGL_debug_renderer_info');
-        const ven=dbg?g.getParameter(dbg.UNMASKED_VENDOR_WEBGL):'';
-        const ren=dbg?g.getParameter(dbg.UNMASKED_RENDERER_WEBGL):'';
-        gl=`${ven}|${ren}`;
+      function isMobileView() {
+        return window.innerWidth <= 768;
       }
-    }catch{}
-    return hashString([ua,lang,tz,plat,dpr,scr,gl].join('|'));
-  }
-  function saveLastJob(jobId){
-    try{
-      const fp=getBrowserFingerprint();
-      localStorage.setItem(LS_KEY_LAST, JSON.stringify({ jobId, fp, createdAt: Date.now() }));
-    }catch{}
-  }
-  function clearLastJob(){ try{ localStorage.removeItem(LS_KEY_LAST); }catch{} }
 
-  function setupHls(m3u8Url){
-    const v = els.player;
-    if(v.canPlayType('application/vnd.apple.mpegurl')){
-      v.src = m3u8Url;
-      v.play().catch(()=>{});
-    } else if(window.Hls && Hls.isSupported()){
-      const hls = new Hls();
-      hls.loadSource(m3u8Url);
-      hls.attachMedia(v);
-      hls.on(Hls.Events.MANIFEST_PARSED, ()=>v.play().catch(()=>{}));
-    } else {
-      window.open(m3u8Url,'_blank');
-    }
-  }
-
-  function clearAllSubtitleTracks(videoEl, alsoDisableTextTracks = true) {
-    if (!videoEl) return;
-    try { [...videoEl.querySelectorAll('track')].forEach(t => t.remove()); } catch {}
-    try {
-      if (alsoDisableTextTracks && videoEl.textTracks) {
-        for (const tr of videoEl.textTracks) {
-          try { tr.mode = 'disabled'; } catch {}
-          const cues = tr.cues || [];
-          const list = [];
-          for (let i = 0; i < cues.length; i++) list.push(cues[i]);
-          for (const c of list) { try { tr.removeCue(c); } catch {} }
-        }
+      function cueStyleOptions() {
+        return isMobileView()
+          ? { line: 90, position: 50, size: 92, align: 'center', snapToLines: false }
+          : { line: 95, position: 50, size: 100, align: 'center', snapToLines: false };
       }
-    } catch {}
-  }
 
-  function switchSourceKeepPosition(nextUrl){
-    if(!nextUrl) return;
-    const v = els.player;
-    clearAllSubtitleTracks(v, true);
+      function absUrl(u) {
+        if (!u) return null;
+        if (/^https?:\/\//i.test(u)) return u;
+        return `${API_BASE}${String(u).startsWith('/') ? u : '/' + u}`;
+      }
 
-    const wasPaused = v.paused;
-    const t = v.currentTime || 0;
+      function sanitizeFilename(n) { return (n ? String(n) : 'video').trim().replace(/[\\/:*?"<>|]/g, '_'); }
+      function fileNameFromPath(p) { if (!p) return null; const a = String(p).replace(/\\/g, '/').split('/'); return a[a.length - 1] || null; }
 
-    v.muted = true;
-    v.src = absUrl(nextUrl);
-    v.load();
-
-    const onReady = () => {
-      try { v.currentTime = Math.max(0, Math.min(t, v.duration || t)); } catch {}
-      if(!wasPaused) v.play().catch(()=>{});
-      v.removeEventListener('loadedmetadata', onReady);
-    };
-    v.addEventListener('loadedmetadata', onReady);
-  }
-
-  function extractMedia(payload) {
-    const pb = payload?.result?.playback || {};
-    let url =
-      pb.videoUrl ||
-      pb.originalUrl ||
-      payload?.url ||
-      payload?.result?.path ||
-      null;
-
-    if (url && !/^https?:\/\//i.test(url) && !url.startsWith('/')) {
-      url = '/' + url;
-    }
-
-    return { url };
-  }
-
-  function setBtn($a, url, filename) {
-    if (!$a) return;
-    $a.onclick = null;
-
-    if (url) {
-      const abs = /^https?:\/\//i.test(url)
-        ? url
-        : (url.startsWith('/') ? `${API_BASE}${url}` : `${API_BASE}/${url}`);
-      $a.href = abs;
-      if (filename) $a.setAttribute('download', filename);
-
-      $a.onclick = async (e) => {
+      function titleFromUrl(u) {
         try {
-          e.preventDefault();
-          const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const blob = await resp.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = filename || (displayNameFromUrl(abs) || 'subtitle.vtt');
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            URL.revokeObjectURL(blobUrl);
-            a.remove();
-          }, 0);
-        } catch (err) {
-          window.open(abs, '_blank', 'noopener');
-        }
-      };
-
-      $a.classList.remove('disabled');
-      $a.removeAttribute('disabled');
-    } else {
-      $a.href = 'javascript:void(0)';
-      $a.removeAttribute('download');
-      $a.classList.add('disabled');
-      $a.setAttribute('disabled', 'disabled');
-    }
-  }
-
-  function styleAllCues(videoEl, opts = {}) {
-    const {
-      line = 95,
-      position = 50,
-      size = 100,
-      align = 'center',
-      snapToLines = false
-    } = opts;
-
-    if (!videoEl || !videoEl.textTracks) return;
-
-    const applyToTrack = (track) => {
-      const apply = () => {
-        const cues = track.cues || [];
-        for (let i = 0; i < cues.length; i++) {
-          const cue = cues[i];
-          try {
-            if ('snapToLines' in cue) cue.snapToLines = snapToLines;
-            if ('line' in cue) cue.line = line;
-            if ('position' in cue) cue.position = position;
-            if ('size' in cue) cue.size = size;
-            if ('align' in cue) cue.align = align;
-            if ('vertical' in cue) cue.vertical = '';
-          } catch {}
-        }
-      };
-      apply();
-      track.removeEventListener('cuechange', apply);
-      track.addEventListener('cuechange', apply);
-    };
-
-    for (const track of videoEl.textTracks) {
-      try { track.mode = 'showing'; } catch {}
-      if (track.readyState === 2) {
-        applyToTrack(track);
-      } else {
-        const onload = () => { applyToTrack(track); track.removeEventListener('load', onload); };
-        track.addEventListener('load', onload);
-      }
-    }
-  }
-
-  function addVttTrackToVideo(videoEl, vttUrl, { lang='zh', label='中文', makeDefault=true } = {}) {
-    if (!videoEl || !vttUrl) return;
-    [...videoEl.querySelectorAll('track')].forEach(t => t.remove());
-    const track = document.createElement('track');
-    track.kind = 'subtitles';
-    track.srclang = lang;
-    track.label = label;
-    track.src = /^https?:\/\//i.test(vttUrl) ? vttUrl : (API_BASE + vttUrl);
-    if (makeDefault) track.default = true;
-    videoEl.appendChild(track);
-    track.addEventListener('load', () => {
-      try { const tt = videoEl.textTracks; if (tt && tt[0]) tt[0].mode = 'showing'; } catch {}
-      styleAllCues(videoEl, cueStyleOptions());
-    });
-  }
-
-  els.player.addEventListener('loadedmetadata', () => {
-    try { const tt = els.player.textTracks; if (tt && tt[0]) tt[0].mode = 'showing'; } catch {}
-    styleAllCues(els.player, cueStyleOptions());
-  });
-
-  window.addEventListener('resize', () => {
-    styleAllCues(els.player, cueStyleOptions());
-  });
-
-  function playIfPossible(payload) {
-    const { url } = extractMedia(payload);
-    if (!url) return;
-
-    const niceTitle =
-      payload?.info?.title ||
-      payload?.result?.details?.title ||
-      titleFromUrl(url) ||
-      lastTitle ||
-      'video';
-
-    els.nowPlaying.textContent = `正在播放：${niceTitle}`;
-    lastTitle = sanitizeFilename(niceTitle);
-
-    switchSourceKeepPosition(url);
-
-    const v = els.player;
-    v.muted = true;
-    const tryPlay = () => v.play().catch(()=>{});
-    tryPlay();
-    const once = () => {
-      v.removeEventListener('canplay', once);
-      v.removeEventListener('loadeddata', once);
-      tryPlay();
-    };
-    v.addEventListener('canplay', once, { once: true });
-    v.addEventListener('loadeddata', once, { once: true });
-
-    let transUrl = null, transLang = null;
-    const tmap = payload?.result?.subtitle_translated || {};
-    const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
-
-    if (tmap && typeof tmap === 'object') {
-      if (pref && tmap[pref]?.url) { transUrl = tmap[pref].url; transLang = pref; }
-      if (!transUrl) {
-        for (const k of Object.keys(tmap)) {
-          if (tmap[k]?.url) { transUrl = tmap[k].url; transLang = k; break; }
+          const url = new URL(u);
+          const base = fileNameFromPath(url.pathname);
+          return base ? base.replace(/\.(mp4|mkv|webm|mov|m4v|m3u8)$/i, '') : null;
+        } catch {
+          const base = fileNameFromPath(u);
+          return base ? base.replace(/\.(mp4|mkv|webm|mov|m4v|m3u8)$/i, '') : null;
         }
       }
-    }
 
-    if (!transUrl) {
-      const pb = payload?.result?.playback || {};
-      if (pb.subtitleUrl) { transUrl = pb.subtitleUrl; transLang = transLang || 'trans'; }
-    }
+      function setStatus(obj) {
+        if (!obj || typeof obj !== 'object') {
+          els.statusBox.textContent = '状态未知';
+          return;
+        }
 
-    const origUrl = payload?.result?.subtitle?.url || null;
-    const chosen = transUrl || origUrl;
-    if (chosen) {
-      addVttTrackToVideo(els.player, chosen, { lang: 'auto', label: transUrl ? '翻译字幕' : '原始字幕', makeDefault: true });
-    }
+        const payload = obj.job || obj;
+        const status = payload.status || 'unknown';
+        const message = payload.message || '';
+        const progress = (payload.result && payload.result.progress) || {};
+        let percent = Number.isFinite(progress.percent) ? Math.round(progress.percent) : null;
 
-    const baseTitle = (payload?.result?.details?.title || payload?.info?.title || niceTitle || 'subtitle').trim();
-    setBtn(document.getElementById('btnSubOrig'),  origUrl, `${baseTitle}.vtt`);
-    setBtn(document.getElementById('btnSubTrans'), transUrl, `${baseTitle}.${transLang || 'trans'}.vtt`);
+        if (percent === null) {
+          const total = Number(payload.bytes_total);
+          const done = Number(payload.bytes_downloaded);
+          if (Number.isFinite(total) && total > 0 && Number.isFinite(done)) {
+            percent = Math.min(100, Math.max(0, Math.round((done / total) * 100)));
+          }
+        }
 
-    setTimeout(() => {
-      const src = els.player.currentSrc || absUrl(url);
-      if (src && /\.(mp4|m4v|webm|mov|m3u8)(\?|$)/i.test(src)) {
-        lastMp4Url = src;
-        els.downloadMp4.href = src;
-        els.downloadMp4.setAttribute('download', `${sanitizeFilename(lastTitle)}.mp4`);
-        els.downloadMp4.target = '_blank';
-      } else if (src) {
-        els.downloadMp4.href = src;
-        els.downloadMp4.removeAttribute('download');
-        els.downloadMp4.target = '_blank';
+        let text = status;
+        if (percent !== null && Number.isFinite(percent)) {
+          text += ` ${percent}%`;
+        }
+        if (message) {
+          text += ` | ${message}`;
+        }
+
+        els.statusBox.textContent = text;
       }
-    }, 0);
-  }
 
-  function subscribeJob(jobId) {
-    if (!jobId) return alert('没有 jobId');
-    if (es) es.close();
+      function displayNameFromUrl(u) {
+        if (!u) return null;
+        try {
+          const url = new URL(absUrl(u));
+          const fromQuery = url.searchParams.get('filename');
+          if (fromQuery) return decodeURIComponent(fromQuery);
+          const base = fileNameFromPath(url.pathname);
+          return base ? decodeURIComponent(base) : null;
+        } catch {
+          const qIdx = String(u).indexOf('?');
+          const pathOnly = qIdx >= 0 ? String(u).slice(0, qIdx) : String(u);
+          const base = fileNameFromPath(pathOnly);
+          try { return base ? decodeURIComponent(base) : null; } catch { return base || null; }
+        }
+      }
 
-    es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
-    setBtn(document.getElementById('btnSubOrig'), null);
-    setBtn(document.getElementById('btnSubTrans'), null);
+      const LS_KEY_LAST = 'mmx:lastJob';
+      function hashString(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i); return (h >>> 0).toString(16).padStart(8, '0'); }
+      function getBrowserFingerprint() {
+        const ua = navigator.userAgent || '';
+        const lang = (navigator.languages && navigator.languages.join(',')) || navigator.language || '';
+        const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || '';
+        const plat = navigator.platform || '';
+        const dpr = String(window.devicePixelRatio || 1);
+        const scr = (window.screen && `${screen.width}x${screen.height}@${screen.colorDepth || 24}`) || '';
+        let gl = '';
+        try {
+          const c = document.createElement('canvas');
+          const g = c.getContext('webgl') || c.getContext('experimental-webgl');
+          if (g) {
+            const dbg = g.getExtension('WEBGL_debug_renderer_info');
+            const ven = dbg ? g.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : '';
+            const ren = dbg ? g.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '';
+            gl = `${ven}|${ren}`;
+          }
+        } catch { }
+        return hashString([ua, lang, tz, plat, dpr, scr, gl].join('|'));
+      }
+      function saveLastJob(jobId) {
+        try {
+          const fp = getBrowserFingerprint();
+          localStorage.setItem(LS_KEY_LAST, JSON.stringify({ jobId, fp, createdAt: Date.now() }));
+        } catch { }
+      }
+      function clearLastJob() { try { localStorage.removeItem(LS_KEY_LAST); } catch { } }
 
-    es.onmessage = (ev) => {
-      let msg;
-      try { msg = JSON.parse(ev.data); } catch { return; }
-      if (msg.type === 'heartbeat') return;
+      function setupHls(m3u8Url) {
+        const v = els.player;
+        if (v.canPlayType('application/vnd.apple.mpegurl')) {
+          v.src = m3u8Url;
+          v.play().catch(() => { });
+        } else if (window.Hls && Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(m3u8Url);
+          hls.attachMedia(v);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => v.play().catch(() => { }));
+        } else {
+          window.open(m3u8Url, '_blank');
+        }
+      }
 
-      setStatus(msg);
-      lastSnapshot = msg;
+      function clearAllSubtitleTracks(videoEl, alsoDisableTextTracks = true) {
+        if (!videoEl) return;
+        try { [...videoEl.querySelectorAll('track')].forEach(t => t.remove()); } catch { }
+        try {
+          if (alsoDisableTextTracks && videoEl.textTracks) {
+            for (const tr of videoEl.textTracks) {
+              try { tr.mode = 'disabled'; } catch { }
+              const cues = tr.cues || [];
+              const list = [];
+              for (let i = 0; i < cues.length; i++) list.push(cues[i]);
+              for (const c of list) { try { tr.removeCue(c); } catch { } }
+            }
+          }
+        } catch { }
+      }
 
-      const job = msg;
-      const st = String(job.status || '').toUpperCase();
+      function switchSourceKeepPosition(nextUrl) {
+        if (!nextUrl) return;
+        const v = els.player;
+        clearAllSubtitleTracks(v, true);
 
-      const t = (job.info && (job.info.title || (job.info.details && job.info.details.title))) || lastTitle;
-      if (t) lastTitle = sanitizeFilename(t);
+        const wasPaused = v.paused;
+        const t = v.currentTime || 0;
 
-      playIfPossible(job);
+        v.muted = true;
+        v.src = absUrl(nextUrl);
+        v.load();
 
-      const base = (job?.result?.details?.title || job?.info?.title || lastTitle || 'subtitle').trim();
-      const orig = job?.result?.subtitle?.url || null;
+        const onReady = () => {
+          try { v.currentTime = Math.max(0, Math.min(t, v.duration || t)); } catch { }
+          if (!wasPaused) v.play().catch(() => { });
+          v.removeEventListener('loadedmetadata', onReady);
+        };
+        v.addEventListener('loadedmetadata', onReady);
+      }
 
-      let trans = null, k = null;
-      const tmap = job?.result?.subtitle_translated || {};
-      const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
-      if (tmap && typeof tmap === 'object') {
-        if (pref && tmap[pref]?.url) { trans = tmap[pref].url; k = pref; }
-        if (!trans) {
-          for (const kk of Object.keys(tmap)) {
-            if (tmap[kk]?.url) { trans = tmap[kk].url; k = kk; break; }
+      function extractMedia(payload) {
+        const pb = payload?.result?.playback || {};
+        let url =
+          pb.videoUrl ||
+          pb.originalUrl ||
+          payload?.url ||
+          payload?.result?.path ||
+          null;
+
+        if (url && !/^https?:\/\//i.test(url) && !url.startsWith('/')) {
+          url = '/' + url;
+        }
+
+        return { url };
+      }
+
+      function setBtn($a, url, filename) {
+        if (!$a) return;
+        $a.onclick = null;
+
+        if (url) {
+          const abs = /^https?:\/\//i.test(url)
+            ? url
+            : (url.startsWith('/') ? `${API_BASE}${url}` : `${API_BASE}/${url}`);
+          $a.href = abs;
+          if (filename) $a.setAttribute('download', filename);
+
+          $a.onclick = async (e) => {
+            try {
+              e.preventDefault();
+              const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
+              if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+              const blob = await resp.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = blobUrl;
+              a.download = filename || (displayNameFromUrl(abs) || 'subtitle.vtt');
+              document.body.appendChild(a);
+              a.click();
+              setTimeout(() => {
+                URL.revokeObjectURL(blobUrl);
+                a.remove();
+              }, 0);
+            } catch (err) {
+              window.open(abs, '_blank', 'noopener');
+            }
+          };
+
+          $a.classList.remove('disabled');
+          $a.removeAttribute('disabled');
+        } else {
+          $a.href = 'javascript:void(0)';
+          $a.removeAttribute('download');
+          $a.classList.add('disabled');
+          $a.setAttribute('disabled', 'disabled');
+        }
+      }
+
+      function styleAllCues(videoEl, opts = {}) {
+        const {
+          line = 95,
+          position = 50,
+          size = 100,
+          align = 'center',
+          snapToLines = false
+        } = opts;
+
+        if (!videoEl || !videoEl.textTracks) return;
+
+        const applyToTrack = (track) => {
+          const apply = () => {
+            const cues = track.cues || [];
+            for (let i = 0; i < cues.length; i++) {
+              const cue = cues[i];
+              try {
+                if ('snapToLines' in cue) cue.snapToLines = snapToLines;
+                if ('line' in cue) cue.line = line;
+                if ('position' in cue) cue.position = position;
+                if ('size' in cue) cue.size = size;
+                if ('align' in cue) cue.align = align;
+                if ('vertical' in cue) cue.vertical = '';
+              } catch { }
+            }
+          };
+          apply();
+          track.removeEventListener('cuechange', apply);
+          track.addEventListener('cuechange', apply);
+        };
+
+        for (const track of videoEl.textTracks) {
+          try { track.mode = 'showing'; } catch { }
+          if (track.readyState === 2) {
+            applyToTrack(track);
+          } else {
+            const onload = () => { applyToTrack(track); track.removeEventListener('load', onload); };
+            track.addEventListener('load', onload);
           }
         }
       }
-      if (!trans) {
-        const pb = job?.result?.playback || {};
-        if (pb.subtitleUrl) { trans = pb.subtitleUrl; k = k || 'trans'; }
+
+      function addVttTrackToVideo(videoEl, vttUrl, { lang = 'zh', label = '中文', makeDefault = true } = {}) {
+        if (!videoEl || !vttUrl) return;
+        [...videoEl.querySelectorAll('track')].forEach(t => t.remove());
+        const track = document.createElement('track');
+        track.kind = 'subtitles';
+        track.srclang = lang;
+        track.label = label;
+        track.src = /^https?:\/\//i.test(vttUrl) ? vttUrl : (API_BASE + vttUrl);
+        if (makeDefault) track.default = true;
+        videoEl.appendChild(track);
+        track.addEventListener('load', () => {
+          try { const tt = videoEl.textTracks; if (tt && tt[0]) tt[0].mode = 'showing'; } catch { }
+          styleAllCues(videoEl, cueStyleOptions());
+        });
       }
 
-      setBtn(document.getElementById('btnSubOrig'),  orig, `${base}.vtt`);
-      setBtn(document.getElementById('btnSubTrans'), trans, `${base}.${k || 'trans'}.vtt`);
+      els.player.addEventListener('loadedmetadata', () => {
+        try { const tt = els.player.textTracks; if (tt && tt[0]) tt[0].mode = 'showing'; } catch { }
+        styleAllCues(els.player, cueStyleOptions());
+      });
 
-      if (st === 'FAILED' || st === 'CANCELED' || st === 'FINISHED') {
-        if (es) { es.close(); es = null; }
+      window.addEventListener('resize', () => {
+        styleAllCues(els.player, cueStyleOptions());
+      });
+
+      function playIfPossible(payload) {
+        const { url } = extractMedia(payload);
+        if (!url) return;
+
+        const niceTitle =
+          payload?.info?.title ||
+          payload?.result?.details?.title ||
+          titleFromUrl(url) ||
+          lastTitle ||
+          'video';
+
+        els.nowPlaying.textContent = `正在播放：${niceTitle}`;
+        lastTitle = sanitizeFilename(niceTitle);
+
+        switchSourceKeepPosition(url);
+
+        const v = els.player;
+        v.muted = true;
+        const tryPlay = () => v.play().catch(() => { });
+        tryPlay();
+        const once = () => {
+          v.removeEventListener('canplay', once);
+          v.removeEventListener('loadeddata', once);
+          tryPlay();
+        };
+        v.addEventListener('canplay', once, { once: true });
+        v.addEventListener('loadeddata', once, { once: true });
+
+        let transUrl = null, transLang = null;
+        const tmap = payload?.result?.subtitle_translated || {};
+        const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
+
+        if (tmap && typeof tmap === 'object') {
+          if (pref && tmap[pref]?.url) { transUrl = tmap[pref].url; transLang = pref; }
+          if (!transUrl) {
+            for (const k of Object.keys(tmap)) {
+              if (tmap[k]?.url) { transUrl = tmap[k].url; transLang = k; break; }
+            }
+          }
+        }
+
+        if (!transUrl) {
+          const pb = payload?.result?.playback || {};
+          if (pb.subtitleUrl) { transUrl = pb.subtitleUrl; transLang = transLang || 'trans'; }
+        }
+
+        const origUrl = payload?.result?.subtitle?.url || null;
+        const chosen = transUrl || origUrl;
+        if (chosen) {
+          addVttTrackToVideo(els.player, chosen, { lang: 'auto', label: transUrl ? '翻译字幕' : '原始字幕', makeDefault: true });
+        }
+
+        const baseTitle = (payload?.result?.details?.title || payload?.info?.title || niceTitle || 'subtitle').trim();
+        setBtn(document.getElementById('btnSubOrig'), origUrl, `${baseTitle}.vtt`);
+        setBtn(document.getElementById('btnSubTrans'), transUrl, `${baseTitle}.${transLang || 'trans'}.vtt`);
+
+        setTimeout(() => {
+          const src = els.player.currentSrc || absUrl(url);
+          if (src && /\.(mp4|m4v|webm|mov|m3u8)(\?|$)/i.test(src)) {
+            lastMp4Url = src;
+            els.downloadMp4.href = src;
+            els.downloadMp4.setAttribute('download', `${sanitizeFilename(lastTitle)}.mp4`);
+            els.downloadMp4.target = '_blank';
+          } else if (src) {
+            els.downloadMp4.href = src;
+            els.downloadMp4.removeAttribute('download');
+            els.downloadMp4.target = '_blank';
+          }
+        }, 0);
       }
-    };
 
-    es.onerror = () => {};
-    return es;
-  }
+      function subscribeJob(jobId) {
+        if (!jobId) return alert('没有 jobId');
+        if (es) es.close();
 
-  const PROMO_KEY = 'PROMO_CODE';
-  function loadSavedCode(){ return localStorage.getItem(PROMO_KEY) || ''; }
-  function saveSavedCode(v){ localStorage.setItem(PROMO_KEY, v || ''); }
+        es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
+        setBtn(document.getElementById('btnSubOrig'), null);
+        setBtn(document.getElementById('btnSubTrans'), null);
 
-  const LANG_KEY = 'PREFERRED_LANG';
-  const LANGUAGE_OPTIONS = [
-    { value: 'auto',  label: '自动检测 (auto)' },
-    { value: 'zh-CN', label: '简体中文 (zh-CN)' },
-    { value: 'zh-TW', label: '繁體中文 (zh-TW)' },
-    { value: 'en',    label: 'English (en)' },
-    { value: 'ja',    label: '日本語 (ja)' },
-    { value: 'ko',    label: '한국어 (ko)' },
-    { value: 'es',    label: 'Español (es)' },
-    { value: 'fr',    label: 'Français (fr)' },
-    { value: 'de',    label: 'Deutsch (de)' },
-    { value: 'ru',    label: 'Русский (ru)' },
-    { value: 'ar',    label: 'العربية (ar)' },
-    { value: 'hi',    label: 'हिन्दी (hi)' },
-    { value: 'id',    label: 'Bahasa Indonesia (id)' },
-    { value: 'vi',    label: 'Tiếng Việt (vi)' },
-    { value: 'th',    label: 'ไทย (th)' },
-    { value: 'pt-BR', label: 'Português (Brasil, pt-BR)' }
-  ];
+        es.onmessage = (ev) => {
+          let msg;
+          try { msg = JSON.parse(ev.data); } catch { return; }
+          if (msg.type === 'heartbeat') return;
 
-  function getDefaultLang() {
-    const saved = localStorage.getItem(LANG_KEY);
-    if (saved) return saved;
-    let nav = (navigator.language || 'en').toLowerCase();
-    if (nav.startsWith('zh')) {
-      if (/-tw|zh\-hant|traditional/.test(nav)) return 'zh-TW';
-      return 'zh-CN';
-    }
-    if (nav.startsWith('pt-br')) return 'pt-BR';
-    const base = nav.split('-')[0];
-    const exist = LANGUAGE_OPTIONS.some(x => x.value === base);
-    return exist ? base : 'en';
-  }
+          setStatus(msg);
+          lastSnapshot = msg;
 
-  function savePreferredLang(v){ localStorage.setItem(LANG_KEY, v || ''); }
+          const job = msg;
+          const st = String(job.status || '').toUpperCase();
 
-  function populateLangSelect($sel, selected) {
-    if (!$sel) return;
-    $sel.innerHTML = '';
-    LANGUAGE_OPTIONS.forEach(opt => {
-      const o = document.createElement('option');
-      o.value = opt.value;
-      o.textContent = opt.label;
-      $sel.appendChild(o);
-    });
-    $sel.value = selected && LANGUAGE_OPTIONS.some(x => x.value === selected)
-      ? selected : getDefaultLang();
-  }
+          const t = (job.info && (job.info.title || (job.info.details && job.info.details.title))) || lastTitle;
+          if (t) lastTitle = sanitizeFilename(t);
 
-  const quoteModal = document.getElementById('quoteModal');
-  const qTitle  = document.getElementById('qTitle');
-  const qLang   = document.getElementById('qLang');
-  const qCode   = document.getElementById('qCode');
-  const qBreak  = document.getElementById('qBreak');
-  const qCancel = document.getElementById('qCancel');
-  const qOk     = document.getElementById('qOk');
+          playIfPossible(job);
 
-  let _q_ctx = { jobId: null, durationSeconds: 0, title: 'video' };
+          const base = (job?.result?.details?.title || job?.info?.title || lastTitle || 'subtitle').trim();
+          const orig = job?.result?.subtitle?.url || null;
 
-  function openQuoteModal({jobId, durationSeconds, title}) {
-    _q_ctx = { jobId, durationSeconds, title };
-    qTitle.textContent = `标题：${title}    时长：${Math.round(durationSeconds||0)}s`;
-    qCode.value = loadSavedCode();
-    populateLangSelect(qLang, localStorage.getItem(LANG_KEY));
-    quoteModal.style.display = 'block';
-    doQuote();
-    setTimeout(()=>qCode.focus(), 0);
-  }
+          let trans = null, k = null;
+          const tmap = job?.result?.subtitle_translated || {};
+          const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
+          if (tmap && typeof tmap === 'object') {
+            if (pref && tmap[pref]?.url) { trans = tmap[pref].url; k = pref; }
+            if (!trans) {
+              for (const kk of Object.keys(tmap)) {
+                if (tmap[kk]?.url) { trans = tmap[kk].url; k = kk; break; }
+              }
+            }
+          }
+          if (!trans) {
+            const pb = job?.result?.playback || {};
+            if (pb.subtitleUrl) { trans = pb.subtitleUrl; k = k || 'trans'; }
+          }
 
-  function closeQuoteModal() {
-    quoteModal.style.display = 'none';
-  }
+          setBtn(document.getElementById('btnSubOrig'), orig, `${base}.vtt`);
+          setBtn(document.getElementById('btnSubTrans'), trans, `${base}.${k || 'trans'}.vtt`);
 
-  async function doQuote() {
-    const code = (qCode.value || '').trim();
-    const lang = (qLang.value || getDefaultLang());
-    const sec = Math.round(_q_ctx.durationSeconds || 0);
+          if (st === 'FAILED' || st === 'CANCELED' || st === 'FINISHED') {
+            if (es) { es.close(); es = null; }
+          }
+        };
 
-    qBreak.textContent = [
-      `标题：${_q_ctx.title || 'video'}`,
-      `时长：${sec}s`,
-      code ? `兑换码：${code}` : `兑换码：无`,
-      `目标语言：${lang}`
-    ].join('\n');
-  }
-
-  let _q_timer = null;
-  qCode.addEventListener('input', ()=>{
-    clearTimeout(_q_timer);
-    _q_timer = setTimeout(doQuote, 300);
-  });
-
-  qCancel.onclick = closeQuoteModal;
-
-  qOk.onclick = async () => {
-    const code = (qCode.value || '').trim();
-    const lang = (qLang.value || '').trim() || getDefaultLang();
-    saveSavedCode(code);
-    savePreferredLang(lang);
-
-    const url = `${API_BASE}/api/jobs/${_q_ctx.jobId}/confirm?code=${encodeURIComponent(code)}&lang=${encodeURIComponent(lang)}`;
-    const resp = await fetch(url, { method: 'POST' });
-    const d = await resp.json();
-
-    if (!resp.ok || !d.ok) {
-      alert(d.error || d.message || '无法开始下载');
-      return;
-    }
-
-    closeQuoteModal();
-    subscribeJob(_q_ctx.jobId);
-  };
-
-  async function createJobByUrl() {
-    const url = els.videoUrl.value.trim();
-    if (!url) return alert('请填写视频链接');
-
-    setBtn(document.getElementById('btnSubOrig'), null);
-    setBtn(document.getElementById('btnSubTrans'), null);
-    clearLastJob();
-
-    const res = await fetch(`${API_BASE}/api/jobs`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        url: url,
-        outputDir: "data",
-        proxy: null,
-        priority: 0
-      })
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      alert(data.message || data.error || '创建失败');
-      return;
-    }
-
-    const jobId = data.jobId;
-    if (!jobId) {
-      alert('创建失败');
-      return;
-    }
-
-    els.jobId.value = jobId;
-    saveLastJob(jobId);
-
-    const i = (data && data.job && data.job.info) || {};
-    lastTitle = sanitizeFilename(i.title || (i.details && i.details.title) || titleFromUrl(url) || 'video');
-
-    if (data.job?.status !== 'WAITING_CONFIRM') {
-      setStatus(data.job || data);
-      if (data.job?.status === 'FAILED') {
-        alert(data.job?.message || '任务创建失败');
-      } else {
-        alert(data.job?.message || `当前状态：${data.job?.status || data.status}`);
+        es.onerror = () => { };
+        return es;
       }
-      return;
-    }
 
-    openQuoteModal({
-      jobId,
-      durationSeconds: Number((i.details && i.details.duration_seconds) || i.duration_seconds || 0),
-      title: lastTitle
-    });
-  }
+      const PROMO_KEY = 'PROMO_CODE';
+      function loadSavedCode() { return localStorage.getItem(PROMO_KEY) || ''; }
+      function saveSavedCode(v) { localStorage.setItem(PROMO_KEY, v || ''); }
 
-  async function queryJob() {
-    const id = (els.jobId.value || '').trim();
-    if (!id) return alert('请填写 job_id');
-    const res = await fetch(`${API_BASE}/api/jobs/${id}`);
-    const data = await res.json();
-    setStatus(data);
-    playIfPossible(data);
-  }
+      const LANG_KEY = 'PREFERRED_LANG';
+      const LANGUAGE_OPTIONS = [
+        { value: 'auto', label: '自动检测 (auto)' },
+        { value: 'zh-CN', label: '简体中文 (zh-CN)' },
+        { value: 'zh-TW', label: '繁體中文 (zh-TW)' },
+        { value: 'en', label: 'English (en)' },
+        { value: 'ja', label: '日本語 (ja)' },
+        { value: 'ko', label: '한국어 (ko)' },
+        { value: 'es', label: 'Español (es)' },
+        { value: 'fr', label: 'Français (fr)' },
+        { value: 'de', label: 'Deutsch (de)' },
+        { value: 'ru', label: 'Русский (ru)' },
+        { value: 'ar', label: 'العربية (ar)' },
+        { value: 'hi', label: 'हिन्दी (hi)' },
+        { value: 'id', label: 'Bahasa Indonesia (id)' },
+        { value: 'vi', label: 'Tiếng Việt (vi)' },
+        { value: 'th', label: 'ไทย (th)' },
+        { value: 'pt-BR', label: 'Português (Brasil, pt-BR)' }
+      ];
 
-  els.createByUrlBtn.onclick = createJobByUrl;
-  els.queryBtn.onclick = queryJob;
-
-  els.sseBtn.onclick = () => {
-    setBtn(document.getElementById('btnSubOrig'), null);
-    setBtn(document.getElementById('btnSubTrans'), null);
-    subscribeJob((els.jobId.value || '').trim());
-  };
-
-  els.stopBtn.onclick = () => {
-    if (es) es.close();
-    es = null;
-  };
-
-  els.playM3U8.addEventListener('click', (e) => {
-    if (!lastSnapshot) return;
-    const media = extractMedia(lastSnapshot);
-    const playUrl = media.url ? absUrl(media.url) : null;
-    if (!playUrl) {
-      e.preventDefault();
-      return;
-    }
-
-    if (/\.m3u8(\?|$)/i.test(playUrl)) {
-      e.preventDefault();
-      setupHls(playUrl);
-    } else {
-      els.player.src = playUrl;
-      els.player.play().catch(()=>{});
-    }
-  });
-
-  document.addEventListener('click', () => els.player.play().catch(()=>{}), { once: true });
-
-  document.addEventListener('DOMContentLoaded', async () => {
-    const raw = localStorage.getItem('mmx:lastJob');
-    if (!raw) return;
-
-    let last;
-    try { last = JSON.parse(raw); } catch { return; }
-
-    const jobId = last?.jobId;
-    if (!jobId) return;
-
-    els.jobId.value = jobId;
-
-    try {
-      const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setStatus(data);
-      playIfPossible(data);
-
-      const st = String(data.status || '').toLowerCase();
-      if (!(st === 'finished' || st === 'failed' || st === 'canceled')) {
-        subscribeJob(jobId);
+      function getDefaultLang() {
+        const saved = localStorage.getItem(LANG_KEY);
+        if (saved) return saved;
+        let nav = (navigator.language || 'en').toLowerCase();
+        if (nav.startsWith('zh')) {
+          if (/-tw|zh\-hant|traditional/.test(nav)) return 'zh-TW';
+          return 'zh-CN';
+        }
+        if (nav.startsWith('pt-br')) return 'pt-BR';
+        const base = nav.split('-')[0];
+        const exist = LANGUAGE_OPTIONS.some(x => x.value === base);
+        return exist ? base : 'en';
       }
-    } catch (e) {
-      console.error('恢复任务失败:', e);
-    }
-  });
-</script>
 
-  <div id="buildInfo" style="text-align:center; color:#999; font-size:12px; margin-top:20px;"></div>
-  <script>
-    document.getElementById('buildInfo').textContent =
-      '最后修改时间：' + document.lastModified;
-  </script>
+      function savePreferredLang(v) { localStorage.setItem(LANG_KEY, v || ''); }
+
+      function populateLangSelect($sel, selected) {
+        if (!$sel) return;
+        $sel.innerHTML = '';
+        LANGUAGE_OPTIONS.forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt.value;
+          o.textContent = opt.label;
+          $sel.appendChild(o);
+        });
+        $sel.value = selected && LANGUAGE_OPTIONS.some(x => x.value === selected)
+          ? selected : getDefaultLang();
+      }
+
+      const quoteModal = document.getElementById('quoteModal');
+      const qTitle = document.getElementById('qTitle');
+      const qLang = document.getElementById('qLang');
+      const qCode = document.getElementById('qCode');
+      const qBreak = document.getElementById('qBreak');
+      const qCancel = document.getElementById('qCancel');
+      const qOk = document.getElementById('qOk');
+
+      let _q_ctx = { jobId: null, durationSeconds: 0, durationText: '未知', title: 'video' };
+
+      function openQuoteModal({ jobId, durationSeconds, durationText, title }) {
+        _q_ctx = { jobId, durationSeconds, durationText, title };
+        const displayDur = durationText || `${Math.round(durationSeconds || 0)}s`;
+        qTitle.textContent = `标题：${title}    时长：${displayDur}`;
+        qCode.value = loadSavedCode();
+        populateLangSelect(qLang, localStorage.getItem(LANG_KEY));
+        quoteModal.style.display = 'block';
+        doQuote();
+        setTimeout(() => qCode.focus(), 0);
+      }
+
+      function closeQuoteModal() {
+        quoteModal.style.display = 'none';
+      }
+
+      async function doQuote() {
+        const code = (qCode.value || '').trim();
+        const lang = (qLang.value || getDefaultLang());
+        const durText = _q_ctx.durationText || `${Math.round(_q_ctx.durationSeconds || 0)}s`;
+
+        qBreak.textContent = [
+          `标题：${_q_ctx.title || 'video'}`,
+          `时长：${durText}`,
+          code ? `兑换码：${code}` : `兑换码：无`,
+          `目标语言：${lang}`
+        ].join('\n');
+      }
+
+      let _q_timer = null;
+      qCode.addEventListener('input', () => {
+        clearTimeout(_q_timer);
+        _q_timer = setTimeout(doQuote, 300);
+      });
+
+      qCancel.onclick = closeQuoteModal;
+
+      qOk.onclick = async () => {
+        const code = (qCode.value || '').trim();
+        const lang = (qLang.value || '').trim() || getDefaultLang();
+        saveSavedCode(code);
+        savePreferredLang(lang);
+
+        const url = `${API_BASE}/api/jobs/${_q_ctx.jobId}/confirm?code=${encodeURIComponent(code)}&lang=${encodeURIComponent(lang)}`;
+        const resp = await fetch(url, { method: 'POST' });
+        const d = await resp.json();
+
+        if (!resp.ok || !d.ok) {
+          alert(d.error || d.message || '无法开始下载');
+          return;
+        }
+
+        closeQuoteModal();
+        subscribeJob(_q_ctx.jobId);
+      };
+
+      async function createJobByUrl() {
+        const url = els.videoUrl.value.trim();
+        if (!url) return alert('请填写视频链接');
+
+        setBtn(document.getElementById('btnSubOrig'), null);
+        setBtn(document.getElementById('btnSubTrans'), null);
+        clearLastJob();
+
+        const res = await fetch(`${API_BASE}/api/jobs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: url,
+            outputDir: "data",
+            proxy: null,
+            priority: 0
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.message || data.error || '创建失败');
+          return;
+        }
+
+        const jobId = data.jobId;
+        if (!jobId) {
+          alert('创建失败');
+          return;
+        }
+
+        els.jobId.value = jobId;
+        saveLastJob(jobId);
+
+        const i = (data && data.job && data.job.info) || {};
+        const details = (i && typeof i.details === 'object') ? i.details : {};
+        lastTitle = sanitizeFilename(i.title || details.title || titleFromUrl(url) || 'video');
+
+        if (data.job?.status !== 'WAITING_CONFIRM') {
+          setStatus(data.job || data);
+          if (data.job?.status === 'FAILED') {
+            alert(data.job?.message || '任务创建失败');
+          } else {
+            alert(data.job?.message || `当前状态：${data.job?.status || data.status}`);
+          }
+          return;
+        }
+
+        const durationSeconds = Number(details.duration_seconds ?? i.duration_seconds ?? 0) || 0;
+        const durationText = details.duration_str || i.duration_str || (durationSeconds ? `${Math.round(durationSeconds)}s` : '未知');
+        openQuoteModal({
+          jobId,
+          durationSeconds,
+          durationText,
+          title: lastTitle
+        });
+      }
+
+      async function queryJob() {
+        const id = (els.jobId.value || '').trim();
+        if (!id) return alert('请填写 job_id');
+        const res = await fetch(`${API_BASE}/api/jobs/${id}`);
+        const data = await res.json();
+        setStatus(data);
+        playIfPossible(data);
+      }
+
+      els.createByUrlBtn.onclick = createJobByUrl;
+      els.queryBtn.onclick = queryJob;
+
+      els.sseBtn.onclick = () => {
+        setBtn(document.getElementById('btnSubOrig'), null);
+        setBtn(document.getElementById('btnSubTrans'), null);
+        subscribeJob((els.jobId.value || '').trim());
+      };
+
+      els.stopBtn.onclick = () => {
+        if (es) es.close();
+        es = null;
+      };
+
+      els.playM3U8.addEventListener('click', (e) => {
+        if (!lastSnapshot) return;
+        const media = extractMedia(lastSnapshot);
+        const playUrl = media.url ? absUrl(media.url) : null;
+        if (!playUrl) {
+          e.preventDefault();
+          return;
+        }
+
+        if (/\.m3u8(\?|$)/i.test(playUrl)) {
+          e.preventDefault();
+          setupHls(playUrl);
+        } else {
+          els.player.src = playUrl;
+          els.player.play().catch(() => { });
+        }
+      });
+
+      document.addEventListener('click', () => els.player.play().catch(() => { }), { once: true });
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        const raw = localStorage.getItem('mmx:lastJob');
+        if (!raw) return;
+
+        let last;
+        try { last = JSON.parse(raw); } catch { return; }
+
+        const jobId = last?.jobId;
+        if (!jobId) return;
+
+        els.jobId.value = jobId;
+
+        try {
+          const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          setStatus(data);
+          playIfPossible(data);
+
+          const st = String(data.status || '').toLowerCase();
+          if (!(st === 'finished' || st === 'failed' || st === 'canceled')) {
+            subscribeJob(jobId);
+          }
+        } catch (e) {
+          console.error('恢复任务失败:', e);
+        }
+      });
+    </script>
+
+    <div id="buildInfo" style="text-align:center; color:#999; font-size:12px; margin-top:20px;"></div>
+    <script>
+      document.getElementById('buildInfo').textContent =
+        '最后修改时间：' + document.lastModified;
+    </script>
 </body>
+
 </html>
