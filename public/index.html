@@ -710,7 +710,7 @@
         saveLastJob(jobId);
 
         const i = (data && data.job && data.job.info) || {};
-        const details = ensureDetails(i.details);
+        const details = Object.assign({}, ensureDetails(i.details), ensureDetails(i.path));
         lastTitle = sanitizeFilename(i.title || details.title || titleFromUrl(url) || 'video');
 
         if (data.job?.status !== 'WAITING_CONFIRM') {
