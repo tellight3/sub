@@ -867,10 +867,6 @@
     <script>
       document.getElementById('buildInfo').textContent =
         '最后修改时间：' + document.lastModified;
-    </script>
-</body>
-
-</html>
       async function loadPricing() {
         try {
           const resp = await fetch(`${API_BASE}/api/config`);
@@ -883,3 +879,7 @@
         }
       }
       loadPricing();
+    </script>
+</body>
+
+</html>
