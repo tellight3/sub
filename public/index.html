@@ -66,8 +66,7 @@
       <h2>任务状态</h2>
       <div class="row">
         <input id="jobId" class="input" placeholder="job_id 自动填充" />
-        <button id="queryBtn" class="btn">查询</button>
-        <button id="sseBtn" class="btn">开始订阅 (SSE)</button>
+        <button id="queryBtn" class="btn">查询并订阅</button>
         <button id="stopBtn" class="btn">停止订阅</button>
       </div>
       <pre id="statusBox" class="status"></pre>
@@ -142,7 +141,6 @@
         createByUrlBtn: document.getElementById('createByUrlBtn'),
         jobId: document.getElementById('jobId'),
         queryBtn: document.getElementById('queryBtn'),
-        sseBtn: document.getElementById('sseBtn'),
         stopBtn: document.getElementById('stopBtn'),
         statusBox: document.getElementById('statusBox'),
         player: document.getElementById('player'),
@@ -210,8 +208,14 @@
         if (percent !== null && Number.isFinite(percent)) {
           text += ` ${percent}%`;
         }
-        if (message) {
-          text += ` | ${message}`;
+        const phase = progress.phase ? progress.phase : null;
+        const step = progress.step ? progress.step : null;
+        if (phase || step || message) {
+          const parts = [];
+          if (phase) parts.push(phase);
+          if (step) parts.push(step);
+          else if (message) parts.push(message);
+          text += ` | ${parts.join(': ')}`;
         }
 
         els.statusBox.textContent = text;
@@ -790,23 +794,20 @@
         });
       }
 
-      async function queryJob() {
+      async function queryJob({ subscribe = false } = {}) {
         const id = (els.jobId.value || '').trim();
         if (!id) return alert('请填写 job_id');
         const res = await fetch(`${API_BASE}/api/jobs/${id}`);
         const data = await res.json();
         setStatus(data);
         playIfPossible(data);
+        if (subscribe && res.ok) {
+          subscribeJob(id);
+        }
       }
 
       els.createByUrlBtn.onclick = createJobByUrl;
-      els.queryBtn.onclick = queryJob;
-
-      els.sseBtn.onclick = () => {
-        setBtn(document.getElementById('btnSubOrig'), null);
-        setBtn(document.getElementById('btnSubTrans'), null);
-        subscribeJob((els.jobId.value || '').trim());
-      };
+      els.queryBtn.onclick = () => queryJob({ subscribe: true });
 
       els.stopBtn.onclick = () => {
         if (es) es.close();
