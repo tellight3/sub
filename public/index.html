@@ -757,7 +757,12 @@
         const i = jobPayload.info || {};
         const details = Object.assign({}, ensureDetails(i.details), ensureDetails(i.path));
         const resultDetails = ensureDetails(jobPayload.result && jobPayload.result.details);
-        const rawCandidates = [i.title, details.title, resultDetails.title];
+        const normalizedTitle = (val) => {
+          if (!val) return null;
+          const t = String(val).trim();
+          return t || null;
+        };
+        const rawCandidates = [normalizedTitle(i.title), normalizedTitle(details.title), normalizedTitle(resultDetails.title)];
         const backupCandidates = [details.avid, i.avid, resultDetails.avid, details.m3u8 ? titleFromUrl(details.m3u8) : null, titleFromUrl(url)];
 
         let displayTitle = rawCandidates.find(isMeaningfulTitle) || backupCandidates.find(isMeaningfulTitle) || rawCandidates.find(Boolean) || backupCandidates.find(Boolean) || 'video';
