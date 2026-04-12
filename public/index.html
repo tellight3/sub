@@ -275,6 +275,8 @@
         downloadMp4: document.getElementById('downloadMp4'),
         nowPlaying: document.getElementById('nowPlaying'),
       };
+      els.downloadMp4.classList.add('disabled');
+      els.downloadMp4.setAttribute('disabled', 'disabled');
 
       let es = null;
       let lastSnapshot = null;
@@ -657,15 +659,18 @@
 
         setTimeout(() => {
           const src = absUrl(url);
-          if (src && /\.(mp4|m4v|webm|mov|m3u8)(\?|$)/i.test(src)) {
+          if (src && /\.(mp4|m4v|webm|mov)(\?|$)/i.test(src)) {
             lastMp4Url = src;
+            els.downloadMp4.classList.remove('disabled');
+            els.downloadMp4.removeAttribute('disabled');
             els.downloadMp4.href = src;
             els.downloadMp4.setAttribute('download', `${sanitizeFilename(lastTitle)}.mp4`);
-            els.downloadMp4.target = '_blank';
-          } else if (src) {
-            els.downloadMp4.href = src;
+          } else {
+            lastMp4Url = null;
+            els.downloadMp4.classList.add('disabled');
+            els.downloadMp4.setAttribute('disabled', 'disabled');
+            els.downloadMp4.href = 'javascript:void(0)';
             els.downloadMp4.removeAttribute('download');
-            els.downloadMp4.target = '_blank';
           }
         }, 0);
       }
@@ -962,6 +967,33 @@
           setupHls(absUrl(raw));
         } else {
           switchSourceKeepPosition(raw);
+        }
+      });
+
+      els.downloadMp4.addEventListener('click', async (e) => {
+        if (!lastMp4Url) {
+          e.preventDefault();
+          return;
+        }
+        const abs = lastMp4Url;
+        try {
+          e.preventDefault();
+          const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = `${sanitizeFilename(lastTitle)}.mp4`;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+            a.remove();
+          }, 0);
+        } catch (err) {
+          console.warn('download via fetch failed, fallback to new window', err);
+          window.open(abs, '_blank', 'noopener');
         }
       });
 
