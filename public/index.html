@@ -969,13 +969,33 @@
         }
         if (!lastMediaUrl) return;
         const raw = lastMediaUrl;
+        const abs = absUrl(raw);
+
+        // 如果当前播放器已经是这个地址，就直接 play
+        if (els.player.currentSrc === abs) {
+          els.player.muted = false;
+          els.player.removeAttribute('muted');
+          els.player.play().catch(err => {
+            console.warn('direct play failed', err);
+          });
+          return;
+        }
+
+        // 不是当前地址，才重新切源
         els.player.muted = false;
         els.player.removeAttribute('muted');
+
         if (/\.m3u8(\?|$)/i.test(raw)) {
-          setupHls(absUrl(raw));
+          setupHls(abs);
         } else {
-          switchSourceKeepPosition(raw, true);
+          els.player.src = abs;
+          els.player.load();
+          els.player.play().catch(err => {
+            console.warn('play after src set failed', err);
+          });
         }
+
+
       });
 
       els.downloadMp4.addEventListener('click', async (e) => {
