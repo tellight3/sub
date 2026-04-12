@@ -290,8 +290,20 @@
 
       function cueStyleOptions() {
         return isMobileView()
-          ? { line: -3, position: 50, size: 92, align: 'center', snapToLines: false }
-          : { line: 95, position: 50, size: 100, align: 'center', snapToLines: false };
+          ? {
+            line: 90,
+            position: 50,
+            size: 100,
+            align: 'center',
+            snapToLines: true   // ✅ 必须
+          }
+          : {
+            line: 95,
+            position: 50,
+            size: 100,
+            align: 'center',
+            snapToLines: true   // ✅ 必须
+          };
       }
 
       function normalizeMediaUrl(u) {
@@ -545,7 +557,7 @@
           position = 50,
           size = 100,
           align = 'center',
-          snapToLines = false
+          snapToLines = true
         } = opts;
 
         if (!videoEl || !videoEl.textTracks) return;
