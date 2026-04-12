@@ -959,8 +959,24 @@
 
       els.createByUrlBtn.onclick = createJobByUrl;
 
-      els.playCurrent.addEventListener('click', (e) => {
+      els.playCurrent.addEventListener('click', async (e) => {
         e.preventDefault();
+        if (!lastMediaUrl) {
+          const jobId = (els.jobId.value || '').trim();
+          if (jobId) {
+            try {
+              const resp = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+              if (resp.ok) {
+                const data = await resp.json();
+                lastSnapshot = data;
+                setStatus(data);
+                playIfPossible(data);
+              }
+            } catch (err) {
+              console.warn('fetch job failed', err);
+            }
+          }
+        }
         if (!lastMediaUrl) return;
         const raw = lastMediaUrl;
         if (/\.m3u8(\?|$)/i.test(raw)) {
