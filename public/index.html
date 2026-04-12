@@ -20,7 +20,6 @@
       pointer-events: none;
     }
 
-    /* 桌面保持原样 */
     .player::cue {
       background: rgba(0, 0, 0, 0.25);
       color: #fff;
@@ -34,7 +33,6 @@
       text-align: center;
     }
 
-    /* 手机单独缩小字幕字号 */
     @media (max-width: 768px) {
       .player::cue {
         font-size: 10px;
@@ -98,7 +96,7 @@
 
     <div class="card">
       <h2 data-i18n="playerSection">在线播放 / 下载</h2>
-      <video id="player" class="player subtitle-custom" controls playsinline muted autoplay crossorigin="anonymous"
+      <video id="player" class="player subtitle-custom" controls playsinline muted autoplay
         crossorigin="anonymous"></video>
       <div class="row">
         <button id="playCurrent" class="btn" type="button" data-i18n="playBtn">播放</button>
@@ -260,7 +258,6 @@
         if (!title) return false;
         const t = String(title).trim();
         if (!t) return false;
-        // treat pure numbers as non-meaningful (prefer avid)
         if (/^\d+$/.test(t)) return false;
         return true;
       }
@@ -283,28 +280,6 @@
       let lastTitle = 'video';
       let lastMp4Url = null;
       let lastMediaUrl = null;
-
-      function isMobileView() {
-        return window.innerWidth <= 768;
-      }
-
-      function cueStyleOptions() {
-        return isMobileView()
-          ? {
-            line: 90,
-            position: 50,
-            size: 100,
-            align: 'center',
-            snapToLines: true   // ✅ 必须
-          }
-          : {
-            line: 95,
-            position: 50,
-            size: 100,
-            align: 'center',
-            snapToLines: true   // ✅ 必须
-          };
-      }
 
       function normalizeMediaUrl(u) {
         if (!u && u !== '') return null;
@@ -332,8 +307,15 @@
         return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
       }
 
-      function sanitizeFilename(n) { return (n ? String(n) : 'video').trim().replace(/[\\/:*?"<>|]/g, '_'); }
-      function fileNameFromPath(p) { if (!p) return null; const a = String(p).replace(/\\/g, '/').split('/'); return a[a.length - 1] || null; }
+      function sanitizeFilename(n) {
+        return (n ? String(n) : 'video').trim().replace(/[\\/:*?"<>|]/g, '_');
+      }
+
+      function fileNameFromPath(p) {
+        if (!p) return null;
+        const a = String(p).replace(/\\/g, '/').split('/');
+        return a[a.length - 1] || null;
+      }
 
       function titleFromUrl(u) {
         try {
@@ -400,7 +382,12 @@
       }
 
       const LS_KEY_LAST = 'mmx:lastJob';
-      function hashString(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i); return (h >>> 0).toString(16).padStart(8, '0'); }
+      function hashString(s) {
+        let h = 5381;
+        for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+        return (h >>> 0).toString(16).padStart(8, '0');
+      }
+
       function getBrowserFingerprint() {
         const ua = navigator.userAgent || '';
         const lang = (navigator.languages && navigator.languages.join(',')) || navigator.language || '';
@@ -421,13 +408,17 @@
         } catch { }
         return hashString([ua, lang, tz, plat, dpr, scr, gl].join('|'));
       }
+
       function saveLastJob(jobId) {
         try {
           const fp = getBrowserFingerprint();
           localStorage.setItem(LS_KEY_LAST, JSON.stringify({ jobId, fp, createdAt: Date.now() }));
         } catch { }
       }
-      function clearLastJob() { try { localStorage.removeItem(LS_KEY_LAST); } catch { } }
+
+      function clearLastJob() {
+        try { localStorage.removeItem(LS_KEY_LAST); } catch { }
+      }
 
       function setupHls(m3u8Url) {
         const v = els.player;
@@ -444,41 +435,28 @@
         }
       }
 
-      function clearAllSubtitleTracks(videoEl, alsoDisableTextTracks = true) {
+      function clearAllSubtitleTracks(videoEl) {
         if (!videoEl) return;
-        try { [...videoEl.querySelectorAll('track')].forEach(t => t.remove()); } catch { }
         try {
-          if (alsoDisableTextTracks && videoEl.textTracks) {
-            for (const tr of videoEl.textTracks) {
-              try { tr.mode = 'disabled'; } catch { }
-              const cues = tr.cues || [];
-              const list = [];
-              for (let i = 0; i < cues.length; i++) list.push(cues[i]);
-              for (const c of list) { try { tr.removeCue(c); } catch { } }
-            }
-          }
+          [...videoEl.querySelectorAll('track')].forEach(t => t.remove());
         } catch { }
       }
 
-      const isMobileDevice = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+      const isMobileDevice = () =>
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
 
       function switchSourceKeepPosition(nextUrl, autoplay = false) {
         if (!nextUrl) return;
         const v = els.player;
-        clearAllSubtitleTracks(v, true);
+
+        clearAllSubtitleTracks(v);
 
         const wasPaused = v.paused;
         const t = v.currentTime || 0;
 
         if (autoplay) {
-          if (isMobileDevice()) {
-            v.muted = true;   // ⭐ 必须静音
-            v.setAttribute('muted', 'muted');
-
-          } else {
-            v.muted = true;
-            v.setAttribute('muted', 'muted');
-          }
+          v.muted = true;
+          v.setAttribute('muted', 'muted');
         }
 
         v.src = absUrl(nextUrl);
@@ -504,7 +482,6 @@
           null;
 
         url = normalizeMediaUrl(url);
-
         return { url };
       }
 
@@ -551,72 +528,20 @@
         }
       }
 
-      function styleAllCues(videoEl, opts = {}) {
-        const {
-          line = 95,
-          position = 50,
-          size = 100,
-          align = 'center',
-          snapToLines = true
-        } = opts;
-
-        if (!videoEl || !videoEl.textTracks) return;
-
-        const applyToTrack = (track) => {
-          const apply = () => {
-            const cues = track.cues || [];
-            for (let i = 0; i < cues.length; i++) {
-              const cue = cues[i];
-              try {
-                if ('snapToLines' in cue) cue.snapToLines = snapToLines;
-                if ('line' in cue) cue.line = line;
-                if ('position' in cue) cue.position = position;
-                if ('size' in cue) cue.size = size;
-                if ('align' in cue) cue.align = align;
-                if ('vertical' in cue) cue.vertical = '';
-              } catch { }
-            }
-          };
-          apply();
-          track.removeEventListener('cuechange', apply);
-          track.addEventListener('cuechange', apply);
-        };
-
-        for (const track of videoEl.textTracks) {
-          try { track.mode = 'showing'; } catch { }
-          if (track.readyState === 2) {
-            applyToTrack(track);
-          } else {
-            const onload = () => { applyToTrack(track); track.removeEventListener('load', onload); };
-            track.addEventListener('load', onload);
-          }
-        }
-      }
-
       function addVttTrackToVideo(videoEl, vttUrl, { lang = 'zh', label = '中文', makeDefault = true } = {}) {
         if (!videoEl || !vttUrl) return;
-        clearAllSubtitleTracks(videoEl, true);
+
+        clearAllSubtitleTracks(videoEl);
+
         const track = document.createElement('track');
         track.kind = 'subtitles';
         track.srclang = lang;
         track.label = label;
         track.src = /^https?:\/\//i.test(vttUrl) ? vttUrl : (API_BASE + vttUrl);
         if (makeDefault) track.default = true;
+
         videoEl.appendChild(track);
-        track.addEventListener('load', () => {
-          try { const tt = videoEl.textTracks; if (tt && tt[0]) tt[0].mode = 'showing'; } catch { }
-          styleAllCues(videoEl, cueStyleOptions());
-        });
       }
-
-      els.player.addEventListener('loadedmetadata', () => {
-        try { const tt = els.player.textTracks; if (tt && tt[0]) tt[0].mode = 'showing'; } catch { }
-        styleAllCues(els.player, cueStyleOptions());
-      });
-
-      window.addEventListener('resize', () => {
-        styleAllCues(els.player, cueStyleOptions());
-      });
 
       function playIfPossible(payload) {
         const { url } = extractMedia(payload);
@@ -647,23 +572,35 @@
         const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
 
         if (tmap && typeof tmap === 'object') {
-          if (pref && tmap[pref]?.url) { transUrl = tmap[pref].url; transLang = pref; }
+          if (pref && tmap[pref]?.url) {
+            transUrl = tmap[pref].url;
+            transLang = pref;
+          }
           if (!transUrl) {
             for (const k of Object.keys(tmap)) {
-              if (tmap[k]?.url) { transUrl = tmap[k].url; transLang = k; break; }
+              if (tmap[k]?.url) {
+                transUrl = tmap[k].url;
+                transLang = k;
+                break;
+              }
             }
           }
         }
 
         if (!transUrl) {
           const pb = payload?.result?.playback || {};
-          if (pb.subtitleUrl) { transUrl = pb.subtitleUrl; transLang = transLang || 'trans'; }
+          if (pb.subtitleUrl) {
+            transUrl = pb.subtitleUrl;
+            transLang = transLang || 'trans';
+          }
         }
 
         const origUrl = payload?.result?.subtitle?.url || null;
         const chosen = transUrl || origUrl;
         if (chosen) {
-          const subtitleLabel = transUrl ? t('transSubtitle', 'Translated Subtitle') : t('origSubtitle', 'Original Subtitle');
+          const subtitleLabel = transUrl
+            ? t('transSubtitle', 'Translated Subtitle')
+            : t('origSubtitle', 'Original Subtitle');
           addVttTrackToVideo(els.player, chosen, { lang: 'auto', label: subtitleLabel, makeDefault: true });
         }
 
@@ -720,23 +657,36 @@
           const tmap = job?.result?.subtitle_translated || {};
           const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
           if (tmap && typeof tmap === 'object') {
-            if (pref && tmap[pref]?.url) { trans = tmap[pref].url; k = pref; }
+            if (pref && tmap[pref]?.url) {
+              trans = tmap[pref].url;
+              k = pref;
+            }
             if (!trans) {
               for (const kk of Object.keys(tmap)) {
-                if (tmap[kk]?.url) { trans = tmap[kk].url; k = kk; break; }
+                if (tmap[kk]?.url) {
+                  trans = tmap[kk].url;
+                  k = kk;
+                  break;
+                }
               }
             }
           }
           if (!trans) {
             const pb = job?.result?.playback || {};
-            if (pb.subtitleUrl) { trans = pb.subtitleUrl; k = k || 'trans'; }
+            if (pb.subtitleUrl) {
+              trans = pb.subtitleUrl;
+              k = k || 'trans';
+            }
           }
 
           setBtn(document.getElementById('btnSubOrig'), orig, `${base}.vtt`);
           setBtn(document.getElementById('btnSubTrans'), trans, `${base}.${k || 'trans'}.vtt`);
 
           if (st === 'FAILED' || st === 'CANCELED' || st === 'FINISHED') {
-            if (es) { es.close(); es = null; }
+            if (es) {
+              es.close();
+              es = null;
+            }
           }
         };
 
@@ -745,8 +695,12 @@
       }
 
       const PROMO_KEY = 'PROMO_CODE';
-      function loadSavedCode() { return localStorage.getItem(PROMO_KEY) || ''; }
-      function saveSavedCode(v) { localStorage.setItem(PROMO_KEY, v || ''); }
+      function loadSavedCode() {
+        return localStorage.getItem(PROMO_KEY) || '';
+      }
+      function saveSavedCode(v) {
+        localStorage.setItem(PROMO_KEY, v || '');
+      }
 
       const LANG_KEY = 'PREFERRED_LANG';
       const LANGUAGE_OPTIONS = [
@@ -782,7 +736,9 @@
         return exist ? base : 'en';
       }
 
-      function savePreferredLang(v) { localStorage.setItem(LANG_KEY, v || ''); }
+      function savePreferredLang(v) {
+        localStorage.setItem(LANG_KEY, v || '');
+      }
 
       function populateLangSelect($sel, selected) {
         if (!$sel) return;
@@ -794,7 +750,8 @@
           $sel.appendChild(o);
         });
         $sel.value = selected && LANGUAGE_OPTIONS.some(x => x.value === selected)
-          ? selected : getDefaultLang();
+          ? selected
+          : getDefaultLang();
       }
 
       function ensureDetails(raw) {
@@ -975,6 +932,25 @@
 
       els.playCurrent.addEventListener('click', async (e) => {
         e.preventDefault();
+
+        const jobId = (els.jobId.value || '').trim();
+        const mediaUrl = lastMediaUrl || '';
+
+        // 调试：无论有没有值，都先发给后端
+        try {
+          await fetch(`${API_BASE}/api/debug/play-click`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jobId,
+              lastMediaUrl: mediaUrl
+            })
+          });
+        } catch (err) {
+          console.error('debug post failed', err);
+        }
+
+
         if (!lastMediaUrl) {
           const jobId = (els.jobId.value || '').trim();
           if (jobId) {
@@ -1047,7 +1023,6 @@
       });
 
       document.addEventListener('click', () => els.player.play().catch(() => { }), { once: true });
-
       document.addEventListener('touchstart', () => { els.player.play().catch(() => { }); }, { once: true });
 
       document.addEventListener('DOMContentLoaded', async () => {
