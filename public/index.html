@@ -448,7 +448,7 @@
         } catch { }
       }
 
-      function switchSourceKeepPosition(nextUrl) {
+      function switchSourceKeepPosition(nextUrl, autoplay = false) {
         if (!nextUrl) return;
         const v = els.player;
         clearAllSubtitleTracks(v, true);
@@ -456,13 +456,21 @@
         const wasPaused = v.paused;
         const t = v.currentTime || 0;
 
-        v.muted = true;
+        if (autoplay) {
+          v.muted = false;
+          v.removeAttribute('muted');
+        } else {
+          v.muted = true;
+        }
+
         v.src = absUrl(nextUrl);
         v.load();
 
         const onReady = () => {
           try { v.currentTime = Math.max(0, Math.min(t, v.duration || t)); } catch { }
-          if (!wasPaused) v.play().catch(() => { });
+          if (autoplay || !wasPaused) {
+            v.play().catch(() => { });
+          }
           v.removeEventListener('loadedmetadata', onReady);
         };
         v.addEventListener('loadedmetadata', onReady);
@@ -980,9 +988,11 @@
         if (!lastMediaUrl) return;
         const raw = lastMediaUrl;
         if (/\.m3u8(\?|$)/i.test(raw)) {
+          els.player.muted = false;
+          els.player.removeAttribute('muted');
           setupHls(absUrl(raw));
         } else {
-          switchSourceKeepPosition(raw);
+          switchSourceKeepPosition(raw, true);
         }
       });
 
