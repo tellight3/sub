@@ -49,59 +49,83 @@
     video::-webkit-media-text-track-container {
       background: transparent !important;
     }
+
+    .lang-switch {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .lang-switch button {
+      border: 1px solid #2b3d5a;
+      background: #142038;
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .lang-switch button.active {
+      background: #2563eb;
+      border-color: #2563eb;
+    }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <h1>视频字幕生成</h1>
+    <div class="lang-switch">
+      <button type="button" data-lang-btn="zh">中文</button>
+      <button type="button" data-lang-btn="en">EN</button>
+    </div>
+    <h1 data-i18n="appTitle">视频字幕生成</h1>
 
     <div class="card">
-      <h2>方式 A：提交视频链接</h2>
-      <input id="videoUrl" class="input" placeholder="粘贴视频直链或 .m3u8" />
-      <button id="createByUrlBtn" class="btn">创建任务</button>
+      <h2 data-i18n="methodA">方式 A：提交视频链接</h2>
+      <input id="videoUrl" class="input" data-i18n-placeholder="inputUrl" placeholder="粘贴视频直链或 .m3u8" />
+      <button id="createByUrlBtn" class="btn" data-i18n="createJob">创建任务</button>
     </div>
 
     <div class="card">
-      <h2>任务状态</h2>
+      <h2 data-i18n="taskStatus">任务状态</h2>
       <div class="row">
-        <input id="jobId" class="input" placeholder="job_id 自动填充" />
-        <button id="queryBtn" class="btn">查询并订阅</button>
-        <button id="stopBtn" class="btn">停止订阅</button>
+        <input id="jobId" class="input" data-i18n-placeholder="jobIdPlaceholder" placeholder="job_id 自动填充" />
       </div>
       <pre id="statusBox" class="status"></pre>
     </div>
 
     <div class="card">
-      <h2>在线播放 / 下载</h2>
+      <h2 data-i18n="playerSection">在线播放 / 下载</h2>
       <video id="player" class="player subtitle-custom" controls playsinline muted autoplay
         crossorigin="anonymous"></video>
       <div class="row">
-        <a id="playM3U8" class="btn" href="#" target="_blank" rel="noopener">播放</a>
-        <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener">下载 MP4</a>
-        <a id="btnSubOrig" class="btn disabled" href="javascript:void(0)" disabled>原始字幕</a>
-        <a id="btnSubTrans" class="btn disabled" href="javascript:void(0)" disabled>翻译字幕</a>
+        <button id="playCurrent" class="btn" type="button" data-i18n="playBtn">播放</button>
+        <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener" data-i18n="downloadMp4">下载 MP4</a>
+        <a id="btnSubOrig" class="btn disabled" href="javascript:void(0)" disabled data-i18n="origSubtitle">原始字幕</a>
+        <a id="btnSubTrans" class="btn disabled" href="javascript:void(0)" disabled data-i18n="transSubtitle">翻译字幕</a>
       </div>
-      <div id="nowPlaying" class="muted"></div>
+      <div id="nowPlaying" class="muted" data-i18n="nowPlayingEmpty"></div>
     </div>
 
     <div id="quoteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999;">
       <div style="max-width:420px; margin:10% auto; background:#121a2b;
                   border:1px solid #223; border-radius:12px; padding:16px">
-        <h3 style="margin:0 0 8px">确认下载</h3>
+        <h3 style="margin:0 0 8px" data-i18n="quoteTitle">确认下载</h3>
         <div id="qTitle" class="muted" style="margin-bottom:8px"></div>
 
         <div class="row" style="gap:8px; align-items:center; margin-bottom:4px">
-          <label style="min-width:80px">目标语言</label>
+          <label style="min-width:80px" data-i18n="targetLangLabel">目标语言</label>
           <select id="qLang"
             style="flex:1; padding:4px; border-radius:6px; border:1px solid #334154; background:#0f1524; color:#fff;"></select>
 
-          <label style="min-width:80px">兑换码</label>
+          <label style="min-width:80px" data-i18n="codeLabel">兑换码</label>
           <input id="qCode" placeholder="可留空"
             style="flex:1; padding:4px; border-radius:6px; border:1px solid #334154; background:#0f1524; color:#fff;">
         </div>
 
-        <div class="muted" style="color:#6ee7b7; font-weight:600; margin-bottom:8px">
+        <div class="muted" data-i18n="couponHint" style="color:#6ee7b7; font-weight:600; margin-bottom:8px">
           🎁 输入 <b>12345678</b> 可免单（100% 折扣）
         </div>
 
@@ -110,14 +134,119 @@
         </div>
 
         <div class="row" style="justify-content:flex-end; margin-top:12px; gap:8px">
-          <button id="qCancel">取消</button>
-          <button id="qOk">开始下载</button>
+          <button id="qCancel" data-i18n="cancelBtn">取消</button>
+          <button id="qOk" data-i18n="confirmBtn">开始下载</button>
         </div>
       </div>
     </div>
 
     <script>
       const API_BASE = 'https://mmx.multmatrix.com';
+
+      const I18N = {
+        zh: {
+          appTitle: '视频字幕生成',
+          methodA: '方式 A：提交视频链接',
+          inputUrl: '粘贴视频直链或 .m3u8',
+          createJob: '创建任务',
+          taskStatus: '任务状态',
+          jobIdPlaceholder: 'job_id 自动填充或手动粘贴',
+          playerSection: '在线播放 / 下载',
+          playBtn: '播放',
+          downloadMp4: '下载 MP4',
+          origSubtitle: '原始字幕',
+          transSubtitle: '翻译字幕',
+          nowPlayingEmpty: '当前暂无播放任务',
+          quoteTitle: '确认下载',
+          targetLangLabel: '目标语言',
+          codeLabel: '兑换码',
+          couponHint: '🎁 输入 12345678 可免单（100% 折扣）',
+          cancelBtn: '取消',
+          confirmBtn: '开始下载',
+          confirmFail: '无法开始下载',
+          warnNeedVideoUrl: '请填写视频链接',
+          warnCreateFail: '创建失败',
+          warnJobIdMissing: '请填写 job_id',
+          nowPlayingPrefix: '正在播放：',
+          unitMinute: '分钟',
+          unitGeneric: '单位',
+          resumeError: '恢复任务失败',
+          langChinese: '中文',
+          langEnglish: '英文',
+        },
+        en: {
+          appTitle: 'Subtitle Generator',
+          methodA: 'Method A: Submit a video link',
+          inputUrl: 'Paste direct video or .m3u8 link',
+          createJob: 'Create Job',
+          taskStatus: 'Job Status',
+          jobIdPlaceholder: 'job_id auto-filled or paste manually',
+          playerSection: 'Play / Download',
+          playBtn: 'Play',
+          downloadMp4: 'Download MP4',
+          origSubtitle: 'Original Subtitle',
+          transSubtitle: 'Translated Subtitle',
+          nowPlayingEmpty: 'Nothing is playing yet',
+          quoteTitle: 'Confirm download',
+          targetLangLabel: 'Target language',
+          codeLabel: 'Redemption code',
+          couponHint: '🎁 Use <b>12345678</b> to get 100% off',
+          cancelBtn: 'Cancel',
+          confirmBtn: 'Start',
+          confirmFail: 'Unable to start download',
+          warnNeedVideoUrl: 'Please enter a video link',
+          warnCreateFail: 'Failed to create job',
+          warnJobIdMissing: 'Please provide a job_id',
+          nowPlayingPrefix: 'Now playing: ',
+          unitMinute: 'minute(s)',
+          unitGeneric: 'unit(s)',
+          resumeError: 'Failed to resume job',
+          langChinese: 'Chinese',
+          langEnglish: 'English',
+        },
+      };
+
+      function detectUiLang() {
+        const stored = localStorage.getItem('UI_LANG');
+        if (stored && I18N[stored]) return stored;
+        const nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+        return nav.startsWith('zh') ? 'zh' : 'en';
+      }
+
+      let uiLang = detectUiLang();
+
+      function t(key, fallback = '') {
+        return (I18N[uiLang] && I18N[uiLang][key]) || fallback || key;
+      }
+
+      function applyI18n() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.dataset.i18n;
+          if (key) el.innerHTML = t(key, el.innerHTML || key);
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+          const key = el.dataset.i18nPlaceholder;
+          if (key) el.placeholder = t(key, el.placeholder || key);
+        });
+        document.querySelectorAll('[data-lang-btn]').forEach(btn => {
+          const lang = btn.dataset.langBtn;
+          if (lang === 'zh') btn.textContent = t('langChinese', '中文');
+          else if (lang === 'en') btn.textContent = t('langEnglish', 'EN');
+          btn.classList.toggle('active', lang === uiLang);
+        });
+      }
+
+      function setLang(lang) {
+        if (!I18N[lang]) lang = 'en';
+        uiLang = lang;
+        localStorage.setItem('UI_LANG', lang);
+        applyI18n();
+      }
+
+      document.querySelectorAll('[data-lang-btn]').forEach(btn => {
+        btn.addEventListener('click', () => setLang(btn.dataset.langBtn));
+      });
+      setLang(uiLang);
 
       let PRICING = {
         unitType: 'minute',
@@ -140,11 +269,9 @@
         videoUrl: document.getElementById('videoUrl'),
         createByUrlBtn: document.getElementById('createByUrlBtn'),
         jobId: document.getElementById('jobId'),
-        queryBtn: document.getElementById('queryBtn'),
-        stopBtn: document.getElementById('stopBtn'),
         statusBox: document.getElementById('statusBox'),
         player: document.getElementById('player'),
-        playM3U8: document.getElementById('playM3U8'),
+        playCurrent: document.getElementById('playCurrent'),
         downloadMp4: document.getElementById('downloadMp4'),
         nowPlaying: document.getElementById('nowPlaying'),
       };
@@ -153,6 +280,7 @@
       let lastSnapshot = null;
       let lastTitle = 'video';
       let lastMp4Url = null;
+      let lastMediaUrl = null;
 
       function isMobileView() {
         return window.innerWidth <= 768;
@@ -164,10 +292,30 @@
           : { line: 95, position: 50, size: 100, align: 'center', snapToLines: false };
       }
 
+      function normalizeMediaUrl(u) {
+        if (!u && u !== '') return null;
+        let val = String(u).trim();
+        if (!val) return null;
+        if (/^https?:\/\//i.test(val)) return val;
+        val = val.replace(/\\/g, '/');
+        if (val.startsWith('/download/') || val.startsWith('/files/')) return val;
+        const dataToken = '/data/';
+        const idx = val.indexOf(dataToken);
+        if (idx >= 0) {
+          const rel = val.slice(idx + dataToken.length).replace(/^\/+/g, '');
+          return rel ? `/download/${rel}` : '/download';
+        }
+        if (val.startsWith('data/')) {
+          return `/download/${val.slice('data/'.length)}`;
+        }
+        return val.startsWith('/') ? val : `/${val}`;
+      }
+
       function absUrl(u) {
-        if (!u) return null;
-        if (/^https?:\/\//i.test(u)) return u;
-        return `${API_BASE}${String(u).startsWith('/') ? u : '/' + u}`;
+        const normalized = normalizeMediaUrl(u);
+        if (!normalized) return null;
+        if (/^https?:\/\//i.test(normalized)) return normalized;
+        return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
       }
 
       function sanitizeFilename(n) { return (n ? String(n) : 'video').trim().replace(/[\\/:*?"<>|]/g, '_'); }
@@ -327,9 +475,7 @@
           payload?.result?.path ||
           null;
 
-        if (url && !/^https?:\/\//i.test(url) && !url.startsWith('/')) {
-          url = '/' + url;
-        }
+        url = normalizeMediaUrl(url);
 
         return { url };
       }
@@ -339,9 +485,10 @@
         $a.onclick = null;
 
         if (url) {
-          const abs = /^https?:\/\//i.test(url)
-            ? url
-            : (url.startsWith('/') ? `${API_BASE}${url}` : `${API_BASE}/${url}`);
+          const normalized = normalizeMediaUrl(url);
+          const abs = /^https?:\/\//i.test(normalized)
+            ? normalized
+            : `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
           $a.href = abs;
           if (filename) $a.setAttribute('download', filename);
 
@@ -420,7 +567,7 @@
 
       function addVttTrackToVideo(videoEl, vttUrl, { lang = 'zh', label = '中文', makeDefault = true } = {}) {
         if (!videoEl || !vttUrl) return;
-        [...videoEl.querySelectorAll('track')].forEach(t => t.remove());
+        clearAllSubtitleTracks(videoEl, true);
         const track = document.createElement('track');
         track.kind = 'subtitles';
         track.srclang = lang;
@@ -445,7 +592,15 @@
 
       function playIfPossible(payload) {
         const { url } = extractMedia(payload);
-        if (!url) return;
+        lastMediaUrl = url || null;
+        if (!url) {
+          els.nowPlaying.textContent = t('nowPlayingEmpty', 'No video');
+          els.playCurrent.classList.add('disabled');
+          els.playCurrent.setAttribute('disabled', 'disabled');
+          return;
+        }
+        els.playCurrent.classList.remove('disabled');
+        els.playCurrent.removeAttribute('disabled');
 
         const niceTitle =
           payload?.info?.title ||
@@ -454,7 +609,7 @@
           lastTitle ||
           'video';
 
-        els.nowPlaying.textContent = `正在播放：${niceTitle}`;
+        els.nowPlaying.textContent = `${t('nowPlayingPrefix', 'Now playing: ')}${niceTitle}`;
         lastTitle = sanitizeFilename(niceTitle);
 
         switchSourceKeepPosition(url);
@@ -492,7 +647,8 @@
         const origUrl = payload?.result?.subtitle?.url || null;
         const chosen = transUrl || origUrl;
         if (chosen) {
-          addVttTrackToVideo(els.player, chosen, { lang: 'auto', label: transUrl ? '翻译字幕' : '原始字幕', makeDefault: true });
+          const subtitleLabel = transUrl ? t('transSubtitle', 'Translated Subtitle') : t('origSubtitle', 'Original Subtitle');
+          addVttTrackToVideo(els.player, chosen, { lang: 'auto', label: subtitleLabel, makeDefault: true });
         }
 
         const baseTitle = (payload?.result?.details?.title || payload?.info?.title || niceTitle || 'subtitle').trim();
@@ -500,7 +656,7 @@
         setBtn(document.getElementById('btnSubTrans'), transUrl, `${baseTitle}.${transLang || 'trans'}.vtt`);
 
         setTimeout(() => {
-          const src = els.player.currentSrc || absUrl(url);
+          const src = absUrl(url);
           if (src && /\.(mp4|m4v|webm|mov|m3u8)(\?|$)/i.test(src)) {
             lastMp4Url = src;
             els.downloadMp4.href = src;
@@ -515,7 +671,7 @@
       }
 
       function subscribeJob(jobId) {
-        if (!jobId) return alert('没有 jobId');
+        if (!jobId) return alert(t('warnJobIdMissing', 'Please provide a job id'));
         if (es) es.close();
 
         es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
@@ -685,7 +841,9 @@
         const durText = _q_ctx.durationText || `${Math.round(_q_ctx.durationSeconds || 0)}s`;
         const price = _q_ctx.price || calcQuote(_q_ctx.durationSeconds || 0);
         const priceText = formatCurrency(price.totalCents);
-        const unitsLabel = PRICING.unitType === 'minute' ? '分钟' : '单位';
+        const unitsLabel = PRICING.unitType === 'minute'
+          ? t('unitMinute', 'minute(s)')
+          : t('unitGeneric', 'unit(s)');
 
         qBreak.textContent = [
           `费用：${price.units} ${unitsLabel} -> ${priceText}（未扣除兑换码）`,
@@ -713,7 +871,7 @@
         const d = await resp.json();
 
         if (!resp.ok || !d.ok) {
-          alert(d.error || d.message || '无法开始下载');
+          alert(d.error || d.message || t('confirmFail', 'Unable to start download'));
           return;
         }
 
@@ -723,7 +881,7 @@
 
       async function createJobByUrl() {
         const url = els.videoUrl.value.trim();
-        if (!url) return alert('请填写视频链接');
+        if (!url) return alert(t('warnNeedVideoUrl', 'Please enter a video link'));
 
         setBtn(document.getElementById('btnSubOrig'), null);
         setBtn(document.getElementById('btnSubTrans'), null);
@@ -742,13 +900,13 @@
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          alert(data.message || data.error || '创建失败');
+          alert(data.message || data.error || t('warnCreateFail', 'Failed to create job'));
           return;
         }
 
         const jobId = data.jobId;
         if (!jobId) {
-          alert('创建失败');
+          alert(t('warnCreateFail', 'Failed to create job'));
           return;
         }
 
@@ -773,9 +931,9 @@
         if (data.job?.status !== 'WAITING_CONFIRM') {
           setStatus(data.job || data);
           if (data.job?.status === 'FAILED') {
-            alert(data.job?.message || '任务创建失败');
+            alert(data.job?.message || t('warnCreateFail', 'Failed to create job'));
           } else {
-            alert(data.job?.message || `当前状态：${data.job?.status || data.status}`);
+            alert(data.job?.message || `${t('taskStatus', 'Job Status')}: ${data.job?.status || data.status}`);
           }
           return;
         }
@@ -794,41 +952,33 @@
         });
       }
 
-      async function queryJob({ subscribe = false } = {}) {
-        const id = (els.jobId.value || '').trim();
-        if (!id) return alert('请填写 job_id');
-        const res = await fetch(`${API_BASE}/api/jobs/${id}`);
-        const data = await res.json();
-        setStatus(data);
-        playIfPossible(data);
-        if (subscribe && res.ok) {
-          subscribeJob(id);
+      els.createByUrlBtn.onclick = createJobByUrl;
+
+      els.playCurrent.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!lastMediaUrl) return;
+        const raw = lastMediaUrl;
+        if (/\.m3u8(\?|$)/i.test(raw)) {
+          setupHls(absUrl(raw));
+        } else {
+          switchSourceKeepPosition(raw);
         }
+      });
+
+      function subscribeFromInput() {
+        const id = (els.jobId.value || '').trim();
+        if (!id) return;
+        saveLastJob(id);
+        subscribeJob(id);
       }
 
-      els.createByUrlBtn.onclick = createJobByUrl;
-      els.queryBtn.onclick = () => queryJob({ subscribe: true });
-
-      els.stopBtn.onclick = () => {
-        if (es) es.close();
-        es = null;
-      };
-
-      els.playM3U8.addEventListener('click', (e) => {
-        if (!lastSnapshot) return;
-        const media = extractMedia(lastSnapshot);
-        const playUrl = media.url ? absUrl(media.url) : null;
-        if (!playUrl) {
+      ['change', 'blur'].forEach(evt => {
+        els.jobId.addEventListener(evt, () => subscribeFromInput());
+      });
+      els.jobId.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
           e.preventDefault();
-          return;
-        }
-
-        if (/\.m3u8(\?|$)/i.test(playUrl)) {
-          e.preventDefault();
-          setupHls(playUrl);
-        } else {
-          els.player.src = playUrl;
-          els.player.play().catch(() => { });
+          subscribeFromInput();
         }
       });
 
@@ -858,7 +1008,7 @@
             subscribeJob(jobId);
           }
         } catch (e) {
-          console.error('恢复任务失败:', e);
+          console.error(t('resumeError', 'Failed to resume job'), e);
         }
       });
     </script>
