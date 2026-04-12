@@ -98,7 +98,7 @@
 
     <div class="card">
       <h2 data-i18n="playerSection">在线播放 / 下载</h2>
-      <video id="player" class="player subtitle-custom" controls playsinline muted autoplay
+      <video id="player" class="player subtitle-custom" controls playsinline muted autoplay crossorigin="anonymous"
         crossorigin="anonymous"></video>
       <div class="row">
         <button id="playCurrent" class="btn" type="button" data-i18n="playBtn">播放</button>
@@ -460,8 +460,9 @@
 
         if (autoplay) {
           if (isMobileDevice()) {
-            v.muted = false;
-            v.removeAttribute('muted');
+            v.muted = true;   // ⭐ 必须静音
+            v.setAttribute('muted', 'muted');
+            
           } else {
             v.muted = true;
             v.setAttribute('muted', 'muted');
@@ -1034,6 +1035,8 @@
       });
 
       document.addEventListener('click', () => els.player.play().catch(() => { }), { once: true });
+
+      document.addEventListener('touchstart', () => { els.player.play().catch(() => {}); }, { once: true });
 
       document.addEventListener('DOMContentLoaded', async () => {
         const raw = localStorage.getItem('mmx:lastJob');
