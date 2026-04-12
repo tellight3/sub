@@ -290,7 +290,7 @@
 
       function cueStyleOptions() {
         return isMobileView()
-          ? { line: 90, position: 50, size: 92, align: 'center', snapToLines: false }
+          ? { line: -3, position: 50, size: 92, align: 'center', snapToLines: false }
           : { line: 95, position: 50, size: 100, align: 'center', snapToLines: false };
       }
 
@@ -462,7 +462,7 @@
           if (isMobileDevice()) {
             v.muted = true;   // ⭐ 必须静音
             v.setAttribute('muted', 'muted');
-            
+
           } else {
             v.muted = true;
             v.setAttribute('muted', 'muted');
@@ -1036,7 +1036,7 @@
 
       document.addEventListener('click', () => els.player.play().catch(() => { }), { once: true });
 
-      document.addEventListener('touchstart', () => { els.player.play().catch(() => {}); }, { once: true });
+      document.addEventListener('touchstart', () => { els.player.play().catch(() => { }); }, { once: true });
 
       document.addEventListener('DOMContentLoaded', async () => {
         const raw = localStorage.getItem('mmx:lastJob');
