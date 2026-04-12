@@ -96,10 +96,10 @@
 
     <div class="card">
       <h2 data-i18n="playerSection">在线播放 / 下载</h2>
-      <video id="player" class="player subtitle-custom" controls playsinline muted autoplay
-        crossorigin="anonymous"></video>
+      <video id="player" class="player subtitle-custom" controls playsinline muted autoplay crossorigin="anonymous"></video>
       <div class="row">
-        <button id="playCurrent" class="btn" type="button" data-i18n="playBtn">播放</button>
+        <a id="playCurrent" class="btn disabled" href="javascript:void(0)" target="_blank" rel="noopener"
+          data-i18n="playBtn">播放</a>
         <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener" data-i18n="downloadMp4">下载 MP4</a>
         <a id="btnSubOrig" class="btn disabled" href="javascript:void(0)" disabled data-i18n="origSubtitle">原始字幕</a>
         <a id="btnSubTrans" class="btn disabled" href="javascript:void(0)" disabled data-i18n="transSubtitle">翻译字幕</a>
@@ -272,6 +272,7 @@
         downloadMp4: document.getElementById('downloadMp4'),
         nowPlaying: document.getElementById('nowPlaying'),
       };
+
       els.downloadMp4.classList.add('disabled');
       els.downloadMp4.setAttribute('disabled', 'disabled');
 
@@ -382,6 +383,7 @@
       }
 
       const LS_KEY_LAST = 'mmx:lastJob';
+
       function hashString(s) {
         let h = 5381;
         for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
@@ -441,9 +443,6 @@
           [...videoEl.querySelectorAll('track')].forEach(t => t.remove());
         } catch { }
       }
-
-      const isMobileDevice = () =>
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
 
       function switchSourceKeepPosition(nextUrl, autoplay = false) {
         if (!nextUrl) return;
@@ -543,17 +542,40 @@
         videoEl.appendChild(track);
       }
 
+      function updatePlayLink() {
+        if (!els.playCurrent) return;
+
+        if (!lastMediaUrl) {
+          els.playCurrent.href = 'javascript:void(0)';
+          els.playCurrent.classList.add('disabled');
+          els.playCurrent.setAttribute('aria-disabled', 'true');
+          return;
+        }
+
+        const abs = absUrl(lastMediaUrl);
+        if (!abs) {
+          els.playCurrent.href = 'javascript:void(0)';
+          els.playCurrent.classList.add('disabled');
+          els.playCurrent.setAttribute('aria-disabled', 'true');
+          return;
+        }
+
+        els.playCurrent.href = abs;
+        els.playCurrent.classList.remove('disabled');
+        els.playCurrent.removeAttribute('aria-disabled');
+      }
+
       function playIfPossible(payload) {
         const { url } = extractMedia(payload);
         lastMediaUrl = url || null;
+        updatePlayLink();
+
         if (!url) {
+          lastMediaUrl = null;
+          updatePlayLink();
           els.nowPlaying.textContent = t('nowPlayingEmpty', 'No video');
-          els.playCurrent.classList.add('disabled');
-          els.playCurrent.setAttribute('disabled', 'disabled');
           return;
         }
-        els.playCurrent.classList.remove('disabled');
-        els.playCurrent.removeAttribute('disabled');
 
         const niceTitle =
           payload?.info?.title ||
@@ -920,6 +942,7 @@
           || (typeof details.duration === 'string' ? details.duration : null)
           || (typeof i.duration === 'string' ? i.duration : null)
           || (durationSeconds ? `${Math.round(durationSeconds)}s` : '未知');
+
         openQuoteModal({
           jobId,
           durationSeconds,
@@ -929,112 +952,6 @@
       }
 
       els.createByUrlBtn.onclick = createJobByUrl;
-
-      els.playCurrent.addEventListener('click', async (e) => {
-        e.preventDefault();
-
-        const jobId = (els.jobId.value || '').trim();
-        const mediaUrl = lastMediaUrl || '';
-
-        // 调试
-        try {
-          await fetch(`${API_BASE}/api/debug/play-click`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jobId,
-              lastMediaUrl: mediaUrl
-            })
-          });
-        } catch (err) {
-          console.error('debug post failed', err);
-        }
-
-        // 没有播放地址 → 请求服务器
-        if (!lastMediaUrl) {
-          if (jobId) {
-            try {
-              const resp = await fetch(`${API_BASE}/api/jobs/${jobId}`);
-              if (resp.ok) {
-                const data = await resp.json();
-                lastSnapshot = data;
-                setStatus(data);
-                playIfPossible(data);
-              }
-            } catch (err) {
-              console.warn('fetch job failed', err);
-            }
-          }
-        }
-
-        // 还是没有 → 退出
-        if (!lastMediaUrl) return;
-
-        const raw = lastMediaUrl;
-        const abs = absUrl(raw);
-
-        // 已经是当前视频 → 直接播放
-        if (els.player.currentSrc === abs) {
-          els.player.muted = false;
-          els.player.removeAttribute('muted');
-          els.player.play().catch(err => {
-            console.warn('direct play failed', err);
-          });
-          return;
-        }
-
-        // 切换视频源并播放
-        if (/\.m3u8(\?|$)/i.test(raw)) {
-          // HLS
-          els.player.muted = true; // ⭐ 必须先静音
-          setupHls(abs);
-
-          setTimeout(() => {
-            els.player.muted = false;
-            els.player.removeAttribute('muted');
-          }, 500);
-        } else {
-          // MP4
-          els.player.src = abs;
-
-          els.player.muted = true; // ⭐ 关键：避免 autoplay 被拦截
-          els.player.play().then(() => {
-            // 播放成功再开声音
-            els.player.muted = false;
-            els.player.removeAttribute('muted');
-          }).catch(err => {
-            console.warn('play failed', err);
-          });
-        }
-      });
-
-
-      els.downloadMp4.addEventListener('click', async (e) => {
-        if (!lastMp4Url) {
-          e.preventDefault();
-          return;
-        }
-        const abs = lastMp4Url;
-        try {
-          e.preventDefault();
-          const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const blob = await resp.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = `${sanitizeFilename(lastTitle)}.mp4`;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            URL.revokeObjectURL(blobUrl);
-            a.remove();
-          }, 0);
-        } catch (err) {
-          console.warn('download via fetch failed, fallback to new window', err);
-          window.open(abs, '_blank', 'noopener');
-        }
-      });
 
       function subscribeFromInput() {
         const id = (els.jobId.value || '').trim();
@@ -1057,6 +974,8 @@
       document.addEventListener('touchstart', () => { els.player.play().catch(() => { }); }, { once: true });
 
       document.addEventListener('DOMContentLoaded', async () => {
+        updatePlayLink();
+
         const raw = localStorage.getItem('mmx:lastJob');
         if (!raw) return;
 
@@ -1089,6 +1008,7 @@
     <script>
       document.getElementById('buildInfo').textContent =
         '最后修改时间：' + document.lastModified;
+
       async function loadPricing() {
         try {
           const resp = await fetch(`${API_BASE}/api/config`);
