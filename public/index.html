@@ -141,7 +141,7 @@
     </div>
 
     <script>
-      const API_BASE = window.location.origin || 'https://mmx.multmatrix.com';
+      const API_BASE = 'https://sub.multmatrix.com';
 
       const I18N = {
         zh: {
@@ -448,6 +448,8 @@
         } catch { }
       }
 
+      const isMobileDevice = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+
       function switchSourceKeepPosition(nextUrl, autoplay = false) {
         if (!nextUrl) return;
         const v = els.player;
@@ -457,8 +459,13 @@
         const t = v.currentTime || 0;
 
         if (autoplay) {
-          v.muted = false;
-          v.removeAttribute('muted');
+          if (isMobileDevice()) {
+            v.muted = false;
+            v.removeAttribute('muted');
+          } else {
+            v.muted = true;
+            v.setAttribute('muted', 'muted');
+          }
         }
 
         v.src = absUrl(nextUrl);
@@ -620,19 +627,7 @@
         els.nowPlaying.textContent = `${t('nowPlayingPrefix', 'Now playing: ')}${niceTitle}`;
         lastTitle = sanitizeFilename(niceTitle);
 
-        switchSourceKeepPosition(url, false);
-
-        const v = els.player;
-        v.muted = true;
-        const tryPlay = () => v.play().catch(() => { });
-        tryPlay();
-        const once = () => {
-          v.removeEventListener('canplay', once);
-          v.removeEventListener('loadeddata', once);
-          tryPlay();
-        };
-        v.addEventListener('canplay', once, { once: true });
-        v.addEventListener('loadeddata', once, { once: true });
+        switchSourceKeepPosition(url, true);
 
         let transUrl = null, transLang = null;
         const tmap = payload?.result?.subtitle_translated || {};
