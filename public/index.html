@@ -936,7 +936,7 @@
         const jobId = (els.jobId.value || '').trim();
         const mediaUrl = lastMediaUrl || '';
 
-        // 调试：无论有没有值，都先发给后端
+        // 调试
         try {
           await fetch(`${API_BASE}/api/debug/play-click`, {
             method: 'POST',
@@ -950,9 +950,8 @@
           console.error('debug post failed', err);
         }
 
-
+        // 没有播放地址 → 请求服务器
         if (!lastMediaUrl) {
-          const jobId = (els.jobId.value || '').trim();
           if (jobId) {
             try {
               const resp = await fetch(`${API_BASE}/api/jobs/${jobId}`);
@@ -967,11 +966,14 @@
             }
           }
         }
+
+        // 还是没有 → 退出
         if (!lastMediaUrl) return;
+
         const raw = lastMediaUrl;
         const abs = absUrl(raw);
 
-        // 如果当前播放器已经是这个地址，就直接 play
+        // 已经是当前视频 → 直接播放
         if (els.player.currentSrc === abs) {
           els.player.muted = false;
           els.player.removeAttribute('muted');
@@ -981,22 +983,31 @@
           return;
         }
 
-        // 不是当前地址，才重新切源
-        els.player.muted = false;
-        els.player.removeAttribute('muted');
-
+        // 切换视频源并播放
         if (/\.m3u8(\?|$)/i.test(raw)) {
+          // HLS
+          els.player.muted = true; // ⭐ 必须先静音
           setupHls(abs);
+
+          setTimeout(() => {
+            els.player.muted = false;
+            els.player.removeAttribute('muted');
+          }, 500);
         } else {
+          // MP4
           els.player.src = abs;
-          els.player.load();
-          els.player.play().catch(err => {
-            console.warn('play after src set failed', err);
+
+          els.player.muted = true; // ⭐ 关键：避免 autoplay 被拦截
+          els.player.play().then(() => {
+            // 播放成功再开声音
+            els.player.muted = false;
+            els.player.removeAttribute('muted');
+          }).catch(err => {
+            console.warn('play failed', err);
           });
         }
-
-
       });
+
 
       els.downloadMp4.addEventListener('click', async (e) => {
         if (!lastMp4Url) {
