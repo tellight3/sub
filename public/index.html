@@ -377,6 +377,9 @@
             data-i18n="downloadTranslated">
             Download translated subtitle
           </a>
+          <button id="btnPlayExempt" class="btn btn-secondary hidden" type="button" data-i18n="playVideo">
+            Play video
+          </button>
         </div>
 
         <div class="footer-note">
@@ -428,6 +431,7 @@
         canceledSub: 'This task was canceled.',
         downloadOriginal: '下载原始字幕',
         downloadTranslated: '下载翻译字幕',
+        playVideo: '播放翻译视频',
         resultReadyNote: '字幕已经准备好。',
         recentTasksTitle: '最近任务',
         recentTasksNote: '最近任务会保存在当前浏览器中。',
@@ -445,6 +449,8 @@
         warnNeedEmail: '请填写邮箱',
         warnNeedTargetLang: '请填写目标语言',
         warnCreateFail: '创建任务失败',
+        errorIpQuotaLimit: '该网络今日可处理的视频总时长已达到 90 分钟。请明天再试。',
+        errorIpQuotaInvalid: '无法识别该网络，暂时无法创建任务。',
         langChinese: '中文',
         langEnglish: '英文'
       },
@@ -474,6 +480,7 @@
         canceledSub: 'This task was canceled.',
         downloadOriginal: 'Download original subtitle',
         downloadTranslated: 'Download translated subtitle',
+        playVideo: 'Play translated video',
         resultReadyNote: 'Your result is ready.',
         recentTasksTitle: 'Recent tasks',
         recentTasksNote: 'Your recent tasks are stored in this browser.',
@@ -491,6 +498,8 @@
         warnNeedEmail: 'Please enter your email',
         warnNeedTargetLang: 'Please enter a target language',
         warnCreateFail: 'Failed to create job',
+        errorIpQuotaLimit: 'This network has reached today’s 90-minute limit. Please try again tomorrow.',
+        errorIpQuotaInvalid: 'Unable to verify this network for quota tracking.',
         langChinese: 'Chinese',
         langEnglish: 'English'
       }
@@ -598,6 +607,7 @@
       resultBox: document.getElementById('resultBox'),
       btnSubOrig: document.getElementById('btnSubOrig'),
       btnSubTrans: document.getElementById('btnSubTrans'),
+      btnPlayExempt: document.getElementById('btnPlayExempt'),
       recentTasks: document.getElementById('recentTasks')
     };
 
@@ -872,6 +882,25 @@
       };
     }
 
+    function setPlayButton(btn, url) {
+      if (!btn) return;
+      if (!url) {
+        btn.classList.add('hidden');
+        btn.onclick = null;
+        return;
+      }
+      const abs = absUrl(url);
+      if (!abs) {
+        btn.classList.add('hidden');
+        btn.onclick = null;
+        return;
+      }
+      btn.classList.remove('hidden');
+      btn.onclick = () => {
+        window.open(abs, '_blank', 'noopener');
+      };
+    }
+
     function setCurrentStatus(payload) {
       const status = String(payload?.status || '').toUpperCase();
       const queuePos = payload?.queue_position ?? payload?.result?.queue_position ?? null;
@@ -941,13 +970,16 @@
         transUrl = result.playback.subtitleUrl;
       }
 
-      return { baseTitle, origUrl, transUrl, transLang };
+      const exemptUrl = result?.playback?.exemptVideoUrl || null;
+
+      return { baseTitle, origUrl, transUrl, transLang, exemptUrl };
     }
 
     function applyResultButtons(payload) {
-      const { baseTitle, origUrl, transUrl, transLang } = extractSubtitleSources(payload);
+      const { baseTitle, origUrl, transUrl, transLang, exemptUrl } = extractSubtitleSources(payload);
       setDownloadBtn(els.btnSubOrig, origUrl, `${baseTitle}.vtt`);
       setDownloadBtn(els.btnSubTrans, transUrl, `${baseTitle}.${transLang}.vtt`);
+      setPlayButton(els.btnPlayExempt, exemptUrl);
     }
 
     function taskTitleFromPayload(payload) {
@@ -1040,7 +1072,16 @@
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-          alert(data.message || data.error || data.detail || t('warnCreateFail', 'Failed to create job'));
+          let errorMsg = data.message || data.error || data.detail || '';
+          if (data.errorCode === 'IP_QUOTA_LIMIT') {
+            errorMsg = t('errorIpQuotaLimit', 'This network has reached today’s 90-minute limit. Please try again tomorrow.');
+          } else if (data.errorCode === 'IP_QUOTA_INVALID') {
+            errorMsg = t('errorIpQuotaInvalid', 'Unable to verify this network for quota tracking.');
+          }
+          if (!errorMsg) {
+            errorMsg = t('warnCreateFail', 'Failed to create job');
+          }
+          alert(errorMsg);
           return;
         }
 
