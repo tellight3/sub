@@ -347,7 +347,7 @@
         <label class="label" for="email"><span data-i18n="emailLabel">Email</span><span
             class="required">*</span></label>
         <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
-          placeholder="Enter your email" />
+          placeholder="Enter your email, get subtitles download link`" />
       </div>
 
       <div class="field">
@@ -355,8 +355,10 @@
         <select id="targetLang" class="input"></select>
       </div>
 
-      <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
-      <div class="footer-note" data-i18n="inlineNote">字幕生成后可在网页直接下载，邮箱可在晚上自动接收字幕链接。</div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+        <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
+        <div class="muted" data-i18n="inlineNote">字幕生成后可在网页直接下载，邮箱可在晚上自动接收字幕链接。</div>
+      </div>
     </div>
 
     <div class="card">
@@ -395,7 +397,6 @@
       </div>
     </div>
 
-    <div class="build-info" id="buildInfo"></div>
   </div>
 
   <script>
@@ -411,7 +412,7 @@
         videoUrlLabel: '视频链接',
         videoUrlPlaceholder: '粘贴 YouTube 或 X 链接',
         emailLabel: '邮箱',
-        emailPlaceholder: '输入您的邮箱,晚上接受字幕链接',
+        emailPlaceholder: '输入您的邮箱,接受字幕链接',
         targetLangLabel: '目标语言',
         targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
         generateBtn: '生成字幕',
@@ -1112,8 +1113,6 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       setLang(uiLang);
-      document.getElementById('buildInfo').textContent =
-        (uiLang === 'zh' ? '最后修改时间：' : 'Last modified: ') + document.lastModified;
     });
   </script>
 </body>
