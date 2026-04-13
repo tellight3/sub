@@ -255,6 +255,21 @@
       border: 1px solid #2a3954;
     }
 
+    .task-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn-compact {
+      min-height: 34px;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+
     .task-meta {
       min-width: 0;
       flex: 1;
@@ -366,9 +381,6 @@
 
         <div class="footer-note">
           <span data-i18n="resultReadyNote">Your result is ready.</span>
-          <button id="tryAnotherBtn" class="btn btn-secondary" style="margin-left:10px;" data-i18n="tryAnother">
-            Try another video
-          </button>
         </div>
       </div>
     </div>
@@ -387,7 +399,7 @@
   <script>
     const API_BASE = 'https://sub.multmatrix.com';
     const LS_KEY_RECENT = 'mmx:recentTasks';
-    const MAX_RECENT = 5;
+    const MAX_RECENT = 3;
 
     const I18N = {
       zh: {
@@ -417,15 +429,18 @@
         downloadOriginal: '下载原始字幕',
         downloadTranslated: '下载翻译字幕',
         resultReadyNote: '字幕已经准备好。',
-        tryAnother: '再试一个视频',
         recentTasksTitle: '最近任务',
         recentTasksNote: '最近任务会保存在当前浏览器中。',
         noRecentTasks: '还没有最近任务。',
+        recentChecking: '正在检查最近任务...',
         statusProcessing: '处理中',
         statusReady: '已完成',
         statusFailed: '失败',
         statusCanceled: '已取消',
         statusUnknown: '未知',
+        statusPrefix: '状态',
+        viewResult: '查看结果',
+        viewDetail: '查看详情',
         warnNeedVideoUrl: '请填写视频链接',
         warnNeedEmail: '请填写邮箱',
         warnNeedTargetLang: '请填写目标语言',
@@ -460,15 +475,18 @@
         downloadOriginal: 'Download original subtitle',
         downloadTranslated: 'Download translated subtitle',
         resultReadyNote: 'Your result is ready.',
-        tryAnother: 'Try another video',
         recentTasksTitle: 'Recent tasks',
         recentTasksNote: 'Your recent tasks are stored in this browser.',
         noRecentTasks: 'No recent tasks yet.',
+        recentChecking: 'Checking recent tasks...',
         statusProcessing: 'Processing',
         statusReady: 'Ready',
         statusFailed: 'Failed',
         statusCanceled: 'Canceled',
         statusUnknown: 'Unknown',
+        statusPrefix: 'Status',
+        viewResult: 'View result',
+        viewDetail: 'View details',
         warnNeedVideoUrl: 'Please enter a video link',
         warnNeedEmail: 'Please enter your email',
         warnNeedTargetLang: 'Please enter a target language',
@@ -580,12 +598,12 @@
       resultBox: document.getElementById('resultBox'),
       btnSubOrig: document.getElementById('btnSubOrig'),
       btnSubTrans: document.getElementById('btnSubTrans'),
-      recentTasks: document.getElementById('recentTasks'),
-      tryAnotherBtn: document.getElementById('tryAnotherBtn')
+      recentTasks: document.getElementById('recentTasks')
     };
 
     let es = null;
     let currentJobId = null;
+    let recentTasksRenderToken = 0;
 
     function normalizeMediaUrl(u) {
       if (!u && u !== '') return null;
@@ -611,6 +629,32 @@
       if (!normalized) return null;
       if (/^https?:\/\//i.test(normalized)) return normalized;
       return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
+    }
+
+    async function downloadMedia(u, filename) {
+      const abs = absUrl(u);
+      if (!abs) return false;
+      const name = filename || 'subtitle.vtt';
+      try {
+        const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(blobUrl);
+          a.remove();
+        }, 0);
+        return true;
+      } catch (err) {
+        console.error('download failed', err);
+        window.open(abs, '_blank', 'noopener');
+        return false;
+      }
     }
 
     function sanitizeFilename(n) {
@@ -643,18 +687,13 @@
       const list = getStoredRecentTasks();
       const idx = list.findIndex(x => x.jobId === jobId);
       if (idx >= 0) {
+        const wasVerified = !!list[idx].verified;
         list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
         saveRecentTasks(list);
-        renderRecentTasks();
+        if (wasVerified) {
+          renderRecentTasksLocal();
+        }
       }
-    }
-
-    function statusType(status) {
-      const s = String(status || '').toUpperCase();
-      if (s === 'FINISHED' || s === 'READY') return 'ready';
-      if (s === 'FAILED') return 'failed';
-      if (s === 'CANCELED') return 'failed';
-      return 'processing';
     }
 
     function statusLabel(status) {
@@ -666,44 +705,137 @@
       return t('statusUnknown', 'Unknown');
     }
 
-    function formatTime(ts) {
-      if (!ts) return '';
+    async function fetchJobSnapshot(jobId) {
       try {
-        return new Date(ts).toLocaleString(uiLang === 'zh' ? 'zh-CN' : 'en-US');
+        const resp = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+        if (!resp.ok) return null;
+        return await resp.json();
       } catch {
-        return '';
+        return null;
       }
     }
 
-    function renderRecentTasks() {
-      const tasks = getStoredRecentTasks();
-      if (!tasks.length) {
+    async function renderRecentTasks() {
+      const token = ++recentTasksRenderToken;
+      try {
+        const tasks = getStoredRecentTasks();
+        if (!tasks.length) {
+          els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
+          return;
+        }
+
+        els.recentTasks.innerHTML = `<div class="muted">${t('recentChecking', 'Checking recent tasks...')}</div>`;
+
+        const kept = [];
+        const items = [];
+
+        for (const task of tasks) {
+          if (!task?.jobId) continue;
+          const job = await fetchJobSnapshot(task.jobId);
+          if (!job) continue;
+
+          const serverId = job.id || job.jobId || task.jobId;
+          const state = String(job.status || '').toUpperCase();
+          const title = taskTitleFromPayload(job) || task.title || job.url || task.url || serverId;
+          const { baseTitle, origUrl, transUrl, transLang } = extractSubtitleSources(job);
+          const merged = {
+            ...task,
+            jobId: serverId,
+            title,
+            status: job.status || task.status || 'PROCESSING',
+            updatedAt: job.updated_at ? job.updated_at * 1000 : Date.now(),
+            url: job.url || task.url,
+            subtitleBase: baseTitle,
+            origSubtitleUrl: origUrl,
+            transSubtitleUrl: transUrl,
+            transLang,
+            verified: true,
+          };
+          kept.push(merged);
+          items.push(toRecentTaskItem(merged));
+        }
+
+        if (token !== recentTasksRenderToken) {
+          return;
+        }
+
+        saveRecentTasks(kept);
+
+        drawRecentTaskList(items);
+      } catch (err) {
+        console.error('renderRecentTasks failed', err);
+      }
+    }
+
+    function renderRecentTasksLocal() {
+      const tasks = getStoredRecentTasks().filter(x => x?.verified && x.jobId);
+      const items = tasks.map(toRecentTaskItem);
+      drawRecentTaskList(items);
+    }
+
+    function toRecentTaskItem(task) {
+      const jobId = task.jobId;
+      const title = task.title || task.url || jobId;
+      const state = String(task.status || '').toUpperCase();
+      return {
+        jobId,
+        title,
+        state,
+        statusText: statusLabel(state),
+        subtitleBase: task.subtitleBase,
+        origUrl: task.origSubtitleUrl,
+        transUrl: task.transSubtitleUrl,
+        transLang: task.transLang || 'trans',
+      };
+    }
+
+    function drawRecentTaskList(items) {
+      const limited = items.slice(0, MAX_RECENT);
+      if (!limited.length) {
         els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
         return;
       }
 
-      els.recentTasks.innerHTML = tasks.map(task => {
-        const type = statusType(task.status);
+      els.recentTasks.innerHTML = limited.map(item => {
+        const statusLine = `${t('statusPrefix', 'Status')}: ${escapeHtml(item.statusText)}`;
+        let actions = '';
+        if (item.state === 'FINISHED' || item.state === 'READY') {
+          const nameBase = item.subtitleBase || sanitizeFilename(item.title) || 'subtitle';
+          const origBtn = item.origUrl
+            ? `<button class="btn btn-secondary btn-compact" data-download-url="${escapeHtml(item.origUrl)}" data-download-name="${escapeHtml(nameBase)}.vtt">${t('downloadOriginal', 'Download original subtitle')}</button>`
+            : '';
+          const transBtn = item.transUrl
+            ? `<button class="btn btn-compact" data-download-url="${escapeHtml(item.transUrl)}" data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt">${t('downloadTranslated', 'Download translated subtitle')}</button>`
+            : '';
+          actions = [origBtn, transBtn].filter(Boolean).join('');
+        } else if (item.state === 'FAILED' || item.state === 'CANCELED') {
+          actions = `<button class="btn btn-secondary btn-compact" data-view-job="${item.jobId}">${t('viewDetail', 'View details')}</button>`;
+        }
         return `
-          <div class="task-item" data-job-id="${task.jobId}">
+          <div class="task-item" data-job-id="${item.jobId}">
             <div class="task-meta">
-              <div class="task-title">${escapeHtml(task.title || task.url || task.jobId)}</div>
-              <div class="task-time">${escapeHtml(formatTime(task.updatedAt || task.createdAt))}</div>
+              <div class="task-title">${escapeHtml(item.title)}</div>
+              <div class="task-time">${statusLine}</div>
             </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <span class="pill ${type}">${escapeHtml(statusLabel(task.status))}</span>
-              <button class="btn btn-secondary task-open-btn" data-job-id="${task.jobId}" style="min-height:34px; padding:6px 12px;">
-                ${uiLang === 'zh' ? '查看' : 'View'}
-              </button>
-            </div>
+            ${actions ? `<div class="task-actions">${actions}</div>` : ''}
           </div>
         `;
       }).join('');
 
-      document.querySelectorAll('.task-open-btn').forEach(btn => {
+      els.recentTasks.querySelectorAll('[data-download-url]').forEach(btn => {
+        const url = btn.getAttribute('data-download-url');
+        const filename = btn.getAttribute('data-download-name') || 'subtitle.vtt';
+        btn.addEventListener('click', async () => {
+          await downloadMedia(url, filename);
+        });
+      });
+
+      els.recentTasks.querySelectorAll('[data-view-job]').forEach(btn => {
         btn.addEventListener('click', () => {
-          const jobId = btn.dataset.jobId;
-          if (jobId) loadJob(jobId);
+          const jobId = btn.getAttribute('data-view-job');
+          if (jobId) {
+            window.open(`${API_BASE}/api/jobs/${jobId}`, '_blank', 'noopener');
+          }
         });
       });
     }
@@ -735,24 +867,8 @@
       if (filename) $a.setAttribute('download', filename);
 
       $a.onclick = async (e) => {
-        try {
-          e.preventDefault();
-          const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const blob = await resp.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = filename || 'subtitle.vtt';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            URL.revokeObjectURL(blobUrl);
-            a.remove();
-          }, 0);
-        } catch {
-          window.open(abs, '_blank', 'noopener');
-        }
+        e.preventDefault();
+        await downloadMedia(url, filename || 'subtitle.vtt');
       };
     }
 
@@ -797,7 +913,7 @@
       els.resultBox.classList.add('hidden');
     }
 
-    function applyResultButtons(payload) {
+    function extractSubtitleSources(payload) {
       const result = payload?.result || {};
       const info = payload?.info || {};
       const baseTitle = sanitizeFilename(
@@ -825,6 +941,11 @@
         transUrl = result.playback.subtitleUrl;
       }
 
+      return { baseTitle, origUrl, transUrl, transLang };
+    }
+
+    function applyResultButtons(payload) {
+      const { baseTitle, origUrl, transUrl, transLang } = extractSubtitleSources(payload);
       setDownloadBtn(els.btnSubOrig, origUrl, `${baseTitle}.vtt`);
       setDownloadBtn(els.btnSubTrans, transUrl, `${baseTitle}.${transLang}.vtt`);
     }
@@ -878,25 +999,6 @@
       };
 
       es.onerror = () => { };
-    }
-
-    async function loadJob(jobId) {
-      closeSSE();
-      currentJobId = jobId;
-
-      try {
-        const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        handleSnapshot(data);
-
-        const st = String(data.status || '').toUpperCase();
-        if (!(st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED')) {
-          subscribeJob(jobId);
-        }
-      } catch (err) {
-        console.error(err);
-      }
     }
 
     async function createJobByUrl() {
@@ -956,7 +1058,8 @@
           url,
           status: data?.job?.status || data?.status || 'PROCESSING',
           createdAt: Date.now(),
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
+          verified: false
         });
 
         setCurrentStatus(data.job || data);
@@ -974,20 +1077,8 @@
 
     els.createByUrlBtn.addEventListener('click', createJobByUrl);
 
-    els.tryAnotherBtn.addEventListener('click', () => {
-      els.videoUrl.focus();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('DOMContentLoaded', () => {
       setLang(uiLang);
-      renderRecentTasks();
-
-      const recent = getStoredRecentTasks();
-      if (recent.length > 0 && recent[0].jobId) {
-        loadJob(recent[0].jobId);
-      }
-
       document.getElementById('buildInfo').textContent =
         (uiLang === 'zh' ? '最后修改时间：' : 'Last modified: ') + document.lastModified;
     });
