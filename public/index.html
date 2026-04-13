@@ -1040,7 +1040,7 @@
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-          alert(data.message || data.error || t('warnCreateFail', 'Failed to create job'));
+          alert(data.message || data.error || data.detail || t('warnCreateFail', 'Failed to create job'));
           return;
         }
 
