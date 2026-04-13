@@ -102,6 +102,15 @@
       font-size: 14px;
       margin-bottom: 6px;
       color: #d1d5db;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .label .required {
+      color: var(--danger);
+      font-weight: 700;
     }
 
     .input {
@@ -313,21 +322,20 @@
       <h2 data-i18n="submitTitle">Create a task</h2>
 
       <div class="field">
-        <label class="label" for="videoUrl" data-i18n="videoUrlLabel">Video link</label>
+        <label class="label" for="videoUrl"><span data-i18n="videoUrlLabel">Video link</span><span class="required">*</span></label>
         <input id="videoUrl" class="input" data-i18n-placeholder="videoUrlPlaceholder"
           placeholder="Paste YouTube or X link" />
       </div>
 
       <div class="field">
-        <label class="label" for="email" data-i18n="emailLabel">Email</label>
+        <label class="label" for="email"><span data-i18n="emailLabel">Email</span><span class="required">*</span></label>
         <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
           placeholder="Enter your email" />
       </div>
 
       <div class="field">
         <label class="label" for="targetLang" data-i18n="targetLangLabel">Target language</label>
-        <input id="targetLang" class="input" data-i18n-placeholder="targetLangPlaceholder"
-          placeholder="Enter target language (e.g., en)" />
+        <select id="targetLang" class="input"></select>
       </div>
 
       <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
@@ -470,11 +478,34 @@
       }
     };
 
+    const TARGET_LANG_OPTIONS = [
+      { value: 'zh', label: { zh: '中文', en: 'Chinese' } },
+      { value: 'en', label: { zh: '英文', en: 'English' } },
+      { value: 'ja', label: { zh: '日语', en: 'Japanese' } },
+      { value: 'ko', label: { zh: '韩语', en: 'Korean' } },
+      { value: 'es', label: { zh: '西班牙语', en: 'Spanish' } },
+      { value: 'fr', label: { zh: '法语', en: 'French' } },
+      { value: 'de', label: { zh: '德语', en: 'German' } },
+      { value: 'it', label: { zh: '意大利语', en: 'Italian' } },
+      { value: 'pt', label: { zh: '葡萄牙语', en: 'Portuguese' } },
+      { value: 'ru', label: { zh: '俄语', en: 'Russian' } },
+      { value: 'vi', label: { zh: '越南语', en: 'Vietnamese' } },
+      { value: 'th', label: { zh: '泰语', en: 'Thai' } }
+    ];
+
     function detectUiLang() {
       const stored = localStorage.getItem('UI_LANG');
       if (stored && I18N[stored]) return stored;
       const nav = (navigator.language || 'en').toLowerCase();
       return nav.startsWith('zh') ? 'zh' : 'en';
+    }
+
+    function detectDefaultTargetLang() {
+      const guess = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+      for (const opt of TARGET_LANG_OPTIONS) {
+        if (guess.startsWith(opt.value)) return opt.value;
+      }
+      return 'en';
     }
 
     let uiLang = detectUiLang();
@@ -512,7 +543,20 @@
         btn.classList.toggle('active', lang === uiLang);
       });
 
+      renderTargetLangOptions();
       renderRecentTasks();
+    }
+
+    function renderTargetLangOptions(preferred) {
+      const select = document.getElementById('targetLang');
+      if (!select) return;
+      const keep = preferred || select.value || detectDefaultTargetLang();
+      select.innerHTML = TARGET_LANG_OPTIONS.map(opt => {
+        const label = opt.label?.[uiLang] || opt.label?.en || opt.value;
+        return `<option value="${opt.value}">${escapeHtml(label)}</option>`;
+      }).join('');
+      const exists = TARGET_LANG_OPTIONS.some(opt => opt.value === keep);
+      select.value = exists ? keep : (TARGET_LANG_OPTIONS[0]?.value || '');
     }
 
     function setLang(lang) {
