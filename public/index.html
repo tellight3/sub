@@ -1,1027 +1,926 @@
 <!doctype html>
 <html lang="zh-CN">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>字幕生成 · 演示前端</title>
+  <title>Subtitle Generator</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="/styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
   <style>
+    :root {
+      --bg: #0b1220;
+      --card: #111a2e;
+      --card-2: #0f1728;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #24324a;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --input: #0a1324;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #08101d 0%, #0b1220 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 16px;
+    }
+
+    .lang-switch {
+      display: flex;
+      gap: 8px;
+    }
+
+    .lang-switch button {
+      border: 1px solid var(--border);
+      background: #142038;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .lang-switch button.active {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0 0 20px;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: rgba(17, 26, 46, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #d1d5db;
+    }
+
+    .input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: var(--input);
+      color: #fff;
+      outline: none;
+      font-size: 15px;
+    }
+
+    .input::placeholder {
+      color: #7b8698;
+    }
+
+    .input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .18);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn[disabled],
+    .btn.disabled,
     .btn[aria-disabled="true"] {
       opacity: .5;
       pointer-events: none;
       cursor: not-allowed;
     }
 
-    .btn.disabled {
-      opacity: .5;
-      pointer-events: none;
+    .btn-secondary {
+      background: transparent;
+      border-color: var(--border);
+      color: #e5e7eb;
     }
 
-    .player::cue {
-      background: rgba(0, 0, 0, 0.25);
-      color: #fff;
+    .btn-secondary:hover {
+      background: rgba(255,255,255,.04);
+    }
+
+    .muted {
+      color: var(--muted);
       font-size: 14px;
-      line-height: 1.1;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
-      text-align: center;
+      line-height: 1.5;
     }
 
-    .subtitle-custom::cue(c) {
-      text-align: center;
-    }
-
-    @media (max-width: 768px) {
-      .player::cue {
-        font-size: 10px;
-        line-height: 1.1;
-      }
-    }
-
-    video::-webkit-media-text-track-display {
-      background: transparent !important;
-    }
-
-    video::-webkit-media-text-track-container {
-      background: transparent !important;
-    }
-
-    .lang-switch {
+    .status-box {
+      min-height: 88px;
       display: flex;
-      justify-content: flex-end;
+      flex-direction: column;
+      justify-content: center;
       gap: 8px;
-      margin-bottom: 12px;
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--card-2);
+      border: 1px solid #2a3954;
     }
 
-    .lang-switch button {
-      border: 1px solid #2b3d5a;
-      background: #142038;
-      color: #fff;
-      padding: 4px 10px;
-      border-radius: 6px;
-      cursor: pointer;
+    .status-main {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .status-sub {
+      color: var(--muted);
       font-size: 14px;
+      line-height: 1.5;
     }
 
-    .lang-switch button.active {
-      background: #2563eb;
-      border-color: #2563eb;
+    .download-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .pill.processing {
+      background: rgba(245, 158, 11, .12);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, .2);
+    }
+
+    .pill.ready {
+      background: rgba(34, 197, 94, .12);
+      color: #4ade80;
+      border-color: rgba(34, 197, 94, .2);
+    }
+
+    .pill.failed {
+      background: rgba(239, 68, 68, .12);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, .2);
+    }
+
+    .task-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--card-2);
+      border: 1px solid #2a3954;
+    }
+
+    .task-meta {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .task-title {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .task-time {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .footer-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .build-info {
+      text-align: center;
+      color: #7f8795;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 24px; }
+      .container { padding: 18px 12px 32px; }
+      .task-item { align-items: flex-start; flex-direction: column; }
     }
   </style>
 </head>
-
 <body>
   <div class="container">
-    <div class="lang-switch">
-      <button type="button" data-lang-btn="zh">中文</button>
-      <button type="button" data-lang-btn="en">EN</button>
-    </div>
-    <h1 data-i18n="appTitle">视频字幕生成</h1>
-
-    <div class="card">
-      <h2 data-i18n="methodA">方式 A：提交视频链接</h2>
-      <input id="videoUrl" class="input" data-i18n-placeholder="inputUrl" placeholder="粘贴视频直链或 .m3u8" />
-      <button id="createByUrlBtn" class="btn" data-i18n="createJob">创建任务</button>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="taskStatus">任务状态</h2>
-      <div class="row">
-        <input id="jobId" class="input" data-i18n-placeholder="jobIdPlaceholder" placeholder="job_id 自动填充" />
-      </div>
-      <pre id="statusBox" class="status"></pre>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="playerSection">在线播放 / 下载</h2>
-      <video id="player" class="player subtitle-custom" controls playsinline muted autoplay crossorigin="anonymous"></video>
-      <div class="row">
-        <a id="playCurrent" class="btn disabled" href="javascript:void(0)" target="_blank" rel="noopener"
-          data-i18n="playBtn">播放</a>
-        <a id="downloadMp4" class="btn" href="#" target="_blank" rel="noopener" data-i18n="downloadMp4">下载 MP4</a>
-        <a id="btnSubOrig" class="btn disabled" href="javascript:void(0)" disabled data-i18n="origSubtitle">原始字幕</a>
-        <a id="btnSubTrans" class="btn disabled" href="javascript:void(0)" disabled data-i18n="transSubtitle">翻译字幕</a>
-      </div>
-      <div id="nowPlaying" class="muted" data-i18n="nowPlayingEmpty"></div>
-    </div>
-
-    <div id="quoteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999;">
-      <div style="max-width:420px; margin:10% auto; background:#121a2b;
-                  border:1px solid #223; border-radius:12px; padding:16px">
-        <h3 style="margin:0 0 8px" data-i18n="quoteTitle">确认下载</h3>
-        <div id="qTitle" class="muted" style="margin-bottom:8px"></div>
-
-        <div class="row" style="gap:8px; align-items:center; margin-bottom:4px">
-          <label style="min-width:80px" data-i18n="targetLangLabel">目标语言</label>
-          <select id="qLang"
-            style="flex:1; padding:4px; border-radius:6px; border:1px solid #334154; background:#0f1524; color:#fff;"></select>
-
-          <label style="min-width:80px" data-i18n="codeLabel">兑换码</label>
-          <input id="qCode" placeholder="可留空"
-            style="flex:1; padding:4px; border-radius:6px; border:1px solid #334154; background:#0f1524; color:#fff;">
-        </div>
-
-        <div class="muted" data-i18n="couponHint" style="color:#6ee7b7; font-weight:600; margin-bottom:8px">
-          🎁 输入 <b>12345678</b> 可免单（100% 折扣）
-        </div>
-
-        <div id="qBreak" class="mono" style="white-space:pre-line; background:#0f1524; border:1px solid #334154;
-                    border-radius:8px; padding:8px; min-height:3em; margin-top:6px;">
-        </div>
-
-        <div class="row" style="justify-content:flex-end; margin-top:12px; gap:8px">
-          <button id="qCancel" data-i18n="cancelBtn">取消</button>
-          <button id="qOk" data-i18n="confirmBtn">开始下载</button>
-        </div>
+    <div class="topbar">
+      <div class="lang-switch">
+        <button type="button" data-lang-btn="zh">中文</button>
+        <button type="button" data-lang-btn="en">EN</button>
       </div>
     </div>
 
-    <script>
-      const API_BASE = 'https://sub.multmatrix.com';
+    <h1 data-i18n="appTitle">Auto Subtitles & Translation</h1>
+    <p class="subtitle" data-i18n="appSubtitle">
+      Paste a YouTube or X link, and we’ll generate subtitles for you.
+    </p>
 
-      const I18N = {
-        zh: {
-          appTitle: '视频字幕生成',
-          methodA: '方式 A：提交视频链接',
-          inputUrl: '粘贴视频直链或 .m3u8',
-          createJob: '创建任务',
-          taskStatus: '任务状态',
-          jobIdPlaceholder: 'job_id 自动填充或手动粘贴',
-          playerSection: '在线播放 / 下载',
-          playBtn: '播放',
-          downloadMp4: '下载 MP4',
-          origSubtitle: '原始字幕',
-          transSubtitle: '翻译字幕',
-          nowPlayingEmpty: '当前暂无播放任务',
-          quoteTitle: '确认下载',
-          targetLangLabel: '目标语言',
-          codeLabel: '兑换码',
-          couponHint: '🎁 输入 12345678 可免单（100% 折扣）',
-          cancelBtn: '取消',
-          confirmBtn: '开始下载',
-          confirmFail: '无法开始下载',
-          warnNeedVideoUrl: '请填写视频链接',
-          warnCreateFail: '创建失败',
-          warnJobIdMissing: '请填写 job_id',
-          nowPlayingPrefix: '正在播放：',
-          unitMinute: '分钟',
-          unitGeneric: '单位',
-          resumeError: '恢复任务失败',
-          langChinese: '中文',
-          langEnglish: '英文',
-        },
-        en: {
-          appTitle: 'Subtitle Generator',
-          methodA: 'Method A: Submit a video link',
-          inputUrl: 'Paste direct video or .m3u8 link',
-          createJob: 'Create Job',
-          taskStatus: 'Job Status',
-          jobIdPlaceholder: 'job_id auto-filled or paste manually',
-          playerSection: 'Play / Download',
-          playBtn: 'Play',
-          downloadMp4: 'Download MP4',
-          origSubtitle: 'Original Subtitle',
-          transSubtitle: 'Translated Subtitle',
-          nowPlayingEmpty: 'Nothing is playing yet',
-          quoteTitle: 'Confirm download',
-          targetLangLabel: 'Target language',
-          codeLabel: 'Redemption code',
-          couponHint: '🎁 Use <b>12345678</b> to get 100% off',
-          cancelBtn: 'Cancel',
-          confirmBtn: 'Start',
-          confirmFail: 'Unable to start download',
-          warnNeedVideoUrl: 'Please enter a video link',
-          warnCreateFail: 'Failed to create job',
-          warnJobIdMissing: 'Please provide a job_id',
-          nowPlayingPrefix: 'Now playing: ',
-          unitMinute: 'minute(s)',
-          unitGeneric: 'unit(s)',
-          resumeError: 'Failed to resume job',
-          langChinese: 'Chinese',
-          langEnglish: 'English',
-        },
-      };
+    <div class="card">
+      <h2 data-i18n="submitTitle">Create a task</h2>
 
-      function detectUiLang() {
-        const stored = localStorage.getItem('UI_LANG');
-        if (stored && I18N[stored]) return stored;
-        const nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
-        return nav.startsWith('zh') ? 'zh' : 'en';
+      <div class="field">
+        <label class="label" for="videoUrl" data-i18n="videoUrlLabel">Video link</label>
+        <input
+          id="videoUrl"
+          class="input"
+          data-i18n-placeholder="videoUrlPlaceholder"
+          placeholder="Paste YouTube or X link"
+        />
+      </div>
+
+      <div class="field">
+        <label class="label" for="email" data-i18n="emailLabel">Email</label>
+        <input
+          id="email"
+          type="email"
+          class="input"
+          data-i18n-placeholder="emailPlaceholder"
+          placeholder="Enter your email"
+        />
+      </div>
+
+      <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
+      <div class="footer-note" data-i18n="freeNote">Free for early users</div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="currentTaskTitle">Current task</h2>
+
+      <div id="currentTaskBox" class="status-box">
+        <div id="statusMain" class="status-main" data-i18n="idleStatus">No task yet</div>
+        <div id="statusSub" class="status-sub" data-i18n="idleStatusSub">
+          Submit a video link to get started.
+        </div>
+      </div>
+
+      <div id="resultBox" class="hidden">
+        <div class="download-row">
+          <a id="btnSubOrig" class="btn disabled" href="javascript:void(0)" aria-disabled="true" data-i18n="downloadOriginal">
+            Download original subtitle
+          </a>
+          <a id="btnSubTrans" class="btn disabled" href="javascript:void(0)" aria-disabled="true" data-i18n="downloadTranslated">
+            Download translated subtitle
+          </a>
+        </div>
+
+        <div class="footer-note">
+          <span data-i18n="resultReadyNote">Your result is ready.</span>
+          <button id="tryAnotherBtn" class="btn btn-secondary" style="margin-left:10px;" data-i18n="tryAnother">
+            Try another video
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="recentTasksTitle">Recent tasks</h2>
+      <div id="recentTasks" class="task-list"></div>
+      <div class="footer-note" data-i18n="recentTasksNote">
+        Your recent tasks are stored in this browser.
+      </div>
+    </div>
+
+    <div class="build-info" id="buildInfo"></div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://sub.multmatrix.com';
+    const LS_KEY_RECENT = 'mmx:recentTasks';
+    const MAX_RECENT = 5;
+
+    const I18N = {
+      zh: {
+        appTitle: '自动字幕与翻译',
+        appSubtitle: '粘贴 YouTube 或 X 链接，我们会为你生成字幕。',
+        submitTitle: '创建任务',
+        videoUrlLabel: '视频链接',
+        videoUrlPlaceholder: '粘贴 YouTube 或 X 链接',
+        emailLabel: '邮箱',
+        emailPlaceholder: '输入你的邮箱',
+        generateBtn: '生成字幕',
+        freeNote: '早期用户免费使用',
+        currentTaskTitle: '当前任务',
+        idleStatus: '当前没有任务',
+        idleStatusSub: '提交视频链接后开始处理。',
+        processing: 'Processing...',
+        processingSub: 'You can close this page — we’ll keep your task here.',
+        queuedAhead: 'There are {n} tasks ahead of yours.',
+        ready: 'Your subtitles are ready',
+        readySub: 'You can download your subtitle files below.',
+        failed: 'Task failed',
+        failedSub: 'Please try another video.',
+        canceled: 'Task canceled',
+        canceledSub: 'This task was canceled.',
+        downloadOriginal: '下载原始字幕',
+        downloadTranslated: '下载翻译字幕',
+        resultReadyNote: '字幕已经准备好。',
+        tryAnother: '再试一个视频',
+        recentTasksTitle: '最近任务',
+        recentTasksNote: '最近任务会保存在当前浏览器中。',
+        noRecentTasks: '还没有最近任务。',
+        statusProcessing: '处理中',
+        statusReady: '已完成',
+        statusFailed: '失败',
+        statusCanceled: '已取消',
+        statusUnknown: '未知',
+        warnNeedVideoUrl: '请填写视频链接',
+        warnNeedEmail: '请填写邮箱',
+        warnCreateFail: '创建任务失败',
+        langChinese: '中文',
+        langEnglish: '英文'
+      },
+      en: {
+        appTitle: 'Auto Subtitles & Translation',
+        appSubtitle: 'Paste a YouTube or X link, and we’ll generate subtitles for you.',
+        submitTitle: 'Create a task',
+        videoUrlLabel: 'Video link',
+        videoUrlPlaceholder: 'Paste YouTube or X link',
+        emailLabel: 'Email',
+        emailPlaceholder: 'Enter your email',
+        generateBtn: 'Generate subtitles',
+        freeNote: 'Free for early users',
+        currentTaskTitle: 'Current task',
+        idleStatus: 'No task yet',
+        idleStatusSub: 'Submit a video link to get started.',
+        processing: 'Processing...',
+        processingSub: 'You can close this page — we’ll keep your task here.',
+        queuedAhead: 'There are {n} tasks ahead of yours.',
+        ready: 'Your subtitles are ready',
+        readySub: 'You can download your subtitle files below.',
+        failed: 'Task failed',
+        failedSub: 'Please try another video.',
+        canceled: 'Task canceled',
+        canceledSub: 'This task was canceled.',
+        downloadOriginal: 'Download original subtitle',
+        downloadTranslated: 'Download translated subtitle',
+        resultReadyNote: 'Your result is ready.',
+        tryAnother: 'Try another video',
+        recentTasksTitle: 'Recent tasks',
+        recentTasksNote: 'Your recent tasks are stored in this browser.',
+        noRecentTasks: 'No recent tasks yet.',
+        statusProcessing: 'Processing',
+        statusReady: 'Ready',
+        statusFailed: 'Failed',
+        statusCanceled: 'Canceled',
+        statusUnknown: 'Unknown',
+        warnNeedVideoUrl: 'Please enter a video link',
+        warnNeedEmail: 'Please enter your email',
+        warnCreateFail: 'Failed to create job',
+        langChinese: 'Chinese',
+        langEnglish: 'English'
       }
+    };
 
-      let uiLang = detectUiLang();
+    function detectUiLang() {
+      const stored = localStorage.getItem('UI_LANG');
+      if (stored && I18N[stored]) return stored;
+      const nav = (navigator.language || 'en').toLowerCase();
+      return nav.startsWith('zh') ? 'zh' : 'en';
+    }
 
-      function t(key, fallback = '') {
-        return (I18N[uiLang] && I18N[uiLang][key]) || fallback || key;
-      }
+    let uiLang = detectUiLang();
 
-      function applyI18n() {
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-          const key = el.dataset.i18n;
-          if (key) el.innerHTML = t(key, el.innerHTML || key);
-        });
-        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-          const key = el.dataset.i18nPlaceholder;
-          if (key) el.placeholder = t(key, el.placeholder || key);
-        });
-        document.querySelectorAll('[data-lang-btn]').forEach(btn => {
-          const lang = btn.dataset.langBtn;
-          if (lang === 'zh') btn.textContent = t('langChinese', '中文');
-          else if (lang === 'en') btn.textContent = t('langEnglish', 'EN');
-          btn.classList.toggle('active', lang === uiLang);
-        });
-      }
+    function t(key, fallback = '') {
+      return (I18N[uiLang] && I18N[uiLang][key]) || fallback || key;
+    }
 
-      function setLang(lang) {
-        if (!I18N[lang]) lang = 'en';
-        uiLang = lang;
-        localStorage.setItem('UI_LANG', lang);
-        applyI18n();
-      }
+    function formatText(key, vars = {}) {
+      let s = t(key, key);
+      Object.keys(vars).forEach(k => {
+        s = s.replace(`{${k}}`, vars[k]);
+      });
+      return s;
+    }
+
+    function applyI18n() {
+      document.documentElement.lang = uiLang === 'zh' ? 'zh-CN' : 'en';
+      document.title = t('appTitle', 'Subtitle Generator');
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (key) el.textContent = t(key, el.textContent || key);
+      });
+
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        if (key) el.placeholder = t(key, el.placeholder || key);
+      });
 
       document.querySelectorAll('[data-lang-btn]').forEach(btn => {
-        btn.addEventListener('click', () => setLang(btn.dataset.langBtn));
+        const lang = btn.dataset.langBtn;
+        if (lang === 'zh') btn.textContent = t('langChinese', '中文');
+        if (lang === 'en') btn.textContent = 'EN';
+        btn.classList.toggle('active', lang === uiLang);
       });
-      setLang(uiLang);
 
-      let PRICING = {
-        unitType: 'minute',
-        unitRateCents: 1,
-        minUnits: 1,
-        minBillCents: 0,
-        currency: 'USD',
-      };
+      renderRecentTasks();
+    }
 
-      function isMeaningfulTitle(title) {
-        if (!title) return false;
-        const t = String(title).trim();
-        if (!t) return false;
-        if (/^\d+$/.test(t)) return false;
-        return true;
+    function setLang(lang) {
+      if (!I18N[lang]) lang = 'en';
+      uiLang = lang;
+      localStorage.setItem('UI_LANG', lang);
+      applyI18n();
+    }
+
+    document.querySelectorAll('[data-lang-btn]').forEach(btn => {
+      btn.addEventListener('click', () => setLang(btn.dataset.langBtn));
+    });
+
+    const els = {
+      videoUrl: document.getElementById('videoUrl'),
+      email: document.getElementById('email'),
+      createByUrlBtn: document.getElementById('createByUrlBtn'),
+      statusMain: document.getElementById('statusMain'),
+      statusSub: document.getElementById('statusSub'),
+      resultBox: document.getElementById('resultBox'),
+      btnSubOrig: document.getElementById('btnSubOrig'),
+      btnSubTrans: document.getElementById('btnSubTrans'),
+      recentTasks: document.getElementById('recentTasks'),
+      tryAnotherBtn: document.getElementById('tryAnotherBtn')
+    };
+
+    let es = null;
+    let currentJobId = null;
+
+    function normalizeMediaUrl(u) {
+      if (!u && u !== '') return null;
+      let val = String(u).trim();
+      if (!val) return null;
+      if (/^https?:\/\//i.test(val)) return val;
+      val = val.replace(/\\/g, '/');
+      if (val.startsWith('/download/') || val.startsWith('/files/')) return val;
+      const dataToken = '/data/';
+      const idx = val.indexOf(dataToken);
+      if (idx >= 0) {
+        const rel = val.slice(idx + dataToken.length).replace(/^\/+/g, '');
+        return rel ? `/download/${rel}` : '/download';
+      }
+      if (val.startsWith('data/')) {
+        return `/download/${val.slice('data/'.length)}`;
+      }
+      return val.startsWith('/') ? val : `/${val}`;
+    }
+
+    function absUrl(u) {
+      const normalized = normalizeMediaUrl(u);
+      if (!normalized) return null;
+      if (/^https?:\/\//i.test(normalized)) return normalized;
+      return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
+    }
+
+    function sanitizeFilename(n) {
+      return (n ? String(n) : 'subtitle').trim().replace(/[\\/:*?"<>|]/g, '_');
+    }
+
+    function getStoredRecentTasks() {
+      try {
+        const raw = localStorage.getItem(LS_KEY_RECENT);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRecentTasks(list) {
+      localStorage.setItem(LS_KEY_RECENT, JSON.stringify(list.slice(0, MAX_RECENT)));
+    }
+
+    function upsertRecentTask(task) {
+      const list = getStoredRecentTasks().filter(x => x.jobId !== task.jobId);
+      list.unshift(task);
+      saveRecentTasks(list);
+      renderRecentTasks();
+    }
+
+    function updateRecentTask(jobId, patch) {
+      const list = getStoredRecentTasks();
+      const idx = list.findIndex(x => x.jobId === jobId);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
+        saveRecentTasks(list);
+        renderRecentTasks();
+      }
+    }
+
+    function statusType(status) {
+      const s = String(status || '').toUpperCase();
+      if (s === 'FINISHED' || s === 'READY') return 'ready';
+      if (s === 'FAILED') return 'failed';
+      if (s === 'CANCELED') return 'failed';
+      return 'processing';
+    }
+
+    function statusLabel(status) {
+      const s = String(status || '').toUpperCase();
+      if (s === 'FINISHED' || s === 'READY') return t('statusReady', 'Ready');
+      if (s === 'FAILED') return t('statusFailed', 'Failed');
+      if (s === 'CANCELED') return t('statusCanceled', 'Canceled');
+      if (s) return t('statusProcessing', 'Processing');
+      return t('statusUnknown', 'Unknown');
+    }
+
+    function formatTime(ts) {
+      if (!ts) return '';
+      try {
+        return new Date(ts).toLocaleString(uiLang === 'zh' ? 'zh-CN' : 'en-US');
+      } catch {
+        return '';
+      }
+    }
+
+    function renderRecentTasks() {
+      const tasks = getStoredRecentTasks();
+      if (!tasks.length) {
+        els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
+        return;
       }
 
-      const els = {
-        videoUrl: document.getElementById('videoUrl'),
-        createByUrlBtn: document.getElementById('createByUrlBtn'),
-        jobId: document.getElementById('jobId'),
-        statusBox: document.getElementById('statusBox'),
-        player: document.getElementById('player'),
-        playCurrent: document.getElementById('playCurrent'),
-        downloadMp4: document.getElementById('downloadMp4'),
-        nowPlaying: document.getElementById('nowPlaying'),
-      };
-
-      els.downloadMp4.classList.add('disabled');
-      els.downloadMp4.setAttribute('disabled', 'disabled');
-
-      let es = null;
-      let lastSnapshot = null;
-      let lastTitle = 'video';
-      let lastMp4Url = null;
-      let lastMediaUrl = null;
-
-      function normalizeMediaUrl(u) {
-        if (!u && u !== '') return null;
-        let val = String(u).trim();
-        if (!val) return null;
-        if (/^https?:\/\//i.test(val)) return val;
-        val = val.replace(/\\/g, '/');
-        if (val.startsWith('/download/') || val.startsWith('/files/')) return val;
-        const dataToken = '/data/';
-        const idx = val.indexOf(dataToken);
-        if (idx >= 0) {
-          const rel = val.slice(idx + dataToken.length).replace(/^\/+/g, '');
-          return rel ? `/download/${rel}` : '/download';
-        }
-        if (val.startsWith('data/')) {
-          return `/download/${val.slice('data/'.length)}`;
-        }
-        return val.startsWith('/') ? val : `/${val}`;
-      }
-
-      function absUrl(u) {
-        const normalized = normalizeMediaUrl(u);
-        if (!normalized) return null;
-        if (/^https?:\/\//i.test(normalized)) return normalized;
-        return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
-      }
-
-      function sanitizeFilename(n) {
-        return (n ? String(n) : 'video').trim().replace(/[\\/:*?"<>|]/g, '_');
-      }
-
-      function fileNameFromPath(p) {
-        if (!p) return null;
-        const a = String(p).replace(/\\/g, '/').split('/');
-        return a[a.length - 1] || null;
-      }
-
-      function titleFromUrl(u) {
-        try {
-          const url = new URL(u);
-          const base = fileNameFromPath(url.pathname);
-          return base ? base.replace(/\.(mp4|mkv|webm|mov|m4v|m3u8)$/i, '') : null;
-        } catch {
-          const base = fileNameFromPath(u);
-          return base ? base.replace(/\.(mp4|mkv|webm|mov|m4v|m3u8)$/i, '') : null;
-        }
-      }
-
-      function setStatus(obj) {
-        if (!obj || typeof obj !== 'object') {
-          els.statusBox.textContent = '状态未知';
-          return;
-        }
-
-        const payload = obj.job || obj;
-        const status = payload.status || 'unknown';
-        const message = payload.message || '';
-        const progress = (payload.result && payload.result.progress) || {};
-        let percent = Number.isFinite(progress.percent) ? Math.round(progress.percent) : null;
-
-        if (percent === null) {
-          const total = Number(payload.bytes_total);
-          const done = Number(payload.bytes_downloaded);
-          if (Number.isFinite(total) && total > 0 && Number.isFinite(done)) {
-            percent = Math.min(100, Math.max(0, Math.round((done / total) * 100)));
-          }
-        }
-
-        let text = status;
-        if (percent !== null && Number.isFinite(percent)) {
-          text += ` ${percent}%`;
-        }
-        const phase = progress.phase ? progress.phase : null;
-        const step = progress.step ? progress.step : null;
-        if (phase || step || message) {
-          const parts = [];
-          if (phase) parts.push(phase);
-          if (step) parts.push(step);
-          else if (message) parts.push(message);
-          text += ` | ${parts.join(': ')}`;
-        }
-
-        els.statusBox.textContent = text;
-      }
-
-      function displayNameFromUrl(u) {
-        if (!u) return null;
-        try {
-          const url = new URL(absUrl(u));
-          const fromQuery = url.searchParams.get('filename');
-          if (fromQuery) return decodeURIComponent(fromQuery);
-          const base = fileNameFromPath(url.pathname);
-          return base ? decodeURIComponent(base) : null;
-        } catch {
-          const qIdx = String(u).indexOf('?');
-          const pathOnly = qIdx >= 0 ? String(u).slice(0, qIdx) : String(u);
-          const base = fileNameFromPath(pathOnly);
-          try { return base ? decodeURIComponent(base) : null; } catch { return base || null; }
-        }
-      }
-
-      const LS_KEY_LAST = 'mmx:lastJob';
-
-      function hashString(s) {
-        let h = 5381;
-        for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
-        return (h >>> 0).toString(16).padStart(8, '0');
-      }
-
-      function getBrowserFingerprint() {
-        const ua = navigator.userAgent || '';
-        const lang = (navigator.languages && navigator.languages.join(',')) || navigator.language || '';
-        const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || '';
-        const plat = navigator.platform || '';
-        const dpr = String(window.devicePixelRatio || 1);
-        const scr = (window.screen && `${screen.width}x${screen.height}@${screen.colorDepth || 24}`) || '';
-        let gl = '';
-        try {
-          const c = document.createElement('canvas');
-          const g = c.getContext('webgl') || c.getContext('experimental-webgl');
-          if (g) {
-            const dbg = g.getExtension('WEBGL_debug_renderer_info');
-            const ven = dbg ? g.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : '';
-            const ren = dbg ? g.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '';
-            gl = `${ven}|${ren}`;
-          }
-        } catch { }
-        return hashString([ua, lang, tz, plat, dpr, scr, gl].join('|'));
-      }
-
-      function saveLastJob(jobId) {
-        try {
-          const fp = getBrowserFingerprint();
-          localStorage.setItem(LS_KEY_LAST, JSON.stringify({ jobId, fp, createdAt: Date.now() }));
-        } catch { }
-      }
-
-      function clearLastJob() {
-        try { localStorage.removeItem(LS_KEY_LAST); } catch { }
-      }
-
-      function setupHls(m3u8Url) {
-        const v = els.player;
-        if (v.canPlayType('application/vnd.apple.mpegurl')) {
-          v.src = m3u8Url;
-          v.play().catch(() => { });
-        } else if (window.Hls && Hls.isSupported()) {
-          const hls = new Hls();
-          hls.loadSource(m3u8Url);
-          hls.attachMedia(v);
-          hls.on(Hls.Events.MANIFEST_PARSED, () => v.play().catch(() => { }));
-        } else {
-          window.open(m3u8Url, '_blank');
-        }
-      }
-
-      function clearAllSubtitleTracks(videoEl) {
-        if (!videoEl) return;
-        try {
-          [...videoEl.querySelectorAll('track')].forEach(t => t.remove());
-        } catch { }
-      }
-
-      function switchSourceKeepPosition(nextUrl, autoplay = false) {
-        if (!nextUrl) return;
-        const v = els.player;
-
-        clearAllSubtitleTracks(v);
-
-        const wasPaused = v.paused;
-        const t = v.currentTime || 0;
-
-        if (autoplay) {
-          v.muted = true;
-          v.setAttribute('muted', 'muted');
-        }
-
-        v.src = absUrl(nextUrl);
-        v.load();
-
-        const onReady = () => {
-          try { v.currentTime = Math.max(0, Math.min(t, v.duration || t)); } catch { }
-          if (autoplay || !wasPaused) {
-            v.play().catch(() => { });
-          }
-          v.removeEventListener('loadedmetadata', onReady);
-        };
-        v.addEventListener('loadedmetadata', onReady);
-      }
-
-      function extractMedia(payload) {
-        const pb = payload?.result?.playback || {};
-        let url =
-          pb.videoUrl ||
-          pb.originalUrl ||
-          payload?.url ||
-          payload?.result?.path ||
-          null;
-
-        url = normalizeMediaUrl(url);
-        return { url };
-      }
-
-      function setBtn($a, url, filename) {
-        if (!$a) return;
-        $a.onclick = null;
-
-        if (url) {
-          const normalized = normalizeMediaUrl(url);
-          const abs = /^https?:\/\//i.test(normalized)
-            ? normalized
-            : `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
-          $a.href = abs;
-          if (filename) $a.setAttribute('download', filename);
-
-          $a.onclick = async (e) => {
-            try {
-              e.preventDefault();
-              const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
-              if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-              const blob = await resp.blob();
-              const blobUrl = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = blobUrl;
-              a.download = filename || (displayNameFromUrl(abs) || 'subtitle.vtt');
-              document.body.appendChild(a);
-              a.click();
-              setTimeout(() => {
-                URL.revokeObjectURL(blobUrl);
-                a.remove();
-              }, 0);
-            } catch (err) {
-              window.open(abs, '_blank', 'noopener');
-            }
-          };
-
-          $a.classList.remove('disabled');
-          $a.removeAttribute('disabled');
-        } else {
-          $a.href = 'javascript:void(0)';
-          $a.removeAttribute('download');
-          $a.classList.add('disabled');
-          $a.setAttribute('disabled', 'disabled');
-        }
-      }
-
-      function addVttTrackToVideo(videoEl, vttUrl, { lang = 'zh', label = '中文', makeDefault = true } = {}) {
-        if (!videoEl || !vttUrl) return;
-
-        clearAllSubtitleTracks(videoEl);
-
-        const track = document.createElement('track');
-        track.kind = 'subtitles';
-        track.srclang = lang;
-        track.label = label;
-        track.src = /^https?:\/\//i.test(vttUrl) ? vttUrl : (API_BASE + vttUrl);
-        if (makeDefault) track.default = true;
-
-        videoEl.appendChild(track);
-      }
-
-      function updatePlayLink() {
-        if (!els.playCurrent) return;
-
-        if (!lastMediaUrl) {
-          els.playCurrent.href = 'javascript:void(0)';
-          els.playCurrent.classList.add('disabled');
-          els.playCurrent.setAttribute('aria-disabled', 'true');
-          return;
-        }
-
-        const abs = absUrl(lastMediaUrl);
-        if (!abs) {
-          els.playCurrent.href = 'javascript:void(0)';
-          els.playCurrent.classList.add('disabled');
-          els.playCurrent.setAttribute('aria-disabled', 'true');
-          return;
-        }
-
-        els.playCurrent.href = abs;
-        els.playCurrent.classList.remove('disabled');
-        els.playCurrent.removeAttribute('aria-disabled');
-      }
-
-      function playIfPossible(payload) {
-        const { url } = extractMedia(payload);
-        lastMediaUrl = url || null;
-        updatePlayLink();
-
-        if (!url) {
-          lastMediaUrl = null;
-          updatePlayLink();
-          els.nowPlaying.textContent = t('nowPlayingEmpty', 'No video');
-          return;
-        }
-
-        const niceTitle =
-          payload?.info?.title ||
-          payload?.result?.details?.title ||
-          titleFromUrl(url) ||
-          lastTitle ||
-          'video';
-
-        els.nowPlaying.textContent = `${t('nowPlayingPrefix', 'Now playing: ')}${niceTitle}`;
-        lastTitle = sanitizeFilename(niceTitle);
-
-        switchSourceKeepPosition(url, true);
-
-        let transUrl = null, transLang = null;
-        const tmap = payload?.result?.subtitle_translated || {};
-        const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
-
-        if (tmap && typeof tmap === 'object') {
-          if (pref && tmap[pref]?.url) {
-            transUrl = tmap[pref].url;
-            transLang = pref;
-          }
-          if (!transUrl) {
-            for (const k of Object.keys(tmap)) {
-              if (tmap[k]?.url) {
-                transUrl = tmap[k].url;
-                transLang = k;
-                break;
-              }
-            }
-          }
-        }
-
-        if (!transUrl) {
-          const pb = payload?.result?.playback || {};
-          if (pb.subtitleUrl) {
-            transUrl = pb.subtitleUrl;
-            transLang = transLang || 'trans';
-          }
-        }
-
-        const origUrl = payload?.result?.subtitle?.url || null;
-        const chosen = transUrl || origUrl;
-        if (chosen) {
-          const subtitleLabel = transUrl
-            ? t('transSubtitle', 'Translated Subtitle')
-            : t('origSubtitle', 'Original Subtitle');
-          addVttTrackToVideo(els.player, chosen, { lang: 'auto', label: subtitleLabel, makeDefault: true });
-        }
-
-        const baseTitle = (payload?.result?.details?.title || payload?.info?.title || niceTitle || 'subtitle').trim();
-        setBtn(document.getElementById('btnSubOrig'), origUrl, `${baseTitle}.vtt`);
-        setBtn(document.getElementById('btnSubTrans'), transUrl, `${baseTitle}.${transLang || 'trans'}.vtt`);
-
-        setTimeout(() => {
-          const src = absUrl(url);
-          if (src && /\.(mp4|m4v|webm|mov)(\?|$)/i.test(src)) {
-            lastMp4Url = src;
-            els.downloadMp4.classList.remove('disabled');
-            els.downloadMp4.removeAttribute('disabled');
-            els.downloadMp4.href = src;
-            els.downloadMp4.setAttribute('download', `${sanitizeFilename(lastTitle)}.mp4`);
-          } else {
-            lastMp4Url = null;
-            els.downloadMp4.classList.add('disabled');
-            els.downloadMp4.setAttribute('disabled', 'disabled');
-            els.downloadMp4.href = 'javascript:void(0)';
-            els.downloadMp4.removeAttribute('download');
-          }
-        }, 0);
-      }
-
-      function subscribeJob(jobId) {
-        if (!jobId) return alert(t('warnJobIdMissing', 'Please provide a job id'));
-        if (es) es.close();
-
-        es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
-        setBtn(document.getElementById('btnSubOrig'), null);
-        setBtn(document.getElementById('btnSubTrans'), null);
-
-        es.onmessage = (ev) => {
-          let msg;
-          try { msg = JSON.parse(ev.data); } catch { return; }
-          if (msg.type === 'heartbeat') return;
-
-          setStatus(msg);
-          lastSnapshot = msg;
-
-          const job = msg;
-          const st = String(job.status || '').toUpperCase();
-
-          const t = (job.info && (job.info.title || (job.info.details && job.info.details.title))) || lastTitle;
-          if (t) lastTitle = sanitizeFilename(t);
-
-          playIfPossible(job);
-
-          const base = (job?.result?.details?.title || job?.info?.title || lastTitle || 'subtitle').trim();
-          const orig = job?.result?.subtitle?.url || null;
-
-          let trans = null, k = null;
-          const tmap = job?.result?.subtitle_translated || {};
-          const pref = (localStorage.getItem('PREFERRED_LANG') || '').trim();
-          if (tmap && typeof tmap === 'object') {
-            if (pref && tmap[pref]?.url) {
-              trans = tmap[pref].url;
-              k = pref;
-            }
-            if (!trans) {
-              for (const kk of Object.keys(tmap)) {
-                if (tmap[kk]?.url) {
-                  trans = tmap[kk].url;
-                  k = kk;
-                  break;
-                }
-              }
-            }
-          }
-          if (!trans) {
-            const pb = job?.result?.playback || {};
-            if (pb.subtitleUrl) {
-              trans = pb.subtitleUrl;
-              k = k || 'trans';
-            }
-          }
-
-          setBtn(document.getElementById('btnSubOrig'), orig, `${base}.vtt`);
-          setBtn(document.getElementById('btnSubTrans'), trans, `${base}.${k || 'trans'}.vtt`);
-
-          if (st === 'FAILED' || st === 'CANCELED' || st === 'FINISHED') {
-            if (es) {
-              es.close();
-              es = null;
-            }
-          }
-        };
-
-        es.onerror = () => { };
-        return es;
-      }
-
-      const PROMO_KEY = 'PROMO_CODE';
-      function loadSavedCode() {
-        return localStorage.getItem(PROMO_KEY) || '';
-      }
-      function saveSavedCode(v) {
-        localStorage.setItem(PROMO_KEY, v || '');
-      }
-
-      const LANG_KEY = 'PREFERRED_LANG';
-      const LANGUAGE_OPTIONS = [
-        { value: 'auto', label: '自动检测 (auto)' },
-        { value: 'zh-CN', label: '简体中文 (zh-CN)' },
-        { value: 'zh-TW', label: '繁體中文 (zh-TW)' },
-        { value: 'en', label: 'English (en)' },
-        { value: 'ja', label: '日本語 (ja)' },
-        { value: 'ko', label: '한국어 (ko)' },
-        { value: 'es', label: 'Español (es)' },
-        { value: 'fr', label: 'Français (fr)' },
-        { value: 'de', label: 'Deutsch (de)' },
-        { value: 'ru', label: 'Русский (ru)' },
-        { value: 'ar', label: 'العربية (ar)' },
-        { value: 'hi', label: 'हिन्दी (hi)' },
-        { value: 'id', label: 'Bahasa Indonesia (id)' },
-        { value: 'vi', label: 'Tiếng Việt (vi)' },
-        { value: 'th', label: 'ไทย (th)' },
-        { value: 'pt-BR', label: 'Português (Brasil, pt-BR)' }
-      ];
-
-      function getDefaultLang() {
-        const saved = localStorage.getItem(LANG_KEY);
-        if (saved) return saved;
-        let nav = (navigator.language || 'en').toLowerCase();
-        if (nav.startsWith('zh')) {
-          if (/-tw|zh\-hant|traditional/.test(nav)) return 'zh-TW';
-          return 'zh-CN';
-        }
-        if (nav.startsWith('pt-br')) return 'pt-BR';
-        const base = nav.split('-')[0];
-        const exist = LANGUAGE_OPTIONS.some(x => x.value === base);
-        return exist ? base : 'en';
-      }
-
-      function savePreferredLang(v) {
-        localStorage.setItem(LANG_KEY, v || '');
-      }
-
-      function populateLangSelect($sel, selected) {
-        if (!$sel) return;
-        $sel.innerHTML = '';
-        LANGUAGE_OPTIONS.forEach(opt => {
-          const o = document.createElement('option');
-          o.value = opt.value;
-          o.textContent = opt.label;
-          $sel.appendChild(o);
+      els.recentTasks.innerHTML = tasks.map(task => {
+        const type = statusType(task.status);
+        return `
+          <div class="task-item" data-job-id="${task.jobId}">
+            <div class="task-meta">
+              <div class="task-title">${escapeHtml(task.title || task.url || task.jobId)}</div>
+              <div class="task-time">${escapeHtml(formatTime(task.updatedAt || task.createdAt))}</div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span class="pill ${type}">${escapeHtml(statusLabel(task.status))}</span>
+              <button class="btn btn-secondary task-open-btn" data-job-id="${task.jobId}" style="min-height:34px; padding:6px 12px;">
+                ${uiLang === 'zh' ? '查看' : 'View'}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.querySelectorAll('.task-open-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const jobId = btn.dataset.jobId;
+          if (jobId) loadJob(jobId);
         });
-        $sel.value = selected && LANGUAGE_OPTIONS.some(x => x.value === selected)
-          ? selected
-          : getDefaultLang();
-      }
-
-      function ensureDetails(raw) {
-        if (!raw) return {};
-        if (typeof raw === 'string') {
-          try { return JSON.parse(raw); } catch { return {}; }
-        }
-        if (typeof raw === 'object') return raw;
-        return {};
-      }
-
-      const quoteModal = document.getElementById('quoteModal');
-      const qTitle = document.getElementById('qTitle');
-      const qLang = document.getElementById('qLang');
-      const qCode = document.getElementById('qCode');
-      const qBreak = document.getElementById('qBreak');
-      const qCancel = document.getElementById('qCancel');
-      const qOk = document.getElementById('qOk');
-
-      function formatCurrency(cents, currency = PRICING.currency) {
-        const symbol = currency === 'USD' ? '$' : (currency === 'CNY' ? '¥' : '');
-        const digits = currency === 'JPY' ? 0 : 2;
-        return `${symbol}${(cents / 100).toFixed(digits)} ${currency}`.trim();
-      }
-
-      function calcQuote(durationSeconds) {
-        let units = PRICING.minUnits;
-        if (PRICING.unitType === 'minute') {
-          const minutes = Math.ceil(Math.max(durationSeconds || 0, 0) / 60);
-          units = Math.max(PRICING.minUnits, minutes || 0);
-        } else {
-          units = Math.max(PRICING.minUnits, Math.ceil(durationSeconds || 0));
-        }
-        let subtotal = units * PRICING.unitRateCents;
-        let total = subtotal;
-        if (subtotal > 0) {
-          total = Math.max(PRICING.minBillCents, subtotal);
-        }
-        return { units, subtotalCents: subtotal, totalCents: total };
-      }
-
-      let _q_ctx = { jobId: null, durationSeconds: 0, durationText: '未知', title: 'video', price: null };
-
-      function openQuoteModal({ jobId, durationSeconds, durationText, title }) {
-        const price = calcQuote(durationSeconds);
-        _q_ctx = { jobId, durationSeconds, durationText, title, price };
-        const displayDur = durationText || `${Math.round(durationSeconds || 0)}s`;
-        qTitle.textContent = `标题：${title}    时长：${displayDur}`;
-        qCode.value = loadSavedCode();
-        populateLangSelect(qLang, localStorage.getItem(LANG_KEY));
-        quoteModal.style.display = 'block';
-        doQuote();
-        setTimeout(() => qCode.focus(), 0);
-      }
-
-      function closeQuoteModal() {
-        quoteModal.style.display = 'none';
-      }
-
-      async function doQuote() {
-        const code = (qCode.value || '').trim();
-        const lang = (qLang.value || getDefaultLang());
-        const durText = _q_ctx.durationText || `${Math.round(_q_ctx.durationSeconds || 0)}s`;
-        const price = _q_ctx.price || calcQuote(_q_ctx.durationSeconds || 0);
-        const priceText = formatCurrency(price.totalCents);
-        const unitsLabel = PRICING.unitType === 'minute'
-          ? t('unitMinute', 'minute(s)')
-          : t('unitGeneric', 'unit(s)');
-
-        qBreak.textContent = [
-          `费用：${price.units} ${unitsLabel} -> ${priceText}（未扣除兑换码）`,
-          code ? `兑换码：${code}` : `兑换码：无`,
-          `目标语言：${lang}`
-        ].join('\n');
-      }
-
-      let _q_timer = null;
-      qCode.addEventListener('input', () => {
-        clearTimeout(_q_timer);
-        _q_timer = setTimeout(doQuote, 300);
       });
+    }
 
-      qCancel.onclick = closeQuoteModal;
+    function escapeHtml(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
-      qOk.onclick = async () => {
-        const code = (qCode.value || '').trim();
-        const lang = (qLang.value || '').trim() || getDefaultLang();
-        saveSavedCode(code);
-        savePreferredLang(lang);
+    function setDownloadBtn($a, url, filename) {
+      $a.onclick = null;
 
-        const url = `${API_BASE}/api/jobs/${_q_ctx.jobId}/confirm?code=${encodeURIComponent(code)}&lang=${encodeURIComponent(lang)}`;
-        const resp = await fetch(url, { method: 'POST' });
-        const d = await resp.json();
+      if (!url) {
+        $a.href = 'javascript:void(0)';
+        $a.classList.add('disabled');
+        $a.setAttribute('aria-disabled', 'true');
+        $a.removeAttribute('download');
+        return;
+      }
 
-        if (!resp.ok || !d.ok) {
-          alert(d.error || d.message || t('confirmFail', 'Unable to start download'));
-          return;
+      const abs = absUrl(url);
+      $a.href = abs;
+      $a.classList.remove('disabled');
+      $a.removeAttribute('aria-disabled');
+      if (filename) $a.setAttribute('download', filename);
+
+      $a.onclick = async (e) => {
+        try {
+          e.preventDefault();
+          const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = filename || 'subtitle.vtt';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+            a.remove();
+          }, 0);
+        } catch {
+          window.open(abs, '_blank', 'noopener');
         }
+      };
+    }
 
-        closeQuoteModal();
-        subscribeJob(_q_ctx.jobId);
+    function setCurrentStatus(payload) {
+      const status = String(payload?.status || '').toUpperCase();
+      const queuePos = payload?.queue_position ?? payload?.result?.queue_position ?? null;
+
+      if (status === 'FINISHED') {
+        els.statusMain.textContent = t('ready', 'Your subtitles are ready');
+        els.statusSub.textContent = t('readySub', 'You can download your subtitle files below.');
+        els.resultBox.classList.remove('hidden');
+        return;
+      }
+
+      if (status === 'FAILED') {
+        els.statusMain.textContent = t('failed', 'Task failed');
+        els.statusSub.textContent = payload?.message || t('failedSub', 'Please try another video.');
+        els.resultBox.classList.add('hidden');
+        return;
+      }
+
+      if (status === 'CANCELED') {
+        els.statusMain.textContent = t('canceled', 'Task canceled');
+        els.statusSub.textContent = t('canceledSub', 'This task was canceled.');
+        els.resultBox.classList.add('hidden');
+        return;
+      }
+
+      if (status) {
+        els.statusMain.textContent = t('processing', 'Processing...');
+        if (Number.isFinite(Number(queuePos)) && Number(queuePos) > 0) {
+          els.statusSub.textContent = formatText('queuedAhead', { n: Number(queuePos) });
+        } else {
+          els.statusSub.textContent = t('processingSub', 'You can close this page — we’ll keep your task here.');
+        }
+        els.resultBox.classList.add('hidden');
+        return;
+      }
+
+      els.statusMain.textContent = t('idleStatus', 'No task yet');
+      els.statusSub.textContent = t('idleStatusSub', 'Submit a video link to get started.');
+      els.resultBox.classList.add('hidden');
+    }
+
+    function applyResultButtons(payload) {
+      const result = payload?.result || {};
+      const info = payload?.info || {};
+      const baseTitle = sanitizeFilename(
+        result?.details?.title ||
+        info?.title ||
+        'subtitle'
+      );
+
+      const origUrl = result?.subtitle?.url || null;
+
+      let transUrl = null;
+      let transLang = 'trans';
+      const tmap = result?.subtitle_translated || {};
+      if (tmap && typeof tmap === 'object') {
+        for (const k of Object.keys(tmap)) {
+          if (tmap[k]?.url) {
+            transUrl = tmap[k].url;
+            transLang = k;
+            break;
+          }
+        }
+      }
+
+      if (!transUrl && result?.playback?.subtitleUrl) {
+        transUrl = result.playback.subtitleUrl;
+      }
+
+      setDownloadBtn(els.btnSubOrig, origUrl, `${baseTitle}.vtt`);
+      setDownloadBtn(els.btnSubTrans, transUrl, `${baseTitle}.${transLang}.vtt`);
+    }
+
+    function taskTitleFromPayload(payload) {
+      return (
+        payload?.info?.title ||
+        payload?.result?.details?.title ||
+        payload?.url ||
+        payload?.jobId ||
+        'video'
+      );
+    }
+
+    function handleSnapshot(payload) {
+      setCurrentStatus(payload);
+      applyResultButtons(payload);
+
+      const jobId = payload?.jobId || currentJobId;
+      if (!jobId) return;
+
+      updateRecentTask(jobId, {
+        status: payload?.status || 'PROCESSING',
+        title: taskTitleFromPayload(payload)
+      });
+    }
+
+    function closeSSE() {
+      if (es) {
+        es.close();
+        es = null;
+      }
+    }
+
+    function subscribeJob(jobId) {
+      closeSSE();
+      currentJobId = jobId;
+
+      es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
+      es.onmessage = (ev) => {
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch { return; }
+        if (msg.type === 'heartbeat') return;
+
+        handleSnapshot(msg);
+
+        const st = String(msg.status || '').toUpperCase();
+        if (st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED') {
+          closeSSE();
+        }
       };
 
-      async function createJobByUrl() {
-        const url = els.videoUrl.value.trim();
-        if (!url) return alert(t('warnNeedVideoUrl', 'Please enter a video link'));
+      es.onerror = () => {};
+    }
 
-        setBtn(document.getElementById('btnSubOrig'), null);
-        setBtn(document.getElementById('btnSubTrans'), null);
-        clearLastJob();
+    async function loadJob(jobId) {
+      closeSSE();
+      currentJobId = jobId;
 
+      try {
+        const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        handleSnapshot(data);
+
+        const st = String(data.status || '').toUpperCase();
+        if (!(st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED')) {
+          subscribeJob(jobId);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function createJobByUrl() {
+      const url = els.videoUrl.value.trim();
+      const email = els.email.value.trim();
+
+      if (!url) {
+        alert(t('warnNeedVideoUrl', 'Please enter a video link'));
+        return;
+      }
+
+      if (!email) {
+        alert(t('warnNeedEmail', 'Please enter your email'));
+        return;
+      }
+
+      els.createByUrlBtn.disabled = true;
+
+      try {
         const res = await fetch(`${API_BASE}/api/jobs`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            url: url,
-            outputDir: "data",
+            url,
+            email,
+            outputDir: 'data',
             proxy: null,
             priority: 0
           })
         });
 
         const data = await res.json().catch(() => ({}));
+
         if (!res.ok) {
           alert(data.message || data.error || t('warnCreateFail', 'Failed to create job'));
           return;
         }
 
-        const jobId = data.jobId;
+        const jobId = data.jobId || data?.job?.jobId;
         if (!jobId) {
           alert(t('warnCreateFail', 'Failed to create job'));
           return;
         }
 
-        els.jobId.value = jobId;
-        saveLastJob(jobId);
+        currentJobId = jobId;
 
-        const jobPayload = data && data.job || {};
-        const i = jobPayload.info || {};
-        const details = Object.assign({}, ensureDetails(i.details), ensureDetails(i.path));
-        const resultDetails = ensureDetails(jobPayload.result && jobPayload.result.details);
-        const normalizedTitle = (val) => {
-          if (!val) return null;
-          const t = String(val).trim();
-          return t || null;
-        };
-        const rawCandidates = [normalizedTitle(i.title), normalizedTitle(details.title), normalizedTitle(resultDetails.title)];
-        const backupCandidates = [details.avid, i.avid, resultDetails.avid, details.m3u8 ? titleFromUrl(details.m3u8) : null, titleFromUrl(url)];
-
-        let displayTitle = rawCandidates.find(Boolean) || backupCandidates.find(isMeaningfulTitle) || backupCandidates.find(Boolean) || 'video';
-        lastTitle = sanitizeFilename(displayTitle);
-
-        if (data.job?.status !== 'WAITING_CONFIRM') {
-          setStatus(data.job || data);
-          if (data.job?.status === 'FAILED') {
-            alert(data.job?.message || t('warnCreateFail', 'Failed to create job'));
-          } else {
-            alert(data.job?.message || `${t('taskStatus', 'Job Status')}: ${data.job?.status || data.status}`);
-          }
-          return;
-        }
-
-        const durationSeconds = Number(details.duration_seconds ?? i.duration_seconds ?? details.duration ?? i.duration ?? 0) || 0;
-        const durationText = details.duration_str
-          || i.duration_str
-          || (typeof details.duration === 'string' ? details.duration : null)
-          || (typeof i.duration === 'string' ? i.duration : null)
-          || (durationSeconds ? `${Math.round(durationSeconds)}s` : '未知');
-
-        openQuoteModal({
+        upsertRecentTask({
           jobId,
-          durationSeconds,
-          durationText,
-          title: displayTitle
+          title: taskTitleFromPayload(data.job || data) || url,
+          url,
+          status: data?.job?.status || data?.status || 'PROCESSING',
+          createdAt: Date.now(),
+          updatedAt: Date.now()
         });
+
+        setCurrentStatus(data.job || data);
+
+        const st = String(data?.job?.status || data?.status || '').toUpperCase();
+        if (!(st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED')) {
+          subscribeJob(jobId);
+        } else {
+          handleSnapshot(data.job || data);
+        }
+      } finally {
+        els.createByUrlBtn.disabled = false;
+      }
+    }
+
+    els.createByUrlBtn.addEventListener('click', createJobByUrl);
+
+    els.tryAnotherBtn.addEventListener('click', () => {
+      els.videoUrl.focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      setLang(uiLang);
+      renderRecentTasks();
+
+      const recent = getStoredRecentTasks();
+      if (recent.length > 0 && recent[0].jobId) {
+        loadJob(recent[0].jobId);
       }
 
-      els.createByUrlBtn.onclick = createJobByUrl;
-
-      function subscribeFromInput() {
-        const id = (els.jobId.value || '').trim();
-        if (!id) return;
-        saveLastJob(id);
-        subscribeJob(id);
-      }
-
-      ['change', 'blur'].forEach(evt => {
-        els.jobId.addEventListener(evt, () => subscribeFromInput());
-      });
-      els.jobId.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          subscribeFromInput();
-        }
-      });
-
-      document.addEventListener('click', () => els.player.play().catch(() => { }), { once: true });
-      document.addEventListener('touchstart', () => { els.player.play().catch(() => { }); }, { once: true });
-
-      document.addEventListener('DOMContentLoaded', async () => {
-        updatePlayLink();
-
-        const raw = localStorage.getItem('mmx:lastJob');
-        if (!raw) return;
-
-        let last;
-        try { last = JSON.parse(raw); } catch { return; }
-
-        const jobId = last?.jobId;
-        if (!jobId) return;
-
-        els.jobId.value = jobId;
-
-        try {
-          const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
-          if (!res.ok) return;
-          const data = await res.json();
-          setStatus(data);
-          playIfPossible(data);
-
-          const st = String(data.status || '').toLowerCase();
-          if (!(st === 'finished' || st === 'failed' || st === 'canceled')) {
-            subscribeJob(jobId);
-          }
-        } catch (e) {
-          console.error(t('resumeError', 'Failed to resume job'), e);
-        }
-      });
-    </script>
-
-    <div id="buildInfo" style="text-align:center; color:#999; font-size:12px; margin-top:20px;"></div>
-    <script>
       document.getElementById('buildInfo').textContent =
-        '最后修改时间：' + document.lastModified;
-
-      async function loadPricing() {
-        try {
-          const resp = await fetch(`${API_BASE}/api/config`);
-          const data = await resp.json();
-          if (resp.ok && data?.pricing) {
-            PRICING = { ...PRICING, ...data.pricing };
-          }
-        } catch (err) {
-          console.warn('failed to load pricing', err);
-        }
-      }
-      loadPricing();
-    </script>
+        (uiLang === 'zh' ? '最后修改时间：' : 'Last modified: ') + document.lastModified;
+    });
+  </script>
 </body>
-
 </html>
