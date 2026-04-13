@@ -371,15 +371,12 @@
         <div class="download-row">
           <a id="btnSubOrig" class="btn disabled" href="javascript:void(0)" aria-disabled="true"
             data-i18n="downloadOriginal">
-            Download original subtitle
+            Original subtitle
           </a>
           <a id="btnSubTrans" class="btn disabled" href="javascript:void(0)" aria-disabled="true"
             data-i18n="downloadTranslated">
-            Download translated subtitle
+            Translated subtitle
           </a>
-          <button id="btnPlayExempt" class="btn btn-secondary hidden" type="button" data-i18n="playVideo">
-            Play video
-          </button>
         </div>
 
         <div class="footer-note">
@@ -429,8 +426,8 @@
         failedSub: 'Please try another video.',
         canceled: 'Task canceled',
         canceledSub: 'This task was canceled.',
-        downloadOriginal: '下载原始字幕',
-        downloadTranslated: '下载翻译字幕',
+        downloadOriginal: '原始字幕',
+        downloadTranslated: '翻译字幕',
         playVideo: '播放翻译视频',
         resultReadyNote: '字幕已经准备好。',
         recentTasksTitle: '最近任务',
@@ -478,8 +475,8 @@
         failedSub: 'Please try another video.',
         canceled: 'Task canceled',
         canceledSub: 'This task was canceled.',
-        downloadOriginal: 'Download original subtitle',
-        downloadTranslated: 'Download translated subtitle',
+        downloadOriginal: 'Original subtitle',
+        downloadTranslated: 'Translated subtitle',
         playVideo: 'Play translated video',
         resultReadyNote: 'Your result is ready.',
         recentTasksTitle: 'Recent tasks',
@@ -607,7 +604,6 @@
       resultBox: document.getElementById('resultBox'),
       btnSubOrig: document.getElementById('btnSubOrig'),
       btnSubTrans: document.getElementById('btnSubTrans'),
-      btnPlayExempt: document.getElementById('btnPlayExempt'),
       recentTasks: document.getElementById('recentTasks')
     };
 
@@ -747,7 +743,7 @@
           const serverId = job.id || job.jobId || task.jobId;
           const state = String(job.status || '').toUpperCase();
           const title = taskTitleFromPayload(job) || task.title || job.url || task.url || serverId;
-          const { baseTitle, origUrl, transUrl, transLang } = extractSubtitleSources(job);
+          const { baseTitle, origUrl, transUrl, transLang, exemptUrl } = extractSubtitleSources(job);
           const merged = {
             ...task,
             jobId: serverId,
@@ -759,6 +755,7 @@
             origSubtitleUrl: origUrl,
             transSubtitleUrl: transUrl,
             transLang,
+            exemptVideoUrl: exemptUrl,
             verified: true,
           };
           kept.push(merged);
@@ -796,6 +793,7 @@
         origUrl: task.origSubtitleUrl,
         transUrl: task.transSubtitleUrl,
         transLang: task.transLang || 'trans',
+        exemptUrl: task.exemptVideoUrl,
       };
     }
 
@@ -808,18 +806,20 @@
 
       els.recentTasks.innerHTML = limited.map(item => {
         const statusLine = `${t('statusPrefix', 'Status')}: ${escapeHtml(item.statusText)}`;
-        let actions = '';
+        const buttons = [];
         if (item.state === 'FINISHED' || item.state === 'READY') {
           const nameBase = item.subtitleBase || sanitizeFilename(item.title) || 'subtitle';
-          const origBtn = item.origUrl
-            ? `<button class="btn btn-secondary btn-compact" data-download-url="${escapeHtml(item.origUrl)}" data-download-name="${escapeHtml(nameBase)}.vtt">${t('downloadOriginal', 'Download original subtitle')}</button>`
-            : '';
-          const transBtn = item.transUrl
-            ? `<button class="btn btn-compact" data-download-url="${escapeHtml(item.transUrl)}" data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt">${t('downloadTranslated', 'Download translated subtitle')}</button>`
-            : '';
-          actions = [origBtn, transBtn].filter(Boolean).join('');
+          if (item.exemptUrl) {
+            buttons.push(`<button class="btn btn-secondary btn-compact" data-play-url="${escapeHtml(item.exemptUrl)}">${t('playVideo', 'Play translated video')}</button>`);
+          }
+          if (item.origUrl) {
+            buttons.push(`<button class="btn btn-secondary btn-compact" data-download-url="${escapeHtml(item.origUrl)}" data-download-name="${escapeHtml(nameBase)}.vtt">${t('downloadOriginal', 'Original subtitle')}</button>`);
+          }
+          if (item.transUrl) {
+            buttons.push(`<button class="btn btn-compact" data-download-url="${escapeHtml(item.transUrl)}" data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt">${t('downloadTranslated', 'Translated subtitle')}</button>`);
+          }
         } else if (item.state === 'FAILED' || item.state === 'CANCELED') {
-          actions = `<button class="btn btn-secondary btn-compact" data-view-job="${item.jobId}">${t('viewDetail', 'View details')}</button>`;
+          buttons.push(`<button class="btn btn-secondary btn-compact" data-view-job="${item.jobId}">${t('viewDetail', 'View details')}</button>`);
         }
         return `
           <div class="task-item" data-job-id="${item.jobId}">
@@ -827,7 +827,7 @@
               <div class="task-title">${escapeHtml(item.title)}</div>
               <div class="task-time">${statusLine}</div>
             </div>
-            ${actions ? `<div class="task-actions">${actions}</div>` : ''}
+            ${buttons.length ? `<div class="task-actions">${buttons.join('')}</div>` : ''}
           </div>
         `;
       }).join('');
@@ -845,6 +845,16 @@
           const jobId = btn.getAttribute('data-view-job');
           if (jobId) {
             window.open(`${API_BASE}/api/jobs/${jobId}`, '_blank', 'noopener');
+          }
+        });
+      });
+
+      els.recentTasks.querySelectorAll('[data-play-url]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const url = btn.getAttribute('data-play-url');
+          const abs = absUrl(url);
+          if (abs) {
+            window.open(abs, '_blank', 'noopener');
           }
         });
       });
@@ -879,25 +889,6 @@
       $a.onclick = async (e) => {
         e.preventDefault();
         await downloadMedia(url, filename || 'subtitle.vtt');
-      };
-    }
-
-    function setPlayButton(btn, url) {
-      if (!btn) return;
-      if (!url) {
-        btn.classList.add('hidden');
-        btn.onclick = null;
-        return;
-      }
-      const abs = absUrl(url);
-      if (!abs) {
-        btn.classList.add('hidden');
-        btn.onclick = null;
-        return;
-      }
-      btn.classList.remove('hidden');
-      btn.onclick = () => {
-        window.open(abs, '_blank', 'noopener');
       };
     }
 
@@ -976,10 +967,9 @@
     }
 
     function applyResultButtons(payload) {
-      const { baseTitle, origUrl, transUrl, transLang, exemptUrl } = extractSubtitleSources(payload);
+      const { baseTitle, origUrl, transUrl, transLang } = extractSubtitleSources(payload);
       setDownloadBtn(els.btnSubOrig, origUrl, `${baseTitle}.vtt`);
       setDownloadBtn(els.btnSubTrans, transUrl, `${baseTitle}.${transLang}.vtt`);
-      setPlayButton(els.btnPlayExempt, exemptUrl);
     }
 
     function taskTitleFromPayload(payload) {
