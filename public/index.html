@@ -357,7 +357,10 @@
 
       <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
         <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
-        <div class="muted" data-i18n="inlineNote">字幕生成后可在网页直接下载，邮箱可在晚上自动接收字幕链接。</div>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <div class="muted" data-i18n="inlineNoteLine1">字幕生成后可在网页直接下载，同时每晚自动发送字幕链接到邮箱。</div>
+          <div class="muted" data-i18n="inlineNoteLine2">任务会自动保存，关闭浏览器后再次打开仍可查看。</div>
+        </div>
       </div>
     </div>
 
@@ -416,7 +419,8 @@
         targetLangLabel: '目标语言',
         targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
         generateBtn: '生成字幕',
-        inlineNote: '字幕生成后可在网页直接下载，同时每晚自动发送字幕链接到邮箱。任务会自动保存，关闭浏览器后再次打开仍可查看。',
+        inlineNoteLine1: '字幕生成后可在网页直接下载，同时每晚自动发送字幕链接到邮箱。',
+        inlineNoteLine2: '任务会自动保存，关闭浏览器后再次打开仍可查看。',
         currentTaskTitle: '当前任务',
         idleStatus: '当前没有任务',
         idleStatusSub: '提交视频链接后开始处理。',
@@ -465,7 +469,8 @@
         targetLangLabel: 'Target language',
         targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
         generateBtn: 'Generate subtitles',
-        inlineNote: 'Download subtitles on the web immediately; each day we email the links to you. Tasks are saved automatically—you can close the browser and resume later.',
+        inlineNoteLine1: 'Download subtitles on the web immediately; each day we email the links to you.',
+        inlineNoteLine2: 'Tasks are saved automatically—you can close the browser and resume later.',
         currentTaskTitle: 'Current task',
         idleStatus: 'No task yet',
         idleStatusSub: 'Submit a video link to get started.',
