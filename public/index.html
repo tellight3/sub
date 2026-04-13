@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -21,7 +22,9 @@
       --input: #0a1324;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -156,7 +159,7 @@
     }
 
     .btn-secondary:hover {
-      background: rgba(255,255,255,.04);
+      background: rgba(255, 255, 255, .04);
     }
 
     .muted {
@@ -276,12 +279,22 @@
     }
 
     @media (max-width: 640px) {
-      h1 { font-size: 24px; }
-      .container { padding: 18px 12px 32px; }
-      .task-item { align-items: flex-start; flex-direction: column; }
+      h1 {
+        font-size: 24px;
+      }
+
+      .container {
+        padding: 18px 12px 32px;
+      }
+
+      .task-item {
+        align-items: flex-start;
+        flex-direction: column;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <div class="topbar">
@@ -301,23 +314,20 @@
 
       <div class="field">
         <label class="label" for="videoUrl" data-i18n="videoUrlLabel">Video link</label>
-        <input
-          id="videoUrl"
-          class="input"
-          data-i18n-placeholder="videoUrlPlaceholder"
-          placeholder="Paste YouTube or X link"
-        />
+        <input id="videoUrl" class="input" data-i18n-placeholder="videoUrlPlaceholder"
+          placeholder="Paste YouTube or X link" />
       </div>
 
       <div class="field">
         <label class="label" for="email" data-i18n="emailLabel">Email</label>
-        <input
-          id="email"
-          type="email"
-          class="input"
-          data-i18n-placeholder="emailPlaceholder"
-          placeholder="Enter your email"
-        />
+        <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
+          placeholder="Enter your email" />
+      </div>
+
+      <div class="field">
+        <label class="label" for="targetLang" data-i18n="targetLangLabel">Target language</label>
+        <input id="targetLang" class="input" data-i18n-placeholder="targetLangPlaceholder"
+          placeholder="Enter target language (e.g., en)" />
       </div>
 
       <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
@@ -336,10 +346,12 @@
 
       <div id="resultBox" class="hidden">
         <div class="download-row">
-          <a id="btnSubOrig" class="btn disabled" href="javascript:void(0)" aria-disabled="true" data-i18n="downloadOriginal">
+          <a id="btnSubOrig" class="btn disabled" href="javascript:void(0)" aria-disabled="true"
+            data-i18n="downloadOriginal">
             Download original subtitle
           </a>
-          <a id="btnSubTrans" class="btn disabled" href="javascript:void(0)" aria-disabled="true" data-i18n="downloadTranslated">
+          <a id="btnSubTrans" class="btn disabled" href="javascript:void(0)" aria-disabled="true"
+            data-i18n="downloadTranslated">
             Download translated subtitle
           </a>
         </div>
@@ -378,6 +390,8 @@
         videoUrlPlaceholder: '粘贴 YouTube 或 X 链接',
         emailLabel: '邮箱',
         emailPlaceholder: '输入你的邮箱',
+        targetLangLabel: '目标语言',
+        targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
         generateBtn: '生成字幕',
         freeNote: '早期用户免费使用',
         currentTaskTitle: '当前任务',
@@ -406,6 +420,7 @@
         statusUnknown: '未知',
         warnNeedVideoUrl: '请填写视频链接',
         warnNeedEmail: '请填写邮箱',
+        warnNeedTargetLang: '请填写目标语言',
         warnCreateFail: '创建任务失败',
         langChinese: '中文',
         langEnglish: '英文'
@@ -418,6 +433,8 @@
         videoUrlPlaceholder: 'Paste YouTube or X link',
         emailLabel: 'Email',
         emailPlaceholder: 'Enter your email',
+        targetLangLabel: 'Target language',
+        targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
         generateBtn: 'Generate subtitles',
         freeNote: 'Free for early users',
         currentTaskTitle: 'Current task',
@@ -446,6 +463,7 @@
         statusUnknown: 'Unknown',
         warnNeedVideoUrl: 'Please enter a video link',
         warnNeedEmail: 'Please enter your email',
+        warnNeedTargetLang: 'Please enter a target language',
         warnCreateFail: 'Failed to create job',
         langChinese: 'Chinese',
         langEnglish: 'English'
@@ -511,6 +529,7 @@
     const els = {
       videoUrl: document.getElementById('videoUrl'),
       email: document.getElementById('email'),
+      targetLang: document.getElementById('targetLang'),
       createByUrlBtn: document.getElementById('createByUrlBtn'),
       statusMain: document.getElementById('statusMain'),
       statusSub: document.getElementById('statusSub'),
@@ -814,7 +833,7 @@
         }
       };
 
-      es.onerror = () => {};
+      es.onerror = () => { };
     }
 
     async function loadJob(jobId) {
@@ -839,6 +858,7 @@
     async function createJobByUrl() {
       const url = els.videoUrl.value.trim();
       const email = els.email.value.trim();
+      const targetLang = els.targetLang.value.trim();
 
       if (!url) {
         alert(t('warnNeedVideoUrl', 'Please enter a video link'));
@@ -847,6 +867,11 @@
 
       if (!email) {
         alert(t('warnNeedEmail', 'Please enter your email'));
+        return;
+      }
+
+      if (!targetLang) {
+        alert(t('warnNeedTargetLang', 'Please enter a target language'));
         return;
       }
 
@@ -859,6 +884,7 @@
           body: JSON.stringify({
             url,
             email,
+            targetLang,
             outputDir: 'data',
             proxy: null,
             priority: 0
@@ -923,4 +949,5 @@
     });
   </script>
 </body>
+
 </html>
