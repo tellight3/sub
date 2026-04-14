@@ -386,8 +386,8 @@
       <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
         <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
         <div style="display:flex; flex-direction:column; gap:2px;">
-          <div class="muted" data-i18n="inlineNoteLine1">字幕生成后可在网页直接下载，如填写邮箱会在夜间自动发送字幕链接。</div>
-          <div class="muted" data-i18n="inlineNoteLine2">任务会自动保存，关闭浏览器后再次打开仍可查看。</div>
+          <div class="muted" data-i18n="inlineNoteLine1">网页可直接下载，填写邮箱后可在夜间自动接收字幕链接。</div>
+          <div class="muted" data-i18n="inlineNoteLine2">任务会保存在当前浏览器中，重新打开后仍可查看。</div>
         </div>
       </div>
     </div>
@@ -442,8 +442,10 @@
         generateBtn: '生成字幕',
         inlineNoteLine1: '网页可直接下载，填写邮箱后可在夜间自动接收字幕链接。',
         inlineNoteLine2: '任务会保存在当前浏览器中，重新打开后仍可查看。',
-        downloadOriginal: '原始字幕',
-        downloadTranslated: '翻译字幕',
+        downloadOriginal: '原文',
+        downloadTranslated: '译文',
+        downloadOriginalHint: '下载原文字幕',
+        downloadTranslatedHint: '下载翻译字幕',
         playVideo: '播放翻译视频',
         recentTasksTitle: '我的任务',
         recentTasksNote: '最近任务会保存在当前浏览器中。',
@@ -485,8 +487,10 @@
         generateBtn: 'Generate subtitles',
         inlineNoteLine1: 'Download directly on this page; add an email if you want nightly subtitle links.',
         inlineNoteLine2: 'Tasks are stored in this browser and remain after reopening it.',
-        downloadOriginal: 'Original subtitle',
-        downloadTranslated: 'Translated subtitle',
+        downloadOriginal: 'Original',
+        downloadTranslated: 'Translation',
+        downloadOriginalHint: 'Download original subtitle',
+        downloadTranslatedHint: 'Download translated subtitle',
         playVideo: 'Play translated video',
         recentTasksTitle: 'My tasks',
         recentTasksNote: 'Your recent tasks are stored in this browser.',
@@ -845,10 +849,10 @@
             buttons.push(`<button class="btn btn-secondary btn-compact" data-play-url="${escapeHtml(item.exemptUrl)}">${t('playVideo', 'Play translated video')}</button>`);
           }
           if (item.origUrl) {
-            buttons.push(`<button class="btn btn-secondary btn-compact" data-download-url="${escapeHtml(item.origUrl)}" data-download-name="${escapeHtml(nameBase)}.vtt">${t('downloadOriginal', 'Original subtitle')}</button>`);
+            buttons.push(`<button class="btn btn-secondary btn-compact" data-download-url="${escapeHtml(item.origUrl)}" data-download-name="${escapeHtml(nameBase)}.vtt" title="${escapeHtml(t('downloadOriginalHint', 'Download original subtitle'))}">${t('downloadOriginal', 'Original subtitle')}</button>`);
           }
           if (item.transUrl) {
-            buttons.push(`<button class="btn btn-compact" data-download-url="${escapeHtml(item.transUrl)}" data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt">${t('downloadTranslated', 'Translated subtitle')}</button>`);
+            buttons.push(`<button class="btn btn-compact" data-download-url="${escapeHtml(item.transUrl)}" data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt" title="${escapeHtml(t('downloadTranslatedHint', 'Download translated subtitle'))}">${t('downloadTranslated', 'Translated subtitle')}</button>`);
           }
         } else if (item.state === 'FAILED' || item.state === 'CANCELED') {
           buttons.push(`<button class="btn btn-secondary btn-compact" data-view-job="${item.jobId}">${t('viewDetail', 'View details')}</button>`);
