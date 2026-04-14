@@ -245,6 +245,7 @@
     .modal-info-row {
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
       gap: 12px;
       margin-bottom: 10px;
       font-size: 14px;
@@ -252,12 +253,16 @@
 
     .modal-info-label {
       color: var(--muted);
+      min-width: 72px;
     }
 
     .modal-info-value {
+      flex: 1;
       font-weight: 600;
-      text-align: right;
+      text-align: left;
       color: var(--text);
+      word-break: break-word;
+      overflow-wrap: anywhere;
     }
 
     .modal-actions {
@@ -1082,14 +1087,45 @@
       setDownloadBtn(els.btnSubTrans, transUrl, `${baseTitle}.${transLang}.vtt`);
     }
 
+    function toObjectOrNull(val) {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      if (typeof val === 'string') {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    }
+
     function taskTitleFromPayload(payload) {
-      return (
-        payload?.info?.title ||
-        payload?.result?.details?.title ||
-        payload?.url ||
-        payload?.jobId ||
-        'video'
-      );
+      const info = toObjectOrNull(payload?.info);
+      const infoPath = toObjectOrNull(info?.path);
+      const infoDetails = toObjectOrNull(info?.details);
+      const infoPathDetails = toObjectOrNull(infoPath?.details);
+      const result = toObjectOrNull(payload?.result);
+      const resultDetails = toObjectOrNull(result?.details);
+
+      const candidates = [
+        info?.title,
+        infoDetails?.title,
+        infoPath?.title,
+        infoPathDetails?.title,
+        result?.title,
+        resultDetails?.title,
+        payload?.title,
+        payload?.url,
+        payload?.jobId,
+      ];
+
+      for (const candidate of candidates) {
+        if (candidate && String(candidate).trim()) {
+          return String(candidate).trim();
+        }
+      }
+      return 'video';
     }
 
     function extractDurationSecondsFromInfo(info) {
