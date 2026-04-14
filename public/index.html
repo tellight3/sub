@@ -177,36 +177,6 @@
       line-height: 1.5;
     }
 
-    .status-box {
-      min-height: 88px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 8px;
-      padding: 14px;
-      border-radius: 12px;
-      background: var(--card-2);
-      border: 1px solid #2a3954;
-    }
-
-    .status-main {
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .status-sub {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .download-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
     .hidden {
       display: none !important;
     }
@@ -423,34 +393,6 @@
     </div>
 
     <div class="card">
-      <h2 data-i18n="currentTaskTitle">Current task</h2>
-
-      <div id="currentTaskBox" class="status-box">
-        <div id="statusMain" class="status-main" data-i18n="idleStatus">No task yet</div>
-        <div id="statusSub" class="status-sub" data-i18n="idleStatusSub">
-          Submit a video link to get started.
-        </div>
-      </div>
-
-      <div id="resultBox" class="hidden">
-        <div class="download-row">
-          <a id="btnSubOrig" class="btn disabled" href="javascript:void(0)" aria-disabled="true"
-            data-i18n="downloadOriginal">
-            Original subtitle
-          </a>
-          <a id="btnSubTrans" class="btn disabled" href="javascript:void(0)" aria-disabled="true"
-            data-i18n="downloadTranslated">
-            Translated subtitle
-          </a>
-        </div>
-
-        <div class="footer-note">
-          <span data-i18n="resultReadyNote">Your result is ready.</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
       <h2 data-i18n="recentTasksTitle">Recent tasks</h2>
       <div id="recentTasks" class="task-list"></div>
       <div class="footer-note" data-i18n="recentTasksNote">
@@ -500,22 +442,9 @@
         generateBtn: '生成字幕',
         inlineNoteLine1: '可在网页直接下载；填写邮箱后会在夜间发送字幕链接。',
         inlineNoteLine2: '任务会自动保存，重新打开浏览器仍可查看。',
-        currentTaskTitle: '当前任务',
-        idleStatus: '当前没有任务',
-        idleStatusSub: '提交视频链接后开始处理。',
-        processing: 'Processing...',
-        processingSub: 'You can close this page — we’ll keep your task here.',
-        queuedAhead: 'There are {n} tasks ahead of yours.',
-        ready: 'Your subtitles are ready',
-        readySub: 'You can download your subtitle files below.',
-        failed: 'Task failed',
-        failedSub: 'Please try another video.',
-        canceled: 'Task canceled',
-        canceledSub: 'This task was canceled.',
         downloadOriginal: '原始字幕',
         downloadTranslated: '翻译字幕',
         playVideo: '播放翻译视频',
-        resultReadyNote: '字幕已经准备好。',
         recentTasksTitle: '最近任务',
         recentTasksNote: '最近任务会保存在当前浏览器中。',
         noRecentTasks: '还没有最近任务。',
@@ -556,22 +485,9 @@
         generateBtn: 'Generate subtitles',
         inlineNoteLine1: 'Download subtitles here immediately; add an email if you want nightly link reminders.',
         inlineNoteLine2: 'Tasks are saved automatically—you can close the browser and resume later.',
-        currentTaskTitle: 'Current task',
-        idleStatus: 'No task yet',
-        idleStatusSub: 'Submit a video link to get started.',
-        processing: 'Processing...',
-        processingSub: 'You can close this page — we’ll keep your task here.',
-        queuedAhead: 'There are {n} tasks ahead of yours.',
-        ready: 'Your subtitles are ready',
-        readySub: 'You can download your subtitle files below.',
-        failed: 'Task failed',
-        failedSub: 'Please try another video.',
-        canceled: 'Task canceled',
-        canceledSub: 'This task was canceled.',
         downloadOriginal: 'Original subtitle',
         downloadTranslated: 'Translated subtitle',
         playVideo: 'Play translated video',
-        resultReadyNote: 'Your result is ready.',
         recentTasksTitle: 'Recent tasks',
         recentTasksNote: 'Your recent tasks are stored in this browser.',
         noRecentTasks: 'No recent tasks yet.',
@@ -637,14 +553,6 @@
       return (I18N[uiLang] && I18N[uiLang][key]) || fallback || key;
     }
 
-    function formatText(key, vars = {}) {
-      let s = t(key, key);
-      Object.keys(vars).forEach(k => {
-        s = s.replace(`{${k}}`, vars[k]);
-      });
-      return s;
-    }
-
     function applyI18n() {
       document.documentElement.lang = uiLang === 'zh' ? 'zh-CN' : 'en';
       document.title = t('appTitle', 'Subtitle Generator');
@@ -698,11 +606,6 @@
       email: document.getElementById('email'),
       targetLang: document.getElementById('targetLang'),
       createByUrlBtn: document.getElementById('createByUrlBtn'),
-      statusMain: document.getElementById('statusMain'),
-      statusSub: document.getElementById('statusSub'),
-      resultBox: document.getElementById('resultBox'),
-      btnSubOrig: document.getElementById('btnSubOrig'),
-      btnSubTrans: document.getElementById('btnSubTrans'),
       recentTasks: document.getElementById('recentTasks'),
       taskConfirmModal: document.getElementById('taskConfirmModal'),
       taskConfirmTitle: document.getElementById('taskConfirmVideoTitle'),
@@ -984,70 +887,6 @@
         .replace(/'/g, '&#39;');
     }
 
-    function setDownloadBtn($a, url, filename) {
-      $a.onclick = null;
-
-      if (!url) {
-        $a.href = 'javascript:void(0)';
-        $a.classList.add('disabled');
-        $a.setAttribute('aria-disabled', 'true');
-        $a.removeAttribute('download');
-        return;
-      }
-
-      const abs = absUrl(url);
-      $a.href = abs;
-      $a.classList.remove('disabled');
-      $a.removeAttribute('aria-disabled');
-      if (filename) $a.setAttribute('download', filename);
-
-      $a.onclick = async (e) => {
-        e.preventDefault();
-        await downloadMedia(url, filename || 'subtitle.vtt');
-      };
-    }
-
-    function setCurrentStatus(payload) {
-      const status = String(payload?.status || '').toUpperCase();
-      const queuePos = payload?.queue_position ?? payload?.result?.queue_position ?? null;
-
-      if (status === 'FINISHED') {
-        els.statusMain.textContent = t('ready', 'Your subtitles are ready');
-        els.statusSub.textContent = t('readySub', 'You can download your subtitle files below.');
-        els.resultBox.classList.remove('hidden');
-        return;
-      }
-
-      if (status === 'FAILED') {
-        els.statusMain.textContent = t('failed', 'Task failed');
-        els.statusSub.textContent = payload?.message || t('failedSub', 'Please try another video.');
-        els.resultBox.classList.add('hidden');
-        return;
-      }
-
-      if (status === 'CANCELED') {
-        els.statusMain.textContent = t('canceled', 'Task canceled');
-        els.statusSub.textContent = t('canceledSub', 'This task was canceled.');
-        els.resultBox.classList.add('hidden');
-        return;
-      }
-
-      if (status) {
-        els.statusMain.textContent = t('processing', 'Processing...');
-        if (Number.isFinite(Number(queuePos)) && Number(queuePos) > 0) {
-          els.statusSub.textContent = formatText('queuedAhead', { n: Number(queuePos) });
-        } else {
-          els.statusSub.textContent = t('processingSub', 'You can close this page — we’ll keep your task here.');
-        }
-        els.resultBox.classList.add('hidden');
-        return;
-      }
-
-      els.statusMain.textContent = t('idleStatus', 'No task yet');
-      els.statusSub.textContent = t('idleStatusSub', 'Submit a video link to get started.');
-      els.resultBox.classList.add('hidden');
-    }
-
     function extractSubtitleSources(payload) {
       const result = payload?.result || {};
       const info = payload?.info || {};
@@ -1079,12 +918,6 @@
       const exemptUrl = result?.playback?.exemptVideoUrl || null;
 
       return { baseTitle, origUrl, transUrl, transLang, exemptUrl };
-    }
-
-    function applyResultButtons(payload) {
-      const { baseTitle, origUrl, transUrl, transLang } = extractSubtitleSources(payload);
-      setDownloadBtn(els.btnSubOrig, origUrl, `${baseTitle}.vtt`);
-      setDownloadBtn(els.btnSubTrans, transUrl, `${baseTitle}.${transLang}.vtt`);
     }
 
     function toObjectOrNull(val) {
@@ -1204,9 +1037,6 @@
     }
 
     function handleSnapshot(payload) {
-      setCurrentStatus(payload);
-      applyResultButtons(payload);
-
       const jobId = payload?.jobId || currentJobId;
       if (!jobId) return;
 
@@ -1310,7 +1140,6 @@
           verified: false
         });
 
-        setCurrentStatus(jobPayload);
         showTaskCreatedDialog(jobPayload);
 
         const st = String(jobPayload?.status || '').toUpperCase();
