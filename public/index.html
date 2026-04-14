@@ -807,7 +807,7 @@
     }
 
     function renderRecentTasksLocal() {
-      const tasks = getStoredRecentTasks().filter(x => x?.verified && x.jobId);
+      const tasks = getStoredRecentTasks().filter(x => x?.jobId);
       const items = tasks.map(toRecentTaskItem);
       drawRecentTaskList(items);
     }
