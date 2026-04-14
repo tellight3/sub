@@ -1069,7 +1069,10 @@
 
       const normalizedStatus = String(payload?.status || '').toUpperCase();
       if (normalizedStatus === 'FINISHED') {
-        refreshJobDetails(jobId);
+        const needsRefresh = !sources.origUrl && !sources.transUrl && !sources.exemptUrl;
+        if (needsRefresh) {
+          refreshJobDetails(jobId);
+        }
       }
     }
 
