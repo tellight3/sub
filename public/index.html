@@ -628,6 +628,7 @@
     let es = null;
     let currentJobId = null;
     let recentTasksRenderToken = 0;
+    let creatingJob = false;
 
     function normalizeMediaUrl(u) {
       if (!u && u !== '') return null;
@@ -1075,6 +1076,10 @@
     }
 
     async function createJobByUrl() {
+      if (creatingJob) {
+        return;
+      }
+
       const url = els.videoUrl.value.trim();
       const email = els.email.value.trim();
       const targetLang = els.targetLang.value.trim();
@@ -1089,6 +1094,7 @@
         return;
       }
 
+      creatingJob = true;
       els.createByUrlBtn.disabled = true;
 
       try {
@@ -1150,6 +1156,7 @@
         }
       } finally {
         els.createByUrlBtn.disabled = false;
+        creatingJob = false;
       }
     }
 
