@@ -718,6 +718,22 @@
       }
     }
 
+    async function refreshJobDetails(jobId) {
+      const job = await fetchJobSnapshot(jobId);
+      if (!job) return;
+      const sources = extractSubtitleSources(job);
+      updateRecentTask(jobId, {
+        status: job.status || 'PROCESSING',
+        title: taskTitleFromPayload(job),
+        subtitleBase: sources.baseTitle,
+        origSubtitleUrl: sources.origUrl,
+        transSubtitleUrl: sources.transUrl,
+        transLang: sources.transLang,
+        exemptVideoUrl: sources.exemptUrl,
+        verified: String(job.status || '').toUpperCase() === 'FINISHED'
+      });
+    }
+
     function statusLabel(status) {
       const s = String(status || '').toUpperCase();
       if (s === 'FINISHED' || s === 'READY') return t('statusReady', 'Ready');
@@ -1050,6 +1066,11 @@
         exemptVideoUrl: sources.exemptUrl,
         verified: Boolean(payload?.status && payload.status.toUpperCase() === 'FINISHED')
       });
+
+      const normalizedStatus = String(payload?.status || '').toUpperCase();
+      if (normalizedStatus === 'FINISHED') {
+        refreshJobDetails(jobId);
+      }
     }
 
     function closeSSE() {
