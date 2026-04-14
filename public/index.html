@@ -211,6 +211,60 @@
       display: none !important;
     }
 
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 15, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 2000;
+    }
+
+    .modal-content {
+      width: min(440px, 92vw);
+      background: rgba(17, 26, 46, 0.98);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      padding: 24px;
+    }
+
+    .modal-content h3 {
+      margin: 0 0 8px;
+    }
+
+    .modal-text {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 15px;
+    }
+
+    .modal-info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .modal-info-label {
+      color: var(--muted);
+    }
+
+    .modal-info-value {
+      font-weight: 600;
+      text-align: right;
+      color: var(--text);
+    }
+
+    .modal-actions {
+      margin-top: 20px;
+      text-align: right;
+    }
+
     .pill {
       display: inline-flex;
       align-items: center;
@@ -402,6 +456,27 @@
 
   </div>
 
+  <div id="taskConfirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="taskConfirmHeading"
+    aria-hidden="true">
+    <div class="modal-content">
+      <h3 id="taskConfirmHeading" data-i18n="taskCreatedHeading">任务创建成功</h3>
+      <p id="taskConfirmMessage" class="modal-text" data-i18n="taskCreatedMessage">
+        已完成视频校验，任务正在排队处理中。
+      </p>
+      <div class="modal-info-row">
+        <span class="modal-info-label" data-i18n="taskCreatedVideoTitleLabel">视频标题</span>
+        <span class="modal-info-value" id="taskConfirmVideoTitle">--</span>
+      </div>
+      <div class="modal-info-row">
+        <span class="modal-info-label" data-i18n="taskCreatedVideoDurationLabel">视频时长</span>
+        <span class="modal-info-value" id="taskConfirmVideoDuration">--</span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="taskConfirmOk" data-i18n="taskCreatedConfirm">我知道了</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_BASE = 'https://sub.multmatrix.com';
     const LS_KEY_RECENT = 'mmx:recentTasks';
@@ -415,7 +490,7 @@
         videoUrlLabel: '视频链接',
         videoUrlPlaceholder: '粘贴 YouTube 或 X 链接',
         emailLabel: '邮箱',
-        emailPlaceholder: '输入您的邮箱,接受字幕链接',
+        emailPlaceholder: '输入您的邮箱,获取多格式字幕链接（含逐词级）',
         targetLangLabel: '目标语言',
         targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
         generateBtn: '生成字幕',
@@ -455,6 +530,13 @@
         warnCreateFail: '创建任务失败',
         errorIpQuotaLimit: '本视频和已处理的视频总时长已达到 90 分钟。请明天再试。',
         errorIpQuotaInvalid: '无法识别该网络，暂时无法创建任务。',
+        taskCreatedHeading: '任务创建成功',
+        taskCreatedMessage: '已完成视频信息校验，任务开始排队处理。',
+        taskCreatedVideoTitleLabel: '视频标题',
+        taskCreatedVideoDurationLabel: '视频时长',
+        taskCreatedConfirm: '我知道了',
+        taskCreatedUntitled: '未命名视频',
+        taskCreatedDurationUnknown: '未知',
         langChinese: '中文',
         langEnglish: '英文'
       },
@@ -465,7 +547,7 @@
         videoUrlLabel: 'Video link',
         videoUrlPlaceholder: 'Paste YouTube or X link',
         emailLabel: 'Email',
-        emailPlaceholder: 'Enter your email to receive subtitle download links.',
+        emailPlaceholder: 'Enter your email to receive subtitle download links(including word-level).',
         targetLangLabel: 'Target language',
         targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
         generateBtn: 'Generate subtitles',
@@ -505,6 +587,13 @@
         warnCreateFail: 'Failed to create job',
         errorIpQuotaLimit: 'This network has reached today’s 90-minute limit. Please try again tomorrow.',
         errorIpQuotaInvalid: 'Unable to verify this network for quota tracking.',
+        taskCreatedHeading: 'Task created',
+        taskCreatedMessage: 'The video has been verified and your task is queued.',
+        taskCreatedVideoTitleLabel: 'Video title',
+        taskCreatedVideoDurationLabel: 'Duration',
+        taskCreatedConfirm: 'OK',
+        taskCreatedUntitled: 'Untitled video',
+        taskCreatedDurationUnknown: 'Unknown',
         langChinese: 'Chinese',
         langEnglish: 'English'
       }
@@ -612,8 +701,24 @@
       resultBox: document.getElementById('resultBox'),
       btnSubOrig: document.getElementById('btnSubOrig'),
       btnSubTrans: document.getElementById('btnSubTrans'),
-      recentTasks: document.getElementById('recentTasks')
+      recentTasks: document.getElementById('recentTasks'),
+      taskConfirmModal: document.getElementById('taskConfirmModal'),
+      taskConfirmTitle: document.getElementById('taskConfirmVideoTitle'),
+      taskConfirmDuration: document.getElementById('taskConfirmVideoDuration'),
+      taskConfirmOk: document.getElementById('taskConfirmOk')
     };
+
+    els.taskConfirmOk?.addEventListener('click', closeTaskConfirmModal);
+    els.taskConfirmModal?.addEventListener('click', (event) => {
+      if (event.target === els.taskConfirmModal) {
+        closeTaskConfirmModal();
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && els.taskConfirmModal && !els.taskConfirmModal.classList.contains('hidden')) {
+        closeTaskConfirmModal();
+      }
+    });
 
     let es = null;
     let currentJobId = null;
@@ -990,6 +1095,81 @@
       );
     }
 
+    function extractDurationSecondsFromInfo(info) {
+      if (!info) return 0;
+      if (typeof info === 'string') {
+        try {
+          info = JSON.parse(info);
+        } catch {
+          return 0;
+        }
+      }
+      if (typeof info !== 'object') return 0;
+      const sources = [];
+      if (info.details && typeof info.details === 'object') sources.push(info.details);
+      if (info.path && typeof info.path === 'object') sources.push(info.path);
+      sources.push(info);
+      for (const src of sources) {
+        if (!src || typeof src !== 'object') continue;
+        const candidate = src.duration_seconds ?? src.durationSeconds ?? src.duration ?? src.length;
+        const val = Number(candidate);
+        if (Number.isFinite(val) && val > 0) {
+          return val;
+        }
+      }
+      return 0;
+    }
+
+    function formatDurationClock(seconds) {
+      if (!Number.isFinite(seconds) || seconds <= 0) return '';
+      const total = Math.round(seconds);
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const secs = total % 60;
+      const mm = String(minutes).padStart(2, '0');
+      const ss = String(secs).padStart(2, '0');
+      if (hours > 0) {
+        return `${hours}:${mm}:${ss}`;
+      }
+      return `${mm}:${ss}`;
+    }
+
+    function formatDurationLabel(seconds) {
+      const formatted = formatDurationClock(seconds);
+      return formatted || t('taskCreatedDurationUnknown', 'Unknown');
+    }
+
+    function openTaskConfirmModal(title, durationSeconds) {
+      if (!els.taskConfirmModal) return;
+      const videoTitle = title || t('taskCreatedUntitled', 'Untitled video');
+      if (els.taskConfirmTitle) {
+        els.taskConfirmTitle.textContent = videoTitle;
+      }
+      if (els.taskConfirmDuration) {
+        els.taskConfirmDuration.textContent = formatDurationLabel(durationSeconds);
+      }
+      els.taskConfirmModal.classList.remove('hidden');
+      els.taskConfirmModal.setAttribute('aria-hidden', 'false');
+      if (els.taskConfirmOk) {
+        requestAnimationFrame(() => {
+          els.taskConfirmOk.focus();
+        });
+      }
+    }
+
+    function closeTaskConfirmModal() {
+      if (!els.taskConfirmModal) return;
+      els.taskConfirmModal.classList.add('hidden');
+      els.taskConfirmModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function showTaskCreatedDialog(payload) {
+      if (!payload) return;
+      const title = taskTitleFromPayload(payload) || t('taskCreatedUntitled', 'Untitled video');
+      const durationSeconds = extractDurationSecondsFromInfo(payload.info);
+      openTaskConfirmModal(title, durationSeconds);
+    }
+
     function handleSnapshot(payload) {
       setCurrentStatus(payload);
       applyResultButtons(payload);
@@ -1090,10 +1270,11 @@
         }
 
         currentJobId = jobId;
-
+        const jobPayload = data.job || data;
+        const derivedTitle = taskTitleFromPayload(jobPayload) || url;
         upsertRecentTask({
           jobId,
-          title: taskTitleFromPayload(data.job || data) || url,
+          title: derivedTitle,
           url,
           status: data?.job?.status || data?.status || 'PROCESSING',
           createdAt: Date.now(),
@@ -1101,13 +1282,14 @@
           verified: false
         });
 
-        setCurrentStatus(data.job || data);
+        setCurrentStatus(jobPayload);
+        showTaskCreatedDialog(jobPayload);
 
-        const st = String(data?.job?.status || data?.status || '').toUpperCase();
+        const st = String(jobPayload?.status || '').toUpperCase();
         if (!(st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED')) {
           subscribeJob(jobId);
         } else {
-          handleSnapshot(data.job || data);
+          handleSnapshot(jobPayload);
         }
       } finally {
         els.createByUrlBtn.disabled = false;
