@@ -712,12 +712,9 @@
       const list = getStoredRecentTasks();
       const idx = list.findIndex(x => x.jobId === jobId);
       if (idx >= 0) {
-        const wasVerified = !!list[idx].verified;
         list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
         saveRecentTasks(list);
-        if (wasVerified) {
-          renderRecentTasksLocal();
-        }
+        renderRecentTasksLocal();
       }
     }
 
@@ -1041,9 +1038,17 @@
       const jobId = payload?.jobId || currentJobId;
       if (!jobId) return;
 
+      const sources = extractSubtitleSources(payload);
+
       updateRecentTask(jobId, {
         status: payload?.status || 'PROCESSING',
-        title: taskTitleFromPayload(payload)
+        title: taskTitleFromPayload(payload),
+        subtitleBase: sources.baseTitle,
+        origSubtitleUrl: sources.origUrl,
+        transSubtitleUrl: sources.transUrl,
+        transLang: sources.transLang,
+        exemptVideoUrl: sources.exemptUrl,
+        verified: Boolean(payload?.status && payload.status.toUpperCase() === 'FINISHED')
       });
     }
 
