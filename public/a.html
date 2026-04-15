@@ -31,35 +31,10 @@
 </head>
 <body>
   <div class="player">
-    <video id="video" controls playsinline crossorigin="anonymous">
+    <video controls playsinline>
       <source src="https://media.multmatrix.com/NBC_Nightly_News_Full_Episode_-_April_12.withsub.mp4" type="video/mp4" />
-      <track
-        id="subtitleTrack"
-        src="https://media.multmatrix.com/NBC_Nightly_News_Full_Episode_-_April_12_241.0_19-32.zh.vtt"
-        kind="subtitles"
-        srclang="zh"
-        label="中文"
-        default
-      />
       你的浏览器不支持 video 标签。
     </video>
   </div>
-
-  <script>
-    const video = document.getElementById("video");
-
-    video.addEventListener("loadedmetadata", () => {
-      for (let i = 0; i < video.textTracks.length; i++) {
-        video.textTracks[i].mode = "hidden";
-      }
-
-      if (video.textTracks.length > 0) {
-        video.textTracks[0].mode = "showing";
-        console.log("字幕已强制开启");
-      } else {
-        console.log("没有检测到字幕轨道");
-      }
-    });
-  </script>
 </body>
 </html>
