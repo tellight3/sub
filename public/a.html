@@ -891,16 +891,46 @@
         const buttons = [];
         if (item.state === 'FINISHED' || item.state === 'READY') {
           const nameBase = item.subtitleBase || sanitizeFilename(item.title) || 'subtitle';
+
           if (item.exemptUrl) {
-            buttons.push(`<button class="btn btn-secondary btn-compact" data-play-url="${escapeHtml(item.exemptUrl)}">${t('playVideo', 'Play translated video')}</button>`);
+            buttons.push(`
+              <button
+                class="btn btn-secondary btn-compact"
+                data-switch-video="${escapeHtml(item.exemptUrl)}"
+                data-switch-subtitle="${escapeHtml(item.transUrl || '')}"
+              >
+                ${t('playVideo', '播放翻译视频')}
+              </button>
+            `);
           }
+        
           if (item.origUrl) {
-            buttons.push(`<button class="btn btn-secondary btn-compact" data-download-url="${escapeHtml(item.origUrl)}" data-download-name="${escapeHtml(nameBase)}.vtt" title="${escapeHtml(t('downloadOriginalHint', 'Download original subtitle'))}">${t('downloadOriginal', 'Original subtitle')}</button>`);
+            buttons.push(`
+              <button
+                class="btn btn-secondary btn-compact"
+                data-download-url="${escapeHtml(item.origUrl)}"
+                data-download-name="${escapeHtml(nameBase)}.vtt"
+                title="${escapeHtml(t('downloadOriginalHint', 'Download original subtitle'))}"
+              >
+                ${t('downloadOriginal', '原文')}
+              </button>
+            `);
           }
+
           if (item.transUrl) {
-            buttons.push(`<button class="btn btn-compact" data-download-url="${escapeHtml(item.transUrl)}" data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt" title="${escapeHtml(t('downloadTranslatedHint', 'Download translated subtitle'))}">${t('downloadTranslated', 'Translated subtitle')}</button>`);
+            buttons.push(`
+              <button
+                class="btn btn-compact"
+                data-download-url="${escapeHtml(item.transUrl)}"
+                data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt"
+                title="${escapeHtml(t('downloadTranslatedHint', 'Download translated subtitle'))}"
+              >
+                ${t('downloadTranslated', '译文')}
+              </button>
+            `);
           }
-        } else if (item.state === 'FAILED' || item.state === 'CANCELED') {
+        }
+        else if (item.state === 'FAILED' || item.state === 'CANCELED') {
           buttons.push(`<button class="btn btn-secondary btn-compact" data-view-job="${item.jobId}">${t('viewDetail', 'View details')}</button>`);
         }
         return `
@@ -931,13 +961,11 @@
         });
       });
 
-      els.recentTasks.querySelectorAll('[data-play-url]').forEach(btn => {
+      els.recentTasks.querySelectorAll('[data-switch-video]').forEach(btn => {
         btn.addEventListener('click', () => {
-          const url = btn.getAttribute('data-play-url');
-          const abs = absUrl(url);
-          if (abs) {
-            window.open(abs, '_blank', 'noopener');
-          }
+          const videoUrl = btn.getAttribute('data-switch-video');
+          const subtitleUrl = btn.getAttribute('data-switch-subtitle');
+          switchVideo(videoUrl, subtitleUrl);
         });
       });
     }
@@ -1244,6 +1272,40 @@
     document.addEventListener('DOMContentLoaded', () => {
       setLang(uiLang);
     });
+
+    function switchVideo(videoUrl, subtitleUrl = null) {
+      const video = document.getElementById('taskVideoPlayer');
+      if (!video || !videoUrl) return;
+  
+      const absVideoUrl = absUrl(videoUrl);
+      if (!absVideoUrl) return;
+  
+      // 切换视频
+      video.pause();
+      video.src = absVideoUrl;
+  
+      // 先清掉旧字幕轨
+      const oldTracks = video.querySelectorAll('track');
+      oldTracks.forEach(t => t.remove());
+  
+      // 加新字幕
+      if (subtitleUrl) {
+        const absSubtitleUrl = absUrl(subtitleUrl);
+        if (absSubtitleUrl) {
+          const track = document.createElement('track');
+          track.kind = 'subtitles';
+          track.label = 'Subtitle';
+          track.srclang = 'en';
+          track.src = absSubtitleUrl;
+          track.default = true;
+          video.appendChild(track);
+        }
+      }
+  
+      video.load();
+      video.play().catch(() => {});
+    }
+    
   </script>
 </body>
 
