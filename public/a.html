@@ -6,9 +6,10 @@
   <title>Video Player</title>
 </head>
 <body>
-  <video controls width="100%" playsinline crossorigin="anonymous">
+  <video id="player" controls width="100%" playsinline crossorigin="anonymous">
     <source src="https://media.multmatrix.com/NBC_Nightly_News_Full_Episode_-_April_12.withsub.mp4" type="video/mp4" />
     <track
+      id="zhTrack"
       src="https://media.multmatrix.com/NBC_Nightly_News_Full_Episode_-_April_12_241.0_19-32.zh.vtt"
       kind="subtitles"
       srclang="zh"
@@ -17,5 +18,27 @@
     />
     你的浏览器不支持 video 标签。
   </video>
+
+  <script>
+    const video = document.getElementById("player");
+    const track = document.getElementById("zhTrack");
+
+    video.addEventListener("loadedmetadata", () => {
+      if (video.textTracks && video.textTracks.length > 0) {
+        video.textTracks[0].mode = "showing";
+        console.log("字幕轨道数量:", video.textTracks.length);
+      } else {
+        console.log("没有识别到字幕轨道");
+      }
+    });
+
+    track.addEventListener("load", () => {
+      console.log("VTT 字幕文件已加载");
+    });
+
+    track.addEventListener("error", () => {
+      console.log("VTT 字幕文件加载失败");
+    });
+  </script>
 </body>
 </html>
