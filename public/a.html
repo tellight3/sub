@@ -337,13 +337,13 @@
       background: #000;
       border: 1px solid #2a3954;
     }
-
+    
     .video-player {
       width: 100%;
       display: block;
       background: #000;
     }
-
+    
     .player-note {
       margin-top: 10px;
       color: var(--muted);
@@ -351,6 +351,7 @@
       line-height: 1.5;
       word-break: break-all;
     }
+    
 
     @media (max-width: 640px) {
       h1 {
@@ -414,14 +415,6 @@
     </div>
 
     <div class="card">
-      <h2 data-i18n="recentTasksTitle">Recent tasks</h2>
-      <div id="recentTasks" class="task-list"></div>
-      <div class="footer-note" data-i18n="recentTasksNote">
-        Your recent tasks are stored in this browser.
-      </div>
-    </div>
-
-    <div class="card">
       <h2 data-i18n="defaultPlayerTitle">默认演示视频</h2>
       <div class="player-wrap">
         <video
@@ -439,10 +432,6 @@
             src="/media/NBC_Nightly_News_Full_Episode_-_April_12_241.0_19-32.zh.vtt"
             default>
         </video>
-      </div>
-      <div class="player-note">
-        <div><span data-i18n="defaultVideoLabel">默认视频</span>：/media/NBC_Nightly_News_Full_Episode_-_April_12.withsub.mp4</div>
-        <div><span data-i18n="defaultSubtitleLabel">默认字幕</span>：/media/NBC_Nightly_News_Full_Episode_-_April_12_241.0_19-32.zh.vtt</div>
       </div>
     </div>
 
@@ -518,10 +507,7 @@
         taskCreatedUntitled: '未命名视频',
         taskCreatedDurationUnknown: '未知',
         langChinese: '中文',
-        langEnglish: '英文',
-        defaultPlayerTitle: '默认演示视频',
-        defaultVideoLabel: '默认视频',
-        defaultSubtitleLabel: '默认字幕'
+        langEnglish: '英文'
       },
       en: {
         appTitle: 'Auto Subtitles & Translation',
@@ -566,10 +552,7 @@
         taskCreatedUntitled: 'Untitled video',
         taskCreatedDurationUnknown: 'Unknown',
         langChinese: 'Chinese',
-        langEnglish: 'English',
-        defaultPlayerTitle: 'Default demo video',
-        defaultVideoLabel: 'Default video',
-        defaultSubtitleLabel: 'Default subtitle'
+        langEnglish: 'English'
       }
     };
 
@@ -692,7 +675,7 @@
       if (!val) return null;
       if (/^https?:\/\//i.test(val)) return val;
       val = val.replace(/\\/g, '/');
-      if (val.startsWith('/download/') || val.startsWith('/files/') || val.startsWith('/media/')) return val;
+      if (val.startsWith('/download/') || val.startsWith('/files/')) return val;
       const dataToken = '/data/';
       const idx = val.indexOf(dataToken);
       if (idx >= 0) {
@@ -709,7 +692,7 @@
       const normalized = normalizeMediaUrl(u);
       if (!normalized) return null;
       if (/^https?:\/\//i.test(normalized)) return normalized;
-      return normalized;
+      return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
     }
 
     async function downloadMedia(u, filename) {
@@ -829,6 +812,7 @@
           if (!job) continue;
 
           const serverId = job.id || job.jobId || task.jobId;
+          const state = String(job.status || '').toUpperCase();
           const title = taskTitleFromPayload(job) || task.title || job.url || task.url || serverId;
           const { baseTitle, origUrl, transUrl, transLang, exemptUrl } = extractSubtitleSources(job);
           const merged = {
@@ -854,6 +838,7 @@
         }
 
         saveRecentTasks(kept);
+
         drawRecentTaskList(items);
       } catch (err) {
         console.error('renderRecentTasks failed', err);
