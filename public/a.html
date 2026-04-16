@@ -1298,9 +1298,27 @@
 
         els.createByUrlBtn.addEventListener('click', createJobByUrl);
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             setLang(uiLang);
+
+            await restoreLatestPlayableTask();
+
+            const tasks = getStoredRecentTasks().filter(x => x?.jobId);
+            if (!tasks.length) return;
+
+            for (const task of tasks) {
+                const job = await fetchJobSnapshot(task.jobId);
+                if (!job) continue;
+
+                const st = String(job.status || '').toUpperCase();
+                if (st !== 'FINISHED' && st !== 'FAILED' && st !== 'CANCELED') {
+                    subscribeJob(task.jobId);
+                    break;
+                }
+            }
         });
+
+
 
         // function switchVideo(videoUrl, subtitleUrl = null) {
         //     const video = document.getElementById('taskVideoPlayer');
@@ -1370,6 +1388,41 @@
 
             video.load();
             video.play().catch(() => { });
+        }
+
+        async function restoreLatestPlayableTask() {
+            const tasks = getStoredRecentTasks().filter(x => x?.jobId);
+            if (!tasks.length) return;
+
+            for (const task of tasks) {
+                const job = await fetchJobSnapshot(task.jobId);
+                if (!job) continue;
+
+                const result = job?.result || {};
+                const playback = result?.playback || {};
+                const subMap = result?.subtitle_translated || {};
+
+                let videoUrl =
+                    playback.exemptVideoUrl ||
+                    playback.videoUrl ||
+                    null;
+
+                let subtitleUrl = playback.subtitleUrl || null;
+
+                if (!subtitleUrl && subMap && typeof subMap === 'object') {
+                    for (const lang of Object.keys(subMap)) {
+                        if (subMap[lang]?.url) {
+                            subtitleUrl = subMap[lang].url;
+                            break;
+                        }
+                    }
+                }
+
+                if (videoUrl && subtitleUrl) {
+                    switchVideo(videoUrl, subtitleUrl);
+                    return;
+                }
+            }
         }
 
 
