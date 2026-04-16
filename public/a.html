@@ -1302,29 +1302,66 @@
             setLang(uiLang);
         });
 
+        // function switchVideo(videoUrl, subtitleUrl = null) {
+        //     const video = document.getElementById('taskVideoPlayer');
+        //     if (!video || !videoUrl) return;
+
+        //     const absVideoUrl = absUrl(videoUrl);
+        //     if (!absVideoUrl) return;
+
+        //     // 切换视频
+        //     video.pause();
+        //     video.src = absVideoUrl;
+
+        //     // 先清掉旧字幕轨
+        //     const oldTracks = video.querySelectorAll('track');
+        //     oldTracks.forEach(t => t.remove());
+
+        //     // 加新字幕
+        //     if (subtitleUrl) {
+        //         const absSubtitleUrl = absUrl(subtitleUrl);
+        //         if (absSubtitleUrl) {
+        //             const track = document.createElement('track');
+        //             track.kind = 'subtitles';
+        //             track.label = 'Subtitle';
+        //             track.srclang = 'en';
+        //             track.src = absSubtitleUrl;
+        //             track.default = true;
+        //             video.appendChild(track);
+        //         }
+        //     }
+
+        //     video.load();
+        //     video.play().catch(() => { });
+        // }
         function switchVideo(videoUrl, subtitleUrl = null) {
-            const video = document.getElementById('taskVideoPlayer');
+            const video = document.getElementById('defaultVideoPlayer');
             if (!video || !videoUrl) return;
 
             const absVideoUrl = absUrl(videoUrl);
             if (!absVideoUrl) return;
 
-            // 切换视频
             video.pause();
-            video.src = absVideoUrl;
+            video.removeAttribute('src');
 
-            // 先清掉旧字幕轨
+            const oldSources = video.querySelectorAll('source');
+            oldSources.forEach(s => s.remove());
+
             const oldTracks = video.querySelectorAll('track');
             oldTracks.forEach(t => t.remove());
 
-            // 加新字幕
+            const source = document.createElement('source');
+            source.src = absVideoUrl;
+            source.type = 'video/mp4';
+            video.appendChild(source);
+
             if (subtitleUrl) {
                 const absSubtitleUrl = absUrl(subtitleUrl);
                 if (absSubtitleUrl) {
                     const track = document.createElement('track');
                     track.kind = 'subtitles';
                     track.label = 'Subtitle';
-                    track.srclang = 'en';
+                    track.srclang = 'zh';
                     track.src = absSubtitleUrl;
                     track.default = true;
                     video.appendChild(track);
@@ -1334,6 +1371,7 @@
             video.load();
             video.play().catch(() => { });
         }
+
 
     </script>
 </body>
