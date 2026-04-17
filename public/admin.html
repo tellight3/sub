@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>任务管理</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #f6f7fb;
+      color: #111827;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    h1, h2 {
+      margin-top: 0;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    input, button {
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    button {
+      cursor: pointer;
+    }
+    .stats {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 12px 16px;
+      min-width: 120px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .muted {
+      color: #6b7280;
+    }
+    .danger {
+      color: #fff;
+      background: #dc2626;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .small {
+      font-size: 12px;
+      color: #6b7280;
+      word-break: break-all;
+    }
+    .status {
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>任务管理</h1>
+
+    <div class="card">
+      <div class="row">
+        <label for="dayInput">日期：</label>
+        <input id="dayInput" type="date" />
+        <button id="loadBtn">查询</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>统计</h2>
+      <div class="stats">
+        <div class="stat">总任务：<span id="count">0</span></div>
+        <div class="stat">完成：<span id="finished">0</span></div>
+        <div class="stat">失败：<span id="failed">0</span></div>
+        <div class="stat">取消：<span id="canceled">0</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>任务列表</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>任务ID</th>
+            <th>状态</th>
+            <th>消息</th>
+            <th>URL</th>
+            <th>邮箱</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="taskTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "https://mmx.multmatrix.com";
+
+    function formatTs(ts) {
+      if (!ts) return "";
+      const d = new Date(ts * 1000);
+      return d.toLocaleString();
+    }
+
+    async function loadTasks() {
+      const day = document.getElementById("dayInput").value;
+      if (!day) {
+        alert("请选择日期");
+        return;
+      }
+
+      const [statsResp, listResp] = await Promise.all([
+        fetch(`${API_BASE}/admin/tasks/stats-by-day?day=${encodeURIComponent(day)}`),
+        fetch(`${API_BASE}/admin/tasks/by-day?day=${encodeURIComponent(day)}`)
+      ]);
+
+      if (!statsResp.ok || !listResp.ok) {
+        alert("查询失败");
+        return;
+      }
+
+      const stats = await statsResp.json();
+      const data = await listResp.json();
+
+      document.getElementById("count").textContent = stats.count ?? 0;
+      document.getElementById("finished").textContent = stats.finished ?? 0;
+      document.getElementById("failed").textContent = stats.failed ?? 0;
+      document.getElementById("canceled").textContent = stats.canceled ?? 0;
+
+      const tbody = document.getElementById("taskTableBody");
+      tbody.innerHTML = "";
+
+      for (const job of data.jobs || []) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><div class="small">${job.id || ""}</div></td>
+          <td><span class="status">${job.status || ""}</span></td>
+          <td>${job.message || ""}</td>
+          <td><div class="small">${job.url || ""}</div></td>
+          <td>${job.email || ""}</td>
+          <td>${formatTs(job.created_at)}</td>
+          <td><button class="danger" data-id="${job.id}">删除</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      tbody.querySelectorAll(".danger").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const jobId = btn.getAttribute("data-id");
+          if (!jobId) return;
+          if (!confirm(`确定删除任务 ${jobId} ?`)) return;
+
+          const resp = await fetch(`${API_BASE}/admin/tasks/${encodeURIComponent(jobId)}`, {
+            method: "DELETE"
+          });
+
+          if (!resp.ok) {
+            alert("删除失败");
+            return;
+          }
+
+          await loadTasks();
+        });
+      });
+    }
+
+    document.getElementById("loadBtn").addEventListener("click", loadTasks);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      document.getElementById("dayInput").value = `${yyyy}-${mm}-${dd}`;
+      loadTasks();
+    });
+  </script>
+</body>
+</html>
