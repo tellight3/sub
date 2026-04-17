@@ -62,9 +62,6 @@
       text-align: left;
       vertical-align: top;
     }
-    .muted {
-      color: #6b7280;
-    }
     .danger {
       color: #fff;
       background: #dc2626;
@@ -82,14 +79,19 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <h1>任务管理</h1>
 
     <div class="card">
       <div class="row">
-        <label for="dayInput">日期：</label>
+        <label>日期：</label>
         <input id="dayInput" type="date" />
+
+        <label>口令：</label>
+        <input id="tokenInput" type="text" placeholder="输入管理口令" />
+
         <button id="loadBtn">查询</button>
       </div>
     </div>
@@ -126,6 +128,16 @@
   <script>
     const API_BASE = "https://mmx.multmatrix.com";
 
+    function getHeaders() {
+      const token = document.getElementById("tokenInput").value.trim();
+      if (token) {
+        localStorage.setItem("admin_token", token);
+      }
+      return {
+        "X-Admin-Token": token
+      };
+    }
+
     function formatTs(ts) {
       if (!ts) return "";
       const d = new Date(ts * 1000);
@@ -140,9 +152,18 @@
       }
 
       const [statsResp, listResp] = await Promise.all([
-        fetch(`${API_BASE}/admin/tasks/stats-by-day?day=${encodeURIComponent(day)}`),
-        fetch(`${API_BASE}/admin/tasks/by-day?day=${encodeURIComponent(day)}`)
+        fetch(`${API_BASE}/admin/tasks/stats-by-day?day=${encodeURIComponent(day)}`, {
+          headers: getHeaders()
+        }),
+        fetch(`${API_BASE}/admin/tasks/by-day?day=${encodeURIComponent(day)}`, {
+          headers: getHeaders()
+        })
       ]);
+
+      if (statsResp.status === 401 || listResp.status === 401) {
+        alert("口令错误");
+        return;
+      }
 
       if (!statsResp.ok || !listResp.ok) {
         alert("查询失败");
@@ -181,8 +202,14 @@
           if (!confirm(`确定删除任务 ${jobId} ?`)) return;
 
           const resp = await fetch(`${API_BASE}/admin/tasks/${encodeURIComponent(jobId)}`, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: getHeaders()
           });
+
+          if (resp.status === 401) {
+            alert("口令错误");
+            return;
+          }
 
           if (!resp.ok) {
             alert("删除失败");
@@ -197,11 +224,19 @@
     document.getElementById("loadBtn").addEventListener("click", loadTasks);
 
     document.addEventListener("DOMContentLoaded", () => {
+      // 默认今天
       const today = new Date();
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
       document.getElementById("dayInput").value = `${yyyy}-${mm}-${dd}`;
+
+      // 自动恢复口令
+      const savedToken = localStorage.getItem("admin_token");
+      if (savedToken) {
+        document.getElementById("tokenInput").value = savedToken;
+      }
+
       loadTasks();
     });
   </script>
