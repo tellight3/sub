@@ -28,7 +28,6 @@
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 16px;
-      overflow: hidden;
     }
 
     h1, h2 {
@@ -82,14 +81,15 @@
     .table-wrap {
       width: 100%;
       overflow-x: auto;
-      overflow-y: hidden;
+      overflow-y: auto;
       border: 1px solid #e5e7eb;
       border-radius: 10px;
+      background: #fff;
     }
 
     table {
-      width: 100%;
-      min-width: 2200px;
+      width: max-content;
+      min-width: 100%;
       border-collapse: collapse;
       font-size: 14px;
       background: #fff;
@@ -97,17 +97,19 @@
 
     th, td {
       border-bottom: 1px solid #e5e7eb;
+      border-right: 1px solid #f3f4f6;
       padding: 10px 8px;
       text-align: left;
       vertical-align: top;
-      white-space: nowrap;
     }
 
-    thead th {
+    th {
       background: #f9fafb;
+      font-weight: 600;
+      white-space: nowrap;
       position: sticky;
       top: 0;
-      z-index: 1;
+      z-index: 2;
     }
 
     tr:hover td {
@@ -127,49 +129,68 @@
       background: #b91c1c;
     }
 
+    .status {
+      font-weight: 600;
+    }
+
     .small {
       font-size: 12px;
       color: #6b7280;
     }
 
-    .status {
-      font-weight: 600;
+    .cell-id {
+      min-width: 220px;
+      max-width: 300px;
+      word-break: break-all;
+      white-space: normal;
     }
 
-    .cell-long {
-      white-space: pre-wrap;
-      word-break: break-word;
-      min-width: 260px;
-      max-width: 420px;
-      line-height: 1.4;
+    .cell-status {
+      min-width: 130px;
+      white-space: nowrap;
     }
 
     .cell-url {
-      white-space: pre-wrap;
+      min-width: 320px;
+      max-width: 520px;
       word-break: break-all;
-      min-width: 260px;
-      max-width: 420px;
+      white-space: pre-wrap;
       line-height: 1.4;
     }
 
-    .cell-id {
+    .cell-text {
       min-width: 220px;
-      word-break: break-all;
-      white-space: normal;
+      max-width: 420px;
+      word-break: break-word;
+      white-space: pre-wrap;
+      line-height: 1.4;
     }
 
     .cell-short {
       min-width: 120px;
+      white-space: nowrap;
+    }
+
+    .cell-medium {
+      min-width: 180px;
+      max-width: 260px;
+      word-break: break-all;
+      white-space: normal;
+    }
+
+    .cell-pre {
+      min-width: 320px;
+      max-width: 560px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.4;
+      font-size: 12px;
+      color: #374151;
     }
 
     .cell-time {
-      min-width: 160px;
-    }
-
-    .cell-worker {
-      min-width: 160px;
-      word-break: break-all;
-      white-space: normal;
+      min-width: 180px;
+      white-space: nowrap;
     }
 
     .toolbar-tip {
@@ -182,6 +203,11 @@
       text-align: center;
       color: #6b7280;
       padding: 20px;
+    }
+
+    pre {
+      margin: 0;
+      font-family: Consolas, Monaco, monospace;
     }
 
     a {
@@ -227,23 +253,36 @@
         <table>
           <thead>
             <tr>
-              <th>任务ID</th>
-              <th>状态</th>
-              <th>消息</th>
-              <th>原始URL</th>
-              <th>邮箱</th>
-              <th>创建时间</th>
-              <th>更新时间</th>
-              <th>Worker</th>
-              <th>结果URL</th>
-              <th>完整JSON</th>
+              <th>id</th>
+              <th>url</th>
+              <th>status</th>
+              <th>message</th>
+              <th>info</th>
+              <th>result</th>
+              <th>target_lang</th>
+              <th>output_dir</th>
+              <th>proxy</th>
+              <th>bytes_total</th>
+              <th>bytes_downloaded</th>
+              <th>filename</th>
+              <th>retries</th>
+              <th>priority</th>
+              <th>user_id</th>
+              <th>email</th>
+              <th>client_ip</th>
+              <th>ip_quota_day</th>
+              <th>ip_quota_seconds</th>
+              <th>created_at</th>
+              <th>updated_at</th>
+              <th>assigned_worker</th>
+              <th>assigned_at</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody id="taskTableBody"></tbody>
         </table>
       </div>
-      <div class="toolbar-tip">表格可以左右滚动，长文本会完整显示。</div>
+      <div class="toolbar-tip">表格支持左右滚动，所有字段都单独成列显示。</div>
     </div>
   </div>
 
@@ -270,24 +309,58 @@
     }
 
     function formatTs(ts) {
-      if (!ts) return "";
-      const d = new Date(ts * 1000);
+      if (ts === null || ts === undefined || ts === "") return "";
+      const n = Number(ts);
+      if (!Number.isFinite(n)) return String(ts);
+      const d = new Date(n * 1000);
       if (Number.isNaN(d.getTime())) return String(ts);
       return d.toLocaleString();
     }
 
-    function safeJson(obj) {
+    function formatMaybeDate(value) {
+      if (value === null || value === undefined || value === "") return "";
+
+      if (typeof value === "number" || /^\d+$/.test(String(value))) {
+        return formatTs(value);
+      }
+
+      const d = new Date(value);
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleString();
+      }
+
+      return String(value);
+    }
+
+    function formatJsonText(value) {
+      if (value === null || value === undefined || value === "") return "";
+
+      if (typeof value === "object") {
+        try {
+          return JSON.stringify(value, null, 2);
+        } catch {
+          return String(value);
+        }
+      }
+
+      const str = String(value);
+
       try {
-        return JSON.stringify(obj, null, 2);
+        const parsed = JSON.parse(str);
+        return JSON.stringify(parsed, null, 2);
       } catch {
-        return "";
+        return str;
       }
     }
 
     function makeLink(url) {
       if (!url) return "";
-      const safe = escapeHtml(url);
-      return `<a href="${safe}" target="_blank" rel="noopener noreferrer">${safe}</a>`;
+      const safeText = escapeHtml(url);
+      return `<a href="${safeText}" target="_blank" rel="noopener noreferrer">${safeText}</a>`;
+    }
+
+    function td(content, className = "") {
+      return `<td class="${className}">${content}</td>`;
     }
 
     async function loadTasks() {
@@ -298,12 +371,14 @@
       }
 
       try {
+        const headers = getHeaders();
+
         const [statsResp, listResp] = await Promise.all([
           fetch(`${API_BASE}/admin/tasks/stats-by-day?day=${encodeURIComponent(day)}`, {
-            headers: getHeaders()
+            headers
           }),
           fetch(`${API_BASE}/admin/tasks/by-day?day=${encodeURIComponent(day)}`, {
-            headers: getHeaders()
+            headers
           })
         ]);
 
@@ -330,29 +405,43 @@
 
         const jobs = data.jobs || [];
         if (!jobs.length) {
-          tbody.innerHTML = `<tr><td colspan="11" class="empty">没有任务</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="24" class="empty">没有任务</td></tr>`;
           return;
         }
 
         for (const job of jobs) {
           const tr = document.createElement("tr");
 
-          tr.innerHTML = `
-            <td class="cell-id"><div class="small">${escapeHtml(job.id || "")}</div></td>
-            <td class="cell-short"><span class="status">${escapeHtml(job.status || "")}</span></td>
-            <td class="cell-long">${escapeHtml(job.message || "")}</td>
-            <td class="cell-url">${makeLink(job.url || "")}</td>
-            <td class="cell-short">${escapeHtml(job.email || "")}</td>
-            <td class="cell-time">${escapeHtml(formatTs(job.created_at))}</td>
-            <td class="cell-time">${escapeHtml(formatTs(job.updated_at))}</td>
-            <td class="cell-worker">${escapeHtml(job.assigned_worker || "")}</td>
-            <td class="cell-url">${makeLink(job.result_url || job.video_url || "")}</td>
-            <td class="cell-long"><pre style="margin:0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(safeJson(job))}</pre></td>
-            <td class="cell-short">
-              <button class="danger" data-id="${escapeHtml(job.id || "")}">删除</button>
-            </td>
-          `;
+          const html =
+            td(`<div class="small">${escapeHtml(job.id)}</div>`, "cell-id") +
+            td(makeLink(job.url), "cell-url") +
+            td(`<span class="status">${escapeHtml(job.status)}</span>`, "cell-status") +
+            td(escapeHtml(job.message), "cell-text") +
+            td(`<pre>${escapeHtml(formatJsonText(job.info))}</pre>`, "cell-pre") +
+            td(`<pre>${escapeHtml(formatJsonText(job.result))}</pre>`, "cell-pre") +
+            td(escapeHtml(job.target_lang), "cell-short") +
+            td(escapeHtml(job.output_dir), "cell-medium") +
+            td(escapeHtml(job.proxy), "cell-medium") +
+            td(escapeHtml(job.bytes_total), "cell-short") +
+            td(escapeHtml(job.bytes_downloaded), "cell-short") +
+            td(escapeHtml(job.filename), "cell-medium") +
+            td(escapeHtml(job.retries), "cell-short") +
+            td(escapeHtml(job.priority), "cell-short") +
+            td(escapeHtml(job.user_id), "cell-medium") +
+            td(escapeHtml(job.email), "cell-medium") +
+            td(escapeHtml(job.client_ip), "cell-medium") +
+            td(escapeHtml(job.ip_quota_day), "cell-short") +
+            td(escapeHtml(job.ip_quota_seconds), "cell-short") +
+            td(escapeHtml(formatTs(job.created_at)), "cell-time") +
+            td(escapeHtml(formatTs(job.updated_at)), "cell-time") +
+            td(escapeHtml(job.assigned_worker), "cell-medium") +
+            td(escapeHtml(formatMaybeDate(job.assigned_at)), "cell-time") +
+            td(
+              `<button class="danger" data-id="${escapeHtml(job.id)}">删除</button>`,
+              "cell-short"
+            );
 
+          tr.innerHTML = html;
           tbody.appendChild(tr);
         }
 
