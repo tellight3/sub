@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>任务管理</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: Arial, sans-serif;
       margin: 0;
@@ -12,38 +16,61 @@
       background: #f6f7fb;
       color: #111827;
     }
+
     .container {
-      max-width: 1200px;
+      max-width: 100%;
       margin: 0 auto;
     }
+
     .card {
       background: #fff;
       border: 1px solid #e5e7eb;
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 16px;
+      overflow: hidden;
     }
+
     h1, h2 {
       margin-top: 0;
     }
+
     .row {
       display: flex;
       gap: 12px;
       align-items: center;
       flex-wrap: wrap;
     }
+
     input, button {
       padding: 10px 12px;
       font-size: 14px;
     }
+
+    input[type="text"],
+    input[type="date"] {
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+    }
+
     button {
       cursor: pointer;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
     }
+
+    button:hover {
+      background: #f3f4f6;
+    }
+
     .stats {
       display: flex;
       gap: 16px;
       flex-wrap: wrap;
     }
+
     .stat {
       background: #f9fafb;
       border: 1px solid #e5e7eb;
@@ -51,31 +78,119 @@
       padding: 12px 16px;
       min-width: 120px;
     }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+    }
+
     table {
       width: 100%;
+      min-width: 2200px;
       border-collapse: collapse;
       font-size: 14px;
+      background: #fff;
     }
+
     th, td {
       border-bottom: 1px solid #e5e7eb;
       padding: 10px 8px;
       text-align: left;
       vertical-align: top;
+      white-space: nowrap;
     }
+
+    thead th {
+      background: #f9fafb;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:hover td {
+      background: #fafafa;
+    }
+
     .danger {
       color: #fff;
       background: #dc2626;
       border: none;
       border-radius: 8px;
       padding: 8px 10px;
+      white-space: nowrap;
     }
+
+    .danger:hover {
+      background: #b91c1c;
+    }
+
     .small {
       font-size: 12px;
       color: #6b7280;
-      word-break: break-all;
     }
+
     .status {
       font-weight: 600;
+    }
+
+    .cell-long {
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-width: 260px;
+      max-width: 420px;
+      line-height: 1.4;
+    }
+
+    .cell-url {
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-width: 260px;
+      max-width: 420px;
+      line-height: 1.4;
+    }
+
+    .cell-id {
+      min-width: 220px;
+      word-break: break-all;
+      white-space: normal;
+    }
+
+    .cell-short {
+      min-width: 120px;
+    }
+
+    .cell-time {
+      min-width: 160px;
+    }
+
+    .cell-worker {
+      min-width: 160px;
+      word-break: break-all;
+      white-space: normal;
+    }
+
+    .toolbar-tip {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+
+    .empty {
+      text-align: center;
+      color: #6b7280;
+      padding: 20px;
+    }
+
+    a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -86,10 +201,10 @@
 
     <div class="card">
       <div class="row">
-        <label>日期：</label>
+        <label for="dayInput">日期：</label>
         <input id="dayInput" type="date" />
 
-        <label>口令：</label>
+        <label for="tokenInput">口令：</label>
         <input id="tokenInput" type="text" placeholder="输入管理口令" />
 
         <button id="loadBtn">查询</button>
@@ -108,25 +223,41 @@
 
     <div class="card">
       <h2>任务列表</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>任务ID</th>
-            <th>状态</th>
-            <th>消息</th>
-            <th>URL</th>
-            <th>邮箱</th>
-            <th>创建时间</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody id="taskTableBody"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>任务ID</th>
+              <th>状态</th>
+              <th>消息</th>
+              <th>原始URL</th>
+              <th>邮箱</th>
+              <th>创建时间</th>
+              <th>更新时间</th>
+              <th>Worker</th>
+              <th>结果URL</th>
+              <th>完整JSON</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="taskTableBody"></tbody>
+        </table>
+      </div>
+      <div class="toolbar-tip">表格可以左右滚动，长文本会完整显示。</div>
     </div>
   </div>
 
   <script>
     const API_BASE = "https://mmx.multmatrix.com";
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
 
     function getHeaders() {
       const token = document.getElementById("tokenInput").value.trim();
@@ -141,7 +272,22 @@
     function formatTs(ts) {
       if (!ts) return "";
       const d = new Date(ts * 1000);
+      if (Number.isNaN(d.getTime())) return String(ts);
       return d.toLocaleString();
+    }
+
+    function safeJson(obj) {
+      try {
+        return JSON.stringify(obj, null, 2);
+      } catch {
+        return "";
+      }
+    }
+
+    function makeLink(url) {
+      if (!url) return "";
+      const safe = escapeHtml(url);
+      return `<a href="${safe}" target="_blank" rel="noopener noreferrer">${safe}</a>`;
     }
 
     async function loadTasks() {
@@ -151,87 +297,109 @@
         return;
       }
 
-      const [statsResp, listResp] = await Promise.all([
-        fetch(`${API_BASE}/admin/tasks/stats-by-day?day=${encodeURIComponent(day)}`, {
-          headers: getHeaders()
-        }),
-        fetch(`${API_BASE}/admin/tasks/by-day?day=${encodeURIComponent(day)}`, {
-          headers: getHeaders()
-        })
-      ]);
-
-      if (statsResp.status === 401 || listResp.status === 401) {
-        alert("口令错误");
-        return;
-      }
-
-      if (!statsResp.ok || !listResp.ok) {
-        alert("查询失败");
-        return;
-      }
-
-      const stats = await statsResp.json();
-      const data = await listResp.json();
-
-      document.getElementById("count").textContent = stats.count ?? 0;
-      document.getElementById("finished").textContent = stats.finished ?? 0;
-      document.getElementById("failed").textContent = stats.failed ?? 0;
-      document.getElementById("canceled").textContent = stats.canceled ?? 0;
-
-      const tbody = document.getElementById("taskTableBody");
-      tbody.innerHTML = "";
-
-      for (const job of data.jobs || []) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td><div class="small">${job.id || ""}</div></td>
-          <td><span class="status">${job.status || ""}</span></td>
-          <td>${job.message || ""}</td>
-          <td><div class="small">${job.url || ""}</div></td>
-          <td>${job.email || ""}</td>
-          <td>${formatTs(job.created_at)}</td>
-          <td><button class="danger" data-id="${job.id}">删除</button></td>
-        `;
-        tbody.appendChild(tr);
-      }
-
-      tbody.querySelectorAll(".danger").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const jobId = btn.getAttribute("data-id");
-          if (!jobId) return;
-          if (!confirm(`确定删除任务 ${jobId} ?`)) return;
-
-          const resp = await fetch(`${API_BASE}/admin/tasks/${encodeURIComponent(jobId)}`, {
-            method: "DELETE",
+      try {
+        const [statsResp, listResp] = await Promise.all([
+          fetch(`${API_BASE}/admin/tasks/stats-by-day?day=${encodeURIComponent(day)}`, {
             headers: getHeaders()
+          }),
+          fetch(`${API_BASE}/admin/tasks/by-day?day=${encodeURIComponent(day)}`, {
+            headers: getHeaders()
+          })
+        ]);
+
+        if (statsResp.status === 401 || listResp.status === 401) {
+          alert("口令错误");
+          return;
+        }
+
+        if (!statsResp.ok || !listResp.ok) {
+          alert("查询失败");
+          return;
+        }
+
+        const stats = await statsResp.json();
+        const data = await listResp.json();
+
+        document.getElementById("count").textContent = stats.count ?? 0;
+        document.getElementById("finished").textContent = stats.finished ?? 0;
+        document.getElementById("failed").textContent = stats.failed ?? 0;
+        document.getElementById("canceled").textContent = stats.canceled ?? 0;
+
+        const tbody = document.getElementById("taskTableBody");
+        tbody.innerHTML = "";
+
+        const jobs = data.jobs || [];
+        if (!jobs.length) {
+          tbody.innerHTML = `<tr><td colspan="11" class="empty">没有任务</td></tr>`;
+          return;
+        }
+
+        for (const job of jobs) {
+          const tr = document.createElement("tr");
+
+          tr.innerHTML = `
+            <td class="cell-id"><div class="small">${escapeHtml(job.id || "")}</div></td>
+            <td class="cell-short"><span class="status">${escapeHtml(job.status || "")}</span></td>
+            <td class="cell-long">${escapeHtml(job.message || "")}</td>
+            <td class="cell-url">${makeLink(job.url || "")}</td>
+            <td class="cell-short">${escapeHtml(job.email || "")}</td>
+            <td class="cell-time">${escapeHtml(formatTs(job.created_at))}</td>
+            <td class="cell-time">${escapeHtml(formatTs(job.updated_at))}</td>
+            <td class="cell-worker">${escapeHtml(job.assigned_worker || "")}</td>
+            <td class="cell-url">${makeLink(job.result_url || job.video_url || "")}</td>
+            <td class="cell-long"><pre style="margin:0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(safeJson(job))}</pre></td>
+            <td class="cell-short">
+              <button class="danger" data-id="${escapeHtml(job.id || "")}">删除</button>
+            </td>
+          `;
+
+          tbody.appendChild(tr);
+        }
+
+        tbody.querySelectorAll(".danger").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const jobId = btn.getAttribute("data-id");
+            if (!jobId) return;
+            if (!confirm(`确定删除任务 ${jobId} ?`)) return;
+
+            try {
+              const resp = await fetch(`${API_BASE}/admin/tasks/${encodeURIComponent(jobId)}`, {
+                method: "DELETE",
+                headers: getHeaders()
+              });
+
+              if (resp.status === 401) {
+                alert("口令错误");
+                return;
+              }
+
+              if (!resp.ok) {
+                alert("删除失败");
+                return;
+              }
+
+              await loadTasks();
+            } catch (err) {
+              console.error(err);
+              alert("删除失败");
+            }
           });
-
-          if (resp.status === 401) {
-            alert("口令错误");
-            return;
-          }
-
-          if (!resp.ok) {
-            alert("删除失败");
-            return;
-          }
-
-          await loadTasks();
         });
-      });
+      } catch (err) {
+        console.error(err);
+        alert("查询失败");
+      }
     }
 
     document.getElementById("loadBtn").addEventListener("click", loadTasks);
 
     document.addEventListener("DOMContentLoaded", () => {
-      // 默认今天
       const today = new Date();
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
       document.getElementById("dayInput").value = `${yyyy}-${mm}-${dd}`;
 
-      // 自动恢复口令
       const savedToken = localStorage.getItem("admin_token");
       if (savedToken) {
         document.getElementById("tokenInput").value = savedToken;
