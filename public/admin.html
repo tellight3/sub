@@ -178,19 +178,71 @@
       white-space: normal;
     }
 
-    .cell-pre {
-      min-width: 320px;
-      max-width: 560px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      line-height: 1.4;
-      font-size: 12px;
-      color: #374151;
-    }
-
     .cell-time {
       min-width: 180px;
       white-space: nowrap;
+    }
+
+    .json-cell {
+      min-width: 180px;
+      max-width: 260px;
+      white-space: normal;
+    }
+
+    .json-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .json-meta {
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .toggle-btn {
+      display: inline-block;
+      width: fit-content;
+      padding: 6px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      color: #111827;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .toggle-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .json-panel {
+      display: none;
+      margin-top: 8px;
+      width: 720px;
+      max-width: 80vw;
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #f9fafb;
+      padding: 10px;
+    }
+
+    .json-panel.open {
+      display: block;
+    }
+
+    .json-pre {
+      margin: 0;
+      white-space: pre;
+      word-break: normal;
+      font-size: 12px;
+      line-height: 1.45;
+      font-family: Consolas, Monaco, monospace;
+      color: #374151;
     }
 
     .toolbar-tip {
@@ -203,11 +255,6 @@
       text-align: center;
       color: #6b7280;
       padding: 20px;
-    }
-
-    pre {
-      margin: 0;
-      font-family: Consolas, Monaco, monospace;
     }
 
     a {
@@ -282,7 +329,7 @@
           <tbody id="taskTableBody"></tbody>
         </table>
       </div>
-      <div class="toolbar-tip">表格支持左右滚动，所有字段都单独成列显示。</div>
+      <div class="toolbar-tip">表格支持左右滚动。info / result 默认收起，点击后展开查看完整 JSON。</div>
     </div>
   </div>
 
@@ -353,6 +400,33 @@
       }
     }
 
+    function jsonBrief(value) {
+      if (value === null || value === undefined || value === "") {
+        return "空";
+      }
+
+      if (typeof value === "object") {
+        if (Array.isArray(value)) {
+          return `数组，${value.length} 项`;
+        }
+        return `对象，${Object.keys(value).length} 个键`;
+      }
+
+      const str = String(value);
+      try {
+        const parsed = JSON.parse(str);
+        if (Array.isArray(parsed)) {
+          return `数组，${parsed.length} 项`;
+        }
+        if (parsed && typeof parsed === "object") {
+          return `对象，${Object.keys(parsed).length} 个键`;
+        }
+        return `JSON 标量，${str.length} 字符`;
+      } catch {
+        return `文本，${str.length} 字符`;
+      }
+    }
+
     function makeLink(url) {
       if (!url) return "";
       const safeText = escapeHtml(url);
@@ -361,6 +435,30 @@
 
     function td(content, className = "") {
       return `<td class="${className}">${content}</td>`;
+    }
+
+    function makeJsonCell(name, value, rowId) {
+      const text = formatJsonText(value);
+      const brief = jsonBrief(value);
+      const panelId = `${name}-${rowId}`;
+
+      if (!text) {
+        return `
+          <div class="json-summary">
+            <div class="json-meta">空</div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="json-summary">
+          <div class="json-meta">${escapeHtml(brief)}</div>
+          <button type="button" class="toggle-btn" data-target="${escapeHtml(panelId)}">查看</button>
+          <div id="${escapeHtml(panelId)}" class="json-panel">
+            <pre class="json-pre">${escapeHtml(text)}</pre>
+          </div>
+        </div>
+      `;
     }
 
     async function loadTasks() {
@@ -406,10 +504,12 @@
         const jobs = data.jobs || [];
         if (!jobs.length) {
           tbody.innerHTML = `<tr><td colspan="24" class="empty">没有任务</td></tr>`;
+          bindJsonToggles();
           return;
         }
 
         for (const job of jobs) {
+          const rowId = String(job.id || Math.random()).replace(/[^a-zA-Z0-9_-]/g, "_");
           const tr = document.createElement("tr");
 
           const html =
@@ -417,8 +517,8 @@
             td(makeLink(job.url), "cell-url") +
             td(`<span class="status">${escapeHtml(job.status)}</span>`, "cell-status") +
             td(escapeHtml(job.message), "cell-text") +
-            td(`<pre>${escapeHtml(formatJsonText(job.info))}</pre>`, "cell-pre") +
-            td(`<pre>${escapeHtml(formatJsonText(job.result))}</pre>`, "cell-pre") +
+            td(makeJsonCell("info", job.info, rowId), "json-cell") +
+            td(makeJsonCell("result", job.result, rowId), "json-cell") +
             td(escapeHtml(job.target_lang), "cell-short") +
             td(escapeHtml(job.output_dir), "cell-medium") +
             td(escapeHtml(job.proxy), "cell-medium") +
@@ -474,10 +574,27 @@
             }
           });
         });
+
+        bindJsonToggles();
       } catch (err) {
         console.error(err);
         alert("查询失败");
       }
+    }
+
+    function bindJsonToggles() {
+      document.querySelectorAll(".toggle-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const targetId = btn.getAttribute("data-target");
+          if (!targetId) return;
+
+          const panel = document.getElementById(targetId);
+          if (!panel) return;
+
+          panel.classList.toggle("open");
+          btn.textContent = panel.classList.contains("open") ? "收起" : "查看";
+        });
+      });
     }
 
     document.getElementById("loadBtn").addEventListener("click", loadTasks);
