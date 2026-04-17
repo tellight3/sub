@@ -424,7 +424,7 @@
 
 
         <div class="card">
-
+            <h2 data-i18n="defaultPlayerTitle">默认演示视频</h2>
             <div class="player-wrap">
                 <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay
                     muted>
@@ -815,11 +815,13 @@
                     const state = String(job.status || '').toUpperCase();
                     const title = taskTitleFromPayload(job) || task.title || job.url || task.url || serverId;
                     const { baseTitle, origUrl, transUrl, transLang, exemptUrl } = extractSubtitleSources(job);
+
                     const merged = {
                         ...task,
                         jobId: serverId,
                         title,
                         status: job.status || task.status || 'PROCESSING',
+                        message: job.message || task.message || '',
                         updatedAt: job.updated_at ? job.updated_at * 1000 : Date.now(),
                         url: job.url || task.url,
                         subtitleBase: baseTitle,
@@ -860,6 +862,7 @@
                 title,
                 state,
                 statusText: statusLabel(state),
+                message: task.message || '',
                 subtitleBase: task.subtitleBase,
                 origUrl: task.origSubtitleUrl,
                 transUrl: task.transSubtitleUrl,
@@ -876,7 +879,9 @@
             }
 
             els.recentTasks.innerHTML = limited.map(item => {
-                const statusLine = `${t('statusPrefix', 'Status')}: ${escapeHtml(item.statusText)}`;
+                const statusLine = item.message
+                    ? `${t('statusPrefix', 'Status')}: ${escapeHtml(item.statusText)} · ${escapeHtml(item.message)}`
+                    : `${t('statusPrefix', 'Status')}: ${escapeHtml(item.statusText)}`;
                 const buttons = [];
                 if (item.state === 'FINISHED' || item.state === 'READY') {
                     const nameBase = item.subtitleBase || sanitizeFilename(item.title) || 'subtitle';
@@ -1125,6 +1130,7 @@
 
             updateRecentTask(jobId, {
                 status: payload?.status || 'PROCESSING',
+                message: payload?.message || '',
                 title: taskTitleFromPayload(payload),
                 subtitleBase: sources.baseTitle,
                 origSubtitleUrl: sources.origUrl,
