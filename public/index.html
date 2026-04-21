@@ -1186,6 +1186,12 @@
 
     function closeTaskConfirmModal() {
       if (!els.taskConfirmModal) return;
+
+      if (document.activeElement && els.taskConfirmModal.contains(document.activeElement)) {
+        document.activeElement.blur();
+        els.createByUrlBtn?.focus();
+      }
+
       els.taskConfirmModal.classList.add('hidden');
       els.taskConfirmModal.setAttribute('aria-hidden', 'true');
     }
@@ -1310,8 +1316,9 @@
       };
 
       es.onerror = async () => {
+        console.log('SSE error, will reconnect', jobId);
         closeSSE();
-
+        console.log('SSE error, will reconnect', jobId);
         if (sseReconnectTimer) {
           clearTimeout(sseReconnectTimer);
         }
@@ -1320,10 +1327,22 @@
           const job = await fetchJobSnapshot(jobId);
           const st = String(job?.status || '').toUpperCase();
 
-          if (!job) return;
-          if (st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED') {
+          if (!job) {
+
+            console.log('SSE reconnect canceled: job not found', jobId);
+
             return;
+
           }
+          if (st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED') {
+
+            console.log('SSE reconnect skipped: terminal status', jobId, st);
+
+            return;
+
+          }
+
+          console.log('SSE reconnect now', jobId);
 
           subscribeJob(jobId);
         }, 3000);
