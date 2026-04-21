@@ -1486,7 +1486,11 @@
         const resp = await fetch(`${API_BASE}/api/playback/current`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobIds })
+          body: JSON.stringify({
+            jobIds,
+            client_id: clientId,
+            fingerprint: currentFingerprint
+          })
         });
 
         if (!resp.ok) return;
@@ -1497,7 +1501,6 @@
         }
       } catch { }
     }
-
 
     //clientid and fingerprintJS
     function generateClientId() {
