@@ -1232,25 +1232,43 @@
     }
 
     // function subscribeJob(jobId) {
-    //     closeSSE();
-    //     currentJobId = jobId;
+    //   closeSSE();
+    //   currentJobId = jobId;
 
-    //     es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
-    //     es.onmessage = (ev) => {
-    //         let msg;
-    //         try { msg = JSON.parse(ev.data); } catch { return; }
-    //         if (msg.type === 'heartbeat') return;
+    //   es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
 
-    //         handleSnapshot(msg);
+    //   es.onmessage = (ev) => {
+    //     let msg;
+    //     try {
+    //       msg = JSON.parse(ev.data);
+    //     } catch {
+    //       return;
+    //     }
 
-    //         const st = String(msg.status || '').toUpperCase();
-    //         if (st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED') {
-    //             closeSSE();
-    //         }
-    //     };
+    //     if (msg.type === 'heartbeat') return;
 
-    //     es.onerror = () => { };
+    //     if (msg.type === 'snapshot') {
+    //       handleSnapshot(msg);
+
+    //       const st = String(msg.status || '').toUpperCase();
+    //       if (st === 'FAILED' || st === 'CANCELED') {
+    //         closeSSE();
+    //       }
+    //       return;
+    //     }
+
+    //     if (msg.type === 'play_ready') {
+    //       if (msg.videoUrl) {
+    //         switchVideo(msg.videoUrl, msg.subtitleUrl || null);
+    //       }
+    //       closeSSE();
+    //       return;
+    //     }
+    //   };
+
+    //   es.onerror = () => { };
     // }
+    let sseReconnectTimer = null;
 
     function subscribeJob(jobId) {
       closeSSE();
@@ -1285,11 +1303,32 @@
           closeSSE();
           return;
         }
+
+        if (msg.type === 'error') {
+          console.warn('sse error event', msg);
+        }
       };
 
-      es.onerror = () => { };
-    }
+      es.onerror = async () => {
+        closeSSE();
 
+        if (sseReconnectTimer) {
+          clearTimeout(sseReconnectTimer);
+        }
+
+        sseReconnectTimer = setTimeout(async () => {
+          const job = await fetchJobSnapshot(jobId);
+          const st = String(job?.status || '').toUpperCase();
+
+          if (!job) return;
+          if (st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED') {
+            return;
+          }
+
+          subscribeJob(jobId);
+        }, 3000);
+      };
+    }
     async function createJobByUrl() {
       if (creatingJob) return;
 
