@@ -124,6 +124,43 @@
       font-size: 15px;
     }
 
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap .input {
+      padding-right: 40px;
+    }
+
+    .input-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .input-clear:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+    }
+
+    .input-wrap.has-value .input-clear {
+      display: inline-flex;
+    }
+
     .input::placeholder {
       color: #7b8698;
     }
@@ -390,14 +427,20 @@
       <div class="field">
         <label class="label" for="videoUrl"><span data-i18n="videoUrlLabel">Video link</span><span
             class="required">*</span></label>
-        <input id="videoUrl" class="input" data-i18n-placeholder="videoUrlPlaceholder"
-          placeholder="Paste YouTube or X link" />
+        <div class="input-wrap" id="videoUrlWrap">
+          <input id="videoUrl" class="input" data-i18n-placeholder="videoUrlPlaceholder"
+            placeholder="Paste YouTube or X link" />
+          <button type="button" class="input-clear" id="clearVideoUrl" aria-label="Clear">×</button>
+        </div>
       </div>
 
       <div class="field">
         <label class="label" for="email" data-i18n="emailLabel">Email (optional)</label>
-        <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
-          placeholder="Enter your email (optional)" />
+        <div class="input-wrap" id="emailWrap">
+          <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
+            placeholder="Enter your email (optional)" />
+          <button type="button" class="input-clear" id="clearEmail" aria-label="Clear">×</button>
+        </div>
       </div>
 
       <div class="field">
@@ -427,8 +470,7 @@
       <div class="player-wrap">
         <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay muted>
           <source src="/media/default.mp4" type="video/mp4">
-          <track kind="subtitles" srclang="zh" label="中文"
-            src="/media/default.vtt" default>
+          <track kind="subtitles" srclang="zh" label="中文" src="/media/default.vtt" default>
         </video>
       </div>
     </div>
@@ -641,6 +683,10 @@
     const els = {
       videoUrl: document.getElementById('videoUrl'),
       email: document.getElementById('email'),
+      videoUrlWrap: document.getElementById('videoUrlWrap'),
+      emailWrap: document.getElementById('emailWrap'),
+      clearVideoUrl: document.getElementById('clearVideoUrl'),
+      clearEmail: document.getElementById('clearEmail'),
       targetLang: document.getElementById('targetLang'),
       createByUrlBtn: document.getElementById('createByUrlBtn'),
       recentTasks: document.getElementById('recentTasks'),
@@ -666,6 +712,32 @@
     let currentJobId = null;
     let recentTasksRenderToken = 0;
     let creatingJob = false;
+
+    function updateClearButtonState(inputEl, wrapEl) {
+      if (!inputEl || !wrapEl) return;
+      wrapEl.classList.toggle('has-value', !!inputEl.value.trim());
+    }
+
+    function bindClearableInput(inputEl, wrapEl, clearBtn) {
+      if (!inputEl || !wrapEl || !clearBtn) return;
+
+      const refresh = () => updateClearButtonState(inputEl, wrapEl);
+
+      inputEl.addEventListener('input', refresh);
+      inputEl.addEventListener('change', refresh);
+
+      clearBtn.addEventListener('click', () => {
+        inputEl.value = '';
+        updateClearButtonState(inputEl, wrapEl);
+        inputEl.focus();
+      });
+
+      refresh();
+    }
+
+    bindClearableInput(els.videoUrl, els.videoUrlWrap, els.clearVideoUrl);
+    bindClearableInput(els.email, els.emailWrap, els.clearEmail);
+
 
     function normalizeMediaUrl(u) {
       if (!u && u !== '') return null;
