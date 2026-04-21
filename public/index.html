@@ -389,7 +389,6 @@
       word-break: break-all;
     }
 
-
     @media (max-width: 640px) {
       h1 {
         font-size: 24px;
@@ -406,7 +405,6 @@
     }
   </style>
 </head>
-
 
 <body>
   <div class="container">
@@ -466,7 +464,6 @@
       </div>
     </div>
 
-
     <div class="card">
       <div class="player-wrap">
         <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay muted>
@@ -475,7 +472,6 @@
         </video>
       </div>
     </div>
-
   </div>
 
   <div id="taskConfirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="taskConfirmHeading"
@@ -721,9 +717,9 @@
     let sseReconnectTimer = null;
     let sseWatchdogTimer = null;
     let lastSseAt = 0;
-    const SSE_STALE_MS = 60 * 1000;   // 1分钟
-    const SSE_WATCHDOG_INTERVAL_MS = 10 * 1000; // 每10秒检查一次
-    
+    const SSE_STALE_MS = 60 * 1000;
+    const SSE_WATCHDOG_INTERVAL_MS = 10 * 1000;
+
     function updateClearButtonState(inputEl, wrapEl) {
       if (!inputEl || !wrapEl) return;
       wrapEl.classList.toggle('has-value', !!inputEl.value.trim());
@@ -753,23 +749,53 @@
       lastSseAt = Date.now();
     }
 
+    function isWorkingStatus(status) {
+      const st = String(status || '').toUpperCase();
+      return !!st && !['FINISHED', 'FAILED', 'CANCELED'].includes(st);
+    }
+
+    function getLatestTask() {
+      const tasks = getStoredRecentTasks().filter(x => x?.jobId);
+      return tasks.length ? tasks[0] : null;
+    }
+
     function isCurrentJobStillRunning() {
       if (!currentJobId) return false;
 
-      const tasks = getStoredRecentTasks();
-      const task = tasks.find(x => x?.jobId === currentJobId);
-      if (!task) return false;
+      const latestTask = getLatestTask();
+      if (!latestTask) return false;
+      if (latestTask.jobId !== currentJobId) return false;
 
-      const st = String(task.status || '').toUpperCase();
-      return !(st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED');
+      return isWorkingStatus(latestTask.status);
+    }
+
+    function stopSseWatchdog() {
+      if (sseWatchdogTimer) {
+        clearInterval(sseWatchdogTimer);
+        sseWatchdogTimer = null;
+      }
     }
 
     function startSseWatchdog() {
       stopSseWatchdog();
+      markSseAlive();
 
       sseWatchdogTimer = setInterval(() => {
         if (!currentJobId) return;
-        if (!isCurrentJobStillRunning()) return;
+
+        const latestTask = getLatestTask();
+        if (!latestTask) return;
+
+        if (latestTask.jobId !== currentJobId) {
+          stopSseWatchdog();
+          return;
+        }
+
+        if (!isWorkingStatus(latestTask.status)) {
+          stopSseWatchdog();
+          return;
+        }
+
         if (!lastSseAt) return;
 
         const silentFor = Date.now() - lastSseAt;
@@ -781,18 +807,9 @@
 
           stopSseWatchdog();
           closeSSE();
-
           window.location.reload();
         }
       }, SSE_WATCHDOG_INTERVAL_MS);
-    }
-
-
-    function stopSseWatchdog() {
-      if (sseWatchdogTimer) {
-        clearInterval(sseWatchdogTimer);
-        sseWatchdogTimer = null;
-      }
     }
 
     function normalizeMediaUrl(u) {
@@ -938,7 +955,6 @@
           if (!job) continue;
 
           const serverId = job.id || job.jobId || task.jobId;
-          const state = String(job.status || '').toUpperCase();
           const title = taskTitleFromPayload(job) || task.title || job.url || task.url || serverId;
           const { baseTitle, origUrl, transUrl, transLang, exemptUrl } = extractSubtitleSources(job);
 
@@ -961,12 +977,9 @@
           items.push(toRecentTaskItem(merged));
         }
 
-        if (token !== recentTasksRenderToken) {
-          return;
-        }
+        if (token !== recentTasksRenderToken) return;
 
         saveRecentTasks(kept);
-
         drawRecentTaskList(items);
       } catch (err) {
         console.error('renderRecentTasks failed', err);
@@ -1049,8 +1062,7 @@
               </button>
             `);
           }
-        }
-        else if (item.state === 'FAILED' || item.state === 'CANCELED') {
+        } else if (item.state === 'FAILED' || item.state === 'CANCELED') {
           buttons.push(`<button class="btn btn-secondary btn-compact" data-view-job="${item.jobId}">${t('viewDetail', 'View details')}</button>`);
         }
         return `
@@ -1128,7 +1140,6 @@
       }
 
       const exemptUrl = result?.playback?.exemptVideoUrl || null;
-
       return { baseTitle, origUrl, transUrl, transLang, exemptUrl };
     }
 
@@ -1254,38 +1265,12 @@
       openTaskConfirmModal(title, durationSeconds);
     }
 
-    // function handleSnapshot(payload) {
-    //   const jobId = payload?.jobId || currentJobId;
-    //   if (!jobId) return;
-
-    //   const sources = extractSubtitleSources(payload);
-
-    //   updateRecentTask(jobId, {
-    //     status: payload?.status || 'PROCESSING',
-    //     message: payload?.message || '',
-    //     title: taskTitleFromPayload(payload),
-    //     subtitleBase: sources.baseTitle,
-    //     origSubtitleUrl: sources.origUrl,
-    //     transSubtitleUrl: sources.transUrl,
-    //     transLang: sources.transLang,
-    //     exemptVideoUrl: sources.exemptUrl,
-    //     verified: Boolean(payload?.status && payload.status.toUpperCase() === 'FINISHED')
-    //   });
-
-    //   const normalizedStatus = String(payload?.status || '').toUpperCase();
-    //   if (normalizedStatus === 'FINISHED') {
-    //     const needsRefresh = !sources.origUrl && !sources.transUrl && !sources.exemptUrl;
-    //     if (needsRefresh) {
-    //       refreshJobDetails(jobId);
-    //     }
-    //   }
-    // }
-
     function handleSnapshot(payload) {
       const jobId = payload?.jobId || currentJobId;
       if (!jobId) return;
 
       const sources = extractSubtitleSources(payload);
+      const normalizedStatus = String(payload?.status || '').toUpperCase();
 
       updateRecentTask(jobId, {
         status: payload?.status || 'PROCESSING',
@@ -1296,10 +1281,9 @@
         transSubtitleUrl: sources.transUrl,
         transLang: sources.transLang,
         exemptVideoUrl: sources.exemptUrl,
-        verified: Boolean(payload?.status && payload.status.toUpperCase() === 'FINISHED')
+        verified: normalizedStatus === 'FINISHED'
       });
 
-      const normalizedStatus = String(payload?.status || '').toUpperCase();
       if (normalizedStatus === 'FINISHED') {
         const needsRefresh = !sources.origUrl && !sources.transUrl && !sources.exemptUrl;
         if (needsRefresh) {
@@ -1307,15 +1291,10 @@
         }
       }
 
-      if (
-        normalizedStatus === 'FINISHED' ||
-        normalizedStatus === 'FAILED' ||
-        normalizedStatus === 'CANCELED'
-      ) {
+      if (!isWorkingStatus(normalizedStatus)) {
         stopSseWatchdog();
       }
     }
-
 
     function closeSSE() {
       if (sseReconnectTimer) {
@@ -1329,83 +1308,10 @@
       }
     }
 
-
-    // function subscribeJob(jobId) {
-    //   closeSSE();
-    //   currentJobId = jobId;
-
-    //   es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
-
-    //   es.onmessage = (ev) => {
-    //     let msg;
-    //     try {
-    //       msg = JSON.parse(ev.data);
-    //     } catch {
-    //       return;
-    //     }
-
-    //     if (msg.type === 'heartbeat') return;
-
-    //     if (msg.type === 'snapshot') {
-    //       handleSnapshot(msg);
-
-    //       const st = String(msg.status || '').toUpperCase();
-    //       if (st === 'FAILED' || st === 'CANCELED') {
-    //         closeSSE();
-    //       }
-    //       return;
-    //     }
-
-    //     if (msg.type === 'play_ready') {
-    //       if (msg.videoUrl) {
-    //         switchVideo(msg.videoUrl, msg.subtitleUrl || null);
-    //       }
-    //       closeSSE();
-    //       return;
-    //     }
-
-    //     if (msg.type === 'error') {
-    //       console.warn('sse error event', msg);
-    //     }
-    //   };
-
-    //   es.onerror = async () => {
-    //     console.log('SSE error, will reconnect', jobId);
-    //     closeSSE();
-    //     if (sseReconnectTimer) {
-    //       clearTimeout(sseReconnectTimer);
-    //     }
-
-    //     sseReconnectTimer = setTimeout(async () => {
-    //       const job = await fetchJobSnapshot(jobId);
-    //       const st = String(job?.status || '').toUpperCase();
-
-    //       if (!job) {
-
-    //         console.log('SSE reconnect canceled: job not found', jobId);
-
-    //         return;
-
-    //       }
-    //       if (st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED') {
-
-    //         console.log('SSE reconnect skipped: terminal status', jobId, st);
-
-    //         return;
-
-    //       }
-
-    //       console.log('SSE reconnect now', jobId);
-
-    //       subscribeJob(jobId);
-    //     }, 3000);
-    //   };
-    // }
     function subscribeJob(jobId) {
       closeSSE();
       currentJobId = jobId;
 
-      markSseAlive();
       startSseWatchdog();
 
       es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
@@ -1426,7 +1332,8 @@
           handleSnapshot(msg);
 
           const st = String(msg.status || '').toUpperCase();
-          if (st === 'FAILED' || st === 'CANCELED') {
+          if (!isWorkingStatus(st)) {
+            stopSseWatchdog();
             closeSSE();
           }
           return;
@@ -1434,12 +1341,15 @@
 
         if (msg.type === 'play_ready') {
           stopSseWatchdog();
+
           updateRecentTask(jobId, {
             status: 'FINISHED'
           });
+
           if (msg.videoUrl) {
             switchVideo(msg.videoUrl, msg.subtitleUrl || null);
           }
+
           closeSSE();
           return;
         }
@@ -1463,11 +1373,25 @@
 
           if (!job) {
             console.log('SSE reconnect canceled: job not found', jobId);
+            stopSseWatchdog();
             return;
           }
 
-          if (st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED') {
+          updateRecentTask(jobId, {
+            status: job.status || 'PROCESSING',
+            message: job.message || ''
+          });
+
+          if (!isWorkingStatus(st)) {
             console.log('SSE reconnect skipped: terminal status', jobId, st);
+            stopSseWatchdog();
+            return;
+          }
+
+          const latestTask = getLatestTask();
+          if (!latestTask || latestTask.jobId !== jobId) {
+            console.log('SSE reconnect skipped: not latest job anymore', jobId);
+            stopSseWatchdog();
             return;
           }
 
@@ -1476,9 +1400,7 @@
         }, 3000);
       };
     }
-    
-    
-    
+
     async function createJobByUrl() {
       if (creatingJob) return;
 
@@ -1527,6 +1449,7 @@
             fingerprint: currentFingerprint
           })
         });
+
         console.log('create job status', res.status);
 
         const data = await res.json().catch(() => ({}));
@@ -1568,10 +1491,11 @@
         showTaskCreatedDialog(jobPayload);
 
         const st = String(jobPayload?.status || '').toUpperCase();
-        if (!(st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED')) {
+        if (isWorkingStatus(st)) {
           subscribeJob(jobId);
         } else {
           handleSnapshot(jobPayload);
+          stopSseWatchdog();
         }
       } catch (err) {
         console.error('createJobByUrl failed', err);
@@ -1582,72 +1506,22 @@
       }
     }
 
-
     els.createByUrlBtn.addEventListener('click', createJobByUrl);
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      setLang(uiLang);
-      currentFingerprint = await getFingerprintVisitorId();
-      await restoreLatestPlayableTask();
-
-      const tasks = getStoredRecentTasks().filter(x => x?.jobId);
-      if (!tasks.length) {
-        stopSseWatchdog();
-        return;
-      }
-      for (const task of tasks) {
-        const job = await fetchJobSnapshot(task.jobId);
-        if (!job) continue;
-
-        const st = String(job.status || '').toUpperCase();
-        if (st !== 'FINISHED' && st !== 'FAILED' && st !== 'CANCELED') {
-          subscribeJob(task.jobId);
-          return;
-        }
-      }
-      stopSseWatchdog();
-    });
-
-
-
-    // function switchVideo(videoUrl, subtitleUrl = null) {
-    //     const video = document.getElementById('taskVideoPlayer');
-    //     if (!video || !videoUrl) return;
-
-    //     const absVideoUrl = absUrl(videoUrl);
-    //     if (!absVideoUrl) return;
-
-    //     // 切换视频
-    //     video.pause();
-    //     video.src = absVideoUrl;
-
-    //     // 先清掉旧字幕轨
-    //     const oldTracks = video.querySelectorAll('track');
-    //     oldTracks.forEach(t => t.remove());
-
-    //     // 加新字幕
-    //     if (subtitleUrl) {
-    //         const absSubtitleUrl = absUrl(subtitleUrl);
-    //         if (absSubtitleUrl) {
-    //             const track = document.createElement('track');
-    //             track.kind = 'subtitles';
-    //             track.label = 'Subtitle';
-    //             track.srclang = 'en';
-    //             track.src = absSubtitleUrl;
-    //             track.default = true;
-    //             video.appendChild(track);
-    //         }
-    //     }
-
-    //     video.load();
-    //     video.play().catch(() => { });
-    // }
     function switchVideo(videoUrl, subtitleUrl = null) {
       const video = document.getElementById('defaultVideoPlayer');
       if (!video || !videoUrl) return;
 
       const absVideoUrl = absUrl(videoUrl);
       if (!absVideoUrl) return;
+
+      const currentSource = video.querySelector('source')?.src || '';
+      const currentTrack = video.querySelector('track')?.src || '';
+      const nextTrack = subtitleUrl ? (absUrl(subtitleUrl) || '') : '';
+
+      if (currentSource === absVideoUrl && currentTrack === nextTrack) {
+        return;
+      }
 
       video.pause();
       video.removeAttribute('src');
@@ -1698,13 +1572,12 @@
         if (!resp.ok) return;
 
         const data = await resp.json();
-        if (data.videoUrl && data.subtitleUrl) {
-          switchVideo(data.videoUrl, data.subtitleUrl);
+        if (data.videoUrl) {
+          switchVideo(data.videoUrl, data.subtitleUrl || null);
         }
       } catch { }
     }
 
-    //clientid and fingerprintJS
     function generateClientId() {
       if (window.crypto?.randomUUID) {
         return window.crypto.randomUUID();
@@ -1739,7 +1612,39 @@
       }
     }
 
+    document.addEventListener('DOMContentLoaded', async () => {
+      setLang(uiLang);
+      currentFingerprint = await getFingerprintVisitorId();
 
+      const latestTask = getLatestTask();
+      if (!latestTask) {
+        stopSseWatchdog();
+        return;
+      }
+
+      const latestJob = await fetchJobSnapshot(latestTask.jobId);
+      if (!latestJob) {
+        stopSseWatchdog();
+        await restoreLatestPlayableTask();
+        return;
+      }
+
+      updateRecentTask(latestTask.jobId, {
+        status: latestJob.status || latestTask.status || 'PROCESSING',
+        message: latestJob.message || latestTask.message || '',
+        title: taskTitleFromPayload(latestJob)
+      });
+
+      const latestStatus = String(latestJob.status || '').toUpperCase();
+
+      if (isWorkingStatus(latestStatus)) {
+        subscribeJob(latestTask.jobId);
+        return;
+      }
+
+      stopSseWatchdog();
+      await restoreLatestPlayableTask();
+    });
   </script>
 </body>
 
