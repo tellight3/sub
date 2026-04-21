@@ -1433,6 +1433,10 @@
         }
 
         if (msg.type === 'play_ready') {
+          stopSseWatchdog();
+          updateRecentTask(jobId, {
+            status: 'FINISHED'
+          });
           if (msg.videoUrl) {
             switchVideo(msg.videoUrl, msg.subtitleUrl || null);
           }
