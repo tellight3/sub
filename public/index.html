@@ -1450,7 +1450,56 @@
     //     video.load();
     //     video.play().catch(() => { });
     // }
-    function switchVideo(videoUrl, subtitleUrl = null) {
+
+    async function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function subtitleExists(url) {
+      try {
+        const resp = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
+          credentials: 'omit'
+        });
+        return resp.ok;
+      } catch {
+        return false;
+      }
+    }
+
+    async function attachSubtitleWithRetry(video, subtitleUrl, maxTries = 5, delayMs = 1200) {
+      const absSubtitleUrl = absUrl(subtitleUrl);
+      if (!absSubtitleUrl) return false;
+
+      for (let i = 0; i < maxTries; i++) {
+        const ok = await subtitleExists(absSubtitleUrl);
+        if (ok) {
+          const oldTracks = video.querySelectorAll('track');
+          oldTracks.forEach(t => t.remove());
+
+          const track = document.createElement('track');
+          track.kind = 'subtitles';
+          track.label = 'Subtitle';
+          track.srclang = 'zh';
+          track.src = `${absSubtitleUrl}${absSubtitleUrl.includes('?') ? '&' : '?'}_ts=${Date.now()}`;
+          track.default = true;
+          video.appendChild(track);
+
+          video.textTracks[0] && (video.textTracks[0].mode = 'showing');
+          return true;
+        }
+
+        if (i < maxTries - 1) {
+          await wait(delayMs);
+        }
+      }
+
+      console.warn('subtitle not ready after retries:', absSubtitleUrl);
+      return false;
+    }
+
+    async function switchVideo(videoUrl, subtitleUrl = null) {
       const video = document.getElementById('defaultVideoPlayer');
       if (!video || !videoUrl) return;
 
@@ -1471,23 +1520,13 @@
       source.type = 'video/mp4';
       video.appendChild(source);
 
-      if (subtitleUrl) {
-        const absSubtitleUrl = absUrl(subtitleUrl);
-        if (absSubtitleUrl) {
-          const track = document.createElement('track');
-          track.kind = 'subtitles';
-          track.label = 'Subtitle';
-          track.srclang = 'zh';
-          track.src = absSubtitleUrl;
-          track.default = true;
-          video.appendChild(track);
-        }
-      }
-
       video.load();
       video.play().catch(() => { });
-    }
 
+      if (subtitleUrl) {
+        await attachSubtitleWithRetry(video, subtitleUrl, 6, 1000);
+      }
+    }
     async function restoreLatestPlayableTask() {
       try {
         const tasks = getStoredRecentTasks().filter(x => x?.jobId);
