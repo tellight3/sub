@@ -1450,7 +1450,7 @@
     //     video.load();
     //     video.play().catch(() => { });
     // }
-    async function switchVideo(videoUrl, subtitleUrl = null) {
+    function switchVideo(videoUrl, subtitleUrl = null) {
       const video = document.getElementById('defaultVideoPlayer');
       if (!video || !videoUrl) return;
 
@@ -1471,31 +1471,21 @@
       source.type = 'video/mp4';
       video.appendChild(source);
 
+      if (subtitleUrl) {
+        const absSubtitleUrl = absUrl(subtitleUrl);
+        if (absSubtitleUrl) {
+          const track = document.createElement('track');
+          track.kind = 'subtitles';
+          track.label = 'Subtitle';
+          track.srclang = 'zh';
+          track.src = absSubtitleUrl;
+          track.default = true;
+          video.appendChild(track);
+        }
+      }
+
       video.load();
       video.play().catch(() => { });
-
-      if (!subtitleUrl) return;
-
-      const absSubtitleUrl = absUrl(subtitleUrl);
-      if (!absSubtitleUrl) return;
-
-      for (let i = 0; i < 5; i++) {
-        try {
-          const resp = await fetch(absSubtitleUrl, { cache: 'no-store', credentials: 'omit' });
-          if (resp.ok) {
-            const track = document.createElement('track');
-            track.kind = 'subtitles';
-            track.label = 'Subtitle';
-            track.srclang = 'zh';
-            track.src = `${absSubtitleUrl}?_ts=${Date.now()}`;
-            track.default = true;
-            video.appendChild(track);
-            break;
-          }
-        } catch { }
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
     }
 
     async function restoreLatestPlayableTask() {
