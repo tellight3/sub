@@ -407,6 +407,7 @@
   </style>
 </head>
 
+
 <body>
   <div class="container">
     <div class="topbar">
@@ -498,9 +499,12 @@
     </div>
   </div>
 
+  <script src="https://openfpcdn.io/fingerprintjs/v4/iife.min.js"></script>
+
   <script>
     const API_BASE = 'https://mmx.multmatrix.com';
     const LS_KEY_RECENT = 'mmx:recentTasks';
+    const LS_KEY_CLIENT_ID = 'mmx:clientId';
     const MAX_RECENT = 3;
 
     const I18N = {
@@ -511,7 +515,7 @@
         videoUrlLabel: '视频链接',
         videoUrlPlaceholder: '粘贴 YouTube 或 X 链接',
         emailLabel: '邮箱（可选）',
-        emailPlaceholder: '输入邮箱（可选），用于接收多格式字幕链接（含逐词级）',
+        emailPlaceholder: '邮箱可接收多格式字幕链接（词级）',
         targetLangLabel: '字幕目标语言',
         targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
         generateBtn: '生成字幕',
@@ -556,7 +560,7 @@
         videoUrlLabel: 'Video link',
         videoUrlPlaceholder: 'Paste YouTube or X link',
         emailLabel: 'Email (optional)',
-        emailPlaceholder: 'Enter your email (optional) to receive subtitle download links (including word-level).',
+        emailPlaceholder: 'Email for receiving subtitle download links (word-level).',
         targetLangLabel: 'Subtitle target language',
         targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
         generateBtn: 'Generate subtitles',
@@ -712,6 +716,7 @@
     let currentJobId = null;
     let recentTasksRenderToken = 0;
     let creatingJob = false;
+    const clientId = getOrCreateClientId();
 
     function updateClearButtonState(inputEl, wrapEl) {
       if (!inputEl || !wrapEl) return;
@@ -1309,6 +1314,11 @@
       creatingJob = true;
       els.createByUrlBtn.disabled = true;
 
+      const latestFingerprint = currentFingerprint || await getFingerprintVisitorId();
+      if (latestFingerprint) {
+        currentFingerprint = latestFingerprint;
+      }
+
       try {
         const res = await fetch(`${API_BASE}/api/jobs`, {
           method: 'POST',
@@ -1319,7 +1329,9 @@
             targetLang,
             outputDir: 'data',
             proxy: null,
-            priority: 0
+            priority: 0,
+            client_id: clientId,
+            fingerprint: currentFingerprint
           })
         });
 
@@ -1376,7 +1388,7 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       setLang(uiLang);
-
+      currentFingerprint = await getFingerprintVisitorId();
       await restoreLatestPlayableTask();
 
       const tasks = getStoredRecentTasks().filter(x => x?.jobId);
@@ -1485,6 +1497,43 @@
         }
       } catch { }
     }
+
+
+    //clientid and fingerprintJS
+    function generateClientId() {
+      if (window.crypto?.randomUUID) {
+        return window.crypto.randomUUID();
+      }
+      return 'cid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
+    }
+
+    function getOrCreateClientId() {
+      let clientId = localStorage.getItem(LS_KEY_CLIENT_ID);
+      if (!clientId) {
+        clientId = generateClientId();
+        localStorage.setItem(LS_KEY_CLIENT_ID, clientId);
+      }
+      return clientId;
+    }
+
+    let fpPromise = null;
+    let currentFingerprint = null;
+
+    async function getFingerprintVisitorId() {
+      try {
+        if (!window.FingerprintJS) return null;
+        if (!fpPromise) {
+          fpPromise = window.FingerprintJS.load();
+        }
+        const fp = await fpPromise;
+        const result = await fp.get();
+        return result?.visitorId || null;
+      } catch (err) {
+        console.error('fingerprint load failed', err);
+        return null;
+      }
+    }
+
 
   </script>
 </body>
