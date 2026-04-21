@@ -452,8 +452,8 @@
       <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
         <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
         <div style="display:flex; flex-direction:column; gap:2px;">
-          <div class="muted" data-i18n="inlineNoteLine1">处理完成后，下方播放带翻译字幕的视频，字幕链接自动发送至邮箱。</div>
-          <div class="muted" data-i18n="inlineNoteLine2">任务会保存在当前浏览器中，重新打开后仍可查看。</div>
+          <div class="muted" data-i18n="inlineNoteLine1">处理完成，播放器自动播放带翻译字幕的视频，字幕发邮箱。</div>
+          <div class="muted" data-i18n="inlineNoteLine2">任务保存在当前浏览器中，重新打开或者刷新后亦可查看。</div>
         </div>
       </div>
     </div>
@@ -718,6 +718,12 @@
     let creatingJob = false;
     const clientId = getOrCreateClientId();
 
+    let sseReconnectTimer = null;
+    let sseWatchdogTimer = null;
+    let lastSseAt = 0;
+    const SSE_STALE_MS = 60 * 1000;   // 1分钟
+    const SSE_WATCHDOG_INTERVAL_MS = 10 * 1000; // 每10秒检查一次
+    
     function updateClearButtonState(inputEl, wrapEl) {
       if (!inputEl || !wrapEl) return;
       wrapEl.classList.toggle('has-value', !!inputEl.value.trim());
@@ -743,6 +749,51 @@
     bindClearableInput(els.videoUrl, els.videoUrlWrap, els.clearVideoUrl);
     bindClearableInput(els.email, els.emailWrap, els.clearEmail);
 
+    function markSseAlive() {
+      lastSseAt = Date.now();
+    }
+
+    function isCurrentJobStillRunning() {
+      if (!currentJobId) return false;
+
+      const tasks = getStoredRecentTasks();
+      const task = tasks.find(x => x?.jobId === currentJobId);
+      if (!task) return false;
+
+      const st = String(task.status || '').toUpperCase();
+      return !(st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED');
+    }
+
+    function startSseWatchdog() {
+      stopSseWatchdog();
+
+      sseWatchdogTimer = setInterval(() => {
+        if (!currentJobId) return;
+        if (!isCurrentJobStillRunning()) return;
+        if (!lastSseAt) return;
+
+        const silentFor = Date.now() - lastSseAt;
+        if (silentFor >= SSE_STALE_MS) {
+          console.warn('SSE stale for too long, reloading page', {
+            jobId: currentJobId,
+            silentFor
+          });
+
+          stopSseWatchdog();
+          closeSSE();
+
+          window.location.reload();
+        }
+      }, SSE_WATCHDOG_INTERVAL_MS);
+    }
+
+
+    function stopSseWatchdog() {
+      if (sseWatchdogTimer) {
+        clearInterval(sseWatchdogTimer);
+        sseWatchdogTimer = null;
+      }
+    }
 
     function normalizeMediaUrl(u) {
       if (!u && u !== '') return null;
@@ -1203,6 +1254,33 @@
       openTaskConfirmModal(title, durationSeconds);
     }
 
+    // function handleSnapshot(payload) {
+    //   const jobId = payload?.jobId || currentJobId;
+    //   if (!jobId) return;
+
+    //   const sources = extractSubtitleSources(payload);
+
+    //   updateRecentTask(jobId, {
+    //     status: payload?.status || 'PROCESSING',
+    //     message: payload?.message || '',
+    //     title: taskTitleFromPayload(payload),
+    //     subtitleBase: sources.baseTitle,
+    //     origSubtitleUrl: sources.origUrl,
+    //     transSubtitleUrl: sources.transUrl,
+    //     transLang: sources.transLang,
+    //     exemptVideoUrl: sources.exemptUrl,
+    //     verified: Boolean(payload?.status && payload.status.toUpperCase() === 'FINISHED')
+    //   });
+
+    //   const normalizedStatus = String(payload?.status || '').toUpperCase();
+    //   if (normalizedStatus === 'FINISHED') {
+    //     const needsRefresh = !sources.origUrl && !sources.transUrl && !sources.exemptUrl;
+    //     if (needsRefresh) {
+    //       refreshJobDetails(jobId);
+    //     }
+    //   }
+    // }
+
     function handleSnapshot(payload) {
       const jobId = payload?.jobId || currentJobId;
       if (!jobId) return;
@@ -1228,14 +1306,29 @@
           refreshJobDetails(jobId);
         }
       }
+
+      if (
+        normalizedStatus === 'FINISHED' ||
+        normalizedStatus === 'FAILED' ||
+        normalizedStatus === 'CANCELED'
+      ) {
+        stopSseWatchdog();
+      }
     }
 
+
     function closeSSE() {
+      if (sseReconnectTimer) {
+        clearTimeout(sseReconnectTimer);
+        sseReconnectTimer = null;
+      }
+
       if (es) {
         es.close();
         es = null;
       }
     }
+
 
     // function subscribeJob(jobId) {
     //   closeSSE();
@@ -1270,15 +1363,50 @@
     //       closeSSE();
     //       return;
     //     }
+
+    //     if (msg.type === 'error') {
+    //       console.warn('sse error event', msg);
+    //     }
     //   };
 
-    //   es.onerror = () => { };
-    // }
-    let sseReconnectTimer = null;
+    //   es.onerror = async () => {
+    //     console.log('SSE error, will reconnect', jobId);
+    //     closeSSE();
+    //     if (sseReconnectTimer) {
+    //       clearTimeout(sseReconnectTimer);
+    //     }
 
+    //     sseReconnectTimer = setTimeout(async () => {
+    //       const job = await fetchJobSnapshot(jobId);
+    //       const st = String(job?.status || '').toUpperCase();
+
+    //       if (!job) {
+
+    //         console.log('SSE reconnect canceled: job not found', jobId);
+
+    //         return;
+
+    //       }
+    //       if (st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED') {
+
+    //         console.log('SSE reconnect skipped: terminal status', jobId, st);
+
+    //         return;
+
+    //       }
+
+    //       console.log('SSE reconnect now', jobId);
+
+    //       subscribeJob(jobId);
+    //     }, 3000);
+    //   };
+    // }
     function subscribeJob(jobId) {
       closeSSE();
       currentJobId = jobId;
+
+      markSseAlive();
+      startSseWatchdog();
 
       es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
 
@@ -1289,6 +1417,8 @@
         } catch {
           return;
         }
+
+        markSseAlive();
 
         if (msg.type === 'heartbeat') return;
 
@@ -1318,7 +1448,7 @@
       es.onerror = async () => {
         console.log('SSE error, will reconnect', jobId);
         closeSSE();
-        console.log('SSE error, will reconnect', jobId);
+
         if (sseReconnectTimer) {
           clearTimeout(sseReconnectTimer);
         }
@@ -1328,26 +1458,23 @@
           const st = String(job?.status || '').toUpperCase();
 
           if (!job) {
-
             console.log('SSE reconnect canceled: job not found', jobId);
-
             return;
-
           }
+
           if (st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED') {
-
             console.log('SSE reconnect skipped: terminal status', jobId, st);
-
             return;
-
           }
 
           console.log('SSE reconnect now', jobId);
-
           subscribeJob(jobId);
         }, 3000);
       };
     }
+    
+    
+    
     async function createJobByUrl() {
       if (creatingJob) return;
 
@@ -1460,8 +1587,10 @@
       await restoreLatestPlayableTask();
 
       const tasks = getStoredRecentTasks().filter(x => x?.jobId);
-      if (!tasks.length) return;
-
+      if (!tasks.length) {
+        stopSseWatchdog();
+        return;
+      }
       for (const task of tasks) {
         const job = await fetchJobSnapshot(task.jobId);
         if (!job) continue;
@@ -1469,9 +1598,10 @@
         const st = String(job.status || '').toUpperCase();
         if (st !== 'FINISHED' && st !== 'FAILED' && st !== 'CANCELED') {
           subscribeJob(task.jobId);
-          break;
+          return;
         }
       }
+      stopSseWatchdog();
     });
 
 
