@@ -1290,12 +1290,8 @@
       es.onerror = () => { };
     }
 
-
-
     async function createJobByUrl() {
-      if (creatingJob) {
-        return;
-      }
+      if (creatingJob) return;
 
       const url = els.videoUrl.value.trim();
       const email = els.email.value.trim();
@@ -1314,12 +1310,20 @@
       creatingJob = true;
       els.createByUrlBtn.disabled = true;
 
-      const latestFingerprint = currentFingerprint || await getFingerprintVisitorId();
-      if (latestFingerprint) {
-        currentFingerprint = latestFingerprint;
-      }
-
       try {
+        const latestFingerprint = currentFingerprint || await getFingerprintVisitorId();
+        if (latestFingerprint) {
+          currentFingerprint = latestFingerprint;
+        }
+
+        console.log('create job payload', {
+          url,
+          email: email || null,
+          targetLang,
+          client_id: clientId,
+          fingerprint: currentFingerprint
+        });
+
         const res = await fetch(`${API_BASE}/api/jobs`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1334,6 +1338,7 @@
             fingerprint: currentFingerprint
           })
         });
+        console.log('create job status', res.status);
 
         const data = await res.json().catch(() => ({}));
 
@@ -1360,6 +1365,7 @@
         currentJobId = jobId;
         const jobPayload = data.job || data;
         const derivedTitle = taskTitleFromPayload(jobPayload) || url;
+
         upsertRecentTask({
           jobId,
           title: derivedTitle,
@@ -1378,11 +1384,15 @@
         } else {
           handleSnapshot(jobPayload);
         }
+      } catch (err) {
+        console.error('createJobByUrl failed', err);
+        alert(t('warnCreateFail', 'Failed to create job'));
       } finally {
         els.createByUrlBtn.disabled = false;
         creatingJob = false;
       }
     }
+
 
     els.createByUrlBtn.addEventListener('click', createJobByUrl);
 
