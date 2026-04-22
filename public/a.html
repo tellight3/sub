@@ -2,887 +2,994 @@
 <html lang="zh-CN">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Subtitle Generator</title>
-    <link rel="icon" href="data:,">
-    <style>
-        :root {
-            --bg: #0b1220;
-            --card: #111a2e;
-            --card-2: #0f1728;
-            --text: #e5e7eb;
-            --muted: #9ca3af;
-            --border: #24324a;
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --success: #22c55e;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --input: #0a1324;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Subtitle Generator</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #111a2e;
+      --card-2: #0f1728;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #24324a;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --input: #0a1324;
+    }
 
-        * {
-            box-sizing: border-box;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(180deg, #08101d 0%, #0b1220 100%);
-            color: var(--text);
-            min-height: 100vh;
-        }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #08101d 0%, #0b1220 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
 
-        .container {
-            max-width: 860px;
-            margin: 0 auto;
-            padding: 24px 16px 40px;
-        }
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
 
-        .topbar {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 16px;
-        }
+    .topbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 16px;
+    }
 
-        .lang-switch {
-            display: flex;
-            gap: 8px;
-        }
+    .lang-switch {
+      display: flex;
+      gap: 8px;
+    }
 
-        .lang-switch button {
-            border: 1px solid var(--border);
-            background: #142038;
-            color: #fff;
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-        }
+    .lang-switch button {
+      border: 1px solid var(--border);
+      background: #142038;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
 
-        .lang-switch button.active {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
+    .lang-switch button.active {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
 
-        h1 {
-            margin: 0 0 8px;
-            font-size: 28px;
-            line-height: 1.2;
-        }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
 
-        .subtitle {
-            color: var(--muted);
-            margin: 0 0 20px;
-            font-size: 15px;
-            line-height: 1.5;
-        }
+    .subtitle {
+      color: var(--muted);
+      margin: 0 0 20px;
+      font-size: 15px;
+      line-height: 1.5;
+    }
 
-        .card {
-            background: rgba(17, 26, 46, 0.92);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 18px;
-            margin-bottom: 16px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
-        }
+    .card {
+      background: rgba(17, 26, 46, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+    }
 
-        .card h2 {
-            margin: 0 0 12px;
-            font-size: 18px;
-        }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
 
-        .field {
-            margin-bottom: 12px;
-        }
+    .field {
+      margin-bottom: 12px;
+    }
 
-        .label {
-            display: block;
-            font-size: 14px;
-            margin-bottom: 6px;
-            color: #d1d5db;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
+    .label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #d1d5db;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
 
-        .label .required {
-            color: var(--danger);
-            font-weight: 700;
-        }
+    .label .required {
+      color: var(--danger);
+      font-weight: 700;
+    }
 
-        .input {
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: 10px;
-            border: 1px solid #334155;
-            background: var(--input);
-            color: #fff;
-            outline: none;
-            font-size: 15px;
-        }
+    .input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: var(--input);
+      color: #fff;
+      outline: none;
+      font-size: 15px;
+    }
 
-        .input::placeholder {
-            color: #7b8698;
-        }
+    .input-wrap {
+      position: relative;
+    }
 
-        .input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, .18);
-        }
+    .input-wrap .input {
+      padding-right: 40px;
+    }
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 42px;
-            padding: 10px 16px;
-            border-radius: 10px;
-            border: 1px solid transparent;
-            background: var(--primary);
-            color: #fff;
-            text-decoration: none;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 600;
-        }
+    .input-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+    }
 
-        .btn:hover {
-            background: var(--primary-hover);
-        }
+    .input-clear:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+    }
 
-        .btn[disabled],
-        .btn.disabled,
-        .btn[aria-disabled="true"] {
-            opacity: .5;
-            pointer-events: none;
-            cursor: not-allowed;
-        }
+    .input-wrap.has-value .input-clear {
+      display: inline-flex;
+    }
 
-        .btn-secondary {
-            background: transparent;
-            border-color: var(--border);
-            color: #e5e7eb;
-        }
+    .input::placeholder {
+      color: #7b8698;
+    }
 
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, .04);
-        }
+    .input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .18);
+    }
 
-        .muted {
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.5;
-        }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+    }
 
-        .hidden {
-            display: none !important;
-        }
+    .btn:hover {
+      background: var(--primary-hover);
+    }
 
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(4, 7, 15, 0.75);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            z-index: 2000;
-        }
+    .btn[disabled],
+    .btn.disabled,
+    .btn[aria-disabled="true"] {
+      opacity: .5;
+      pointer-events: none;
+      cursor: not-allowed;
+    }
 
-        .modal-content {
-            width: min(440px, 92vw);
-            background: rgba(17, 26, 46, 0.98);
-            border-radius: 18px;
-            border: 1px solid var(--border);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
-            padding: 24px;
-        }
+    .btn-secondary {
+      background: transparent;
+      border-color: var(--border);
+      color: #e5e7eb;
+    }
 
-        .modal-content h3 {
-            margin: 0 0 8px;
-        }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, .04);
+    }
 
-        .modal-text {
-            margin: 0 0 18px;
-            color: var(--muted);
-            line-height: 1.5;
-            font-size: 15px;
-        }
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
 
-        .modal-info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
+    .hidden {
+      display: none !important;
+    }
 
-        .modal-info-label {
-            color: var(--muted);
-            min-width: 72px;
-        }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 15, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 2000;
+    }
 
-        .modal-info-value {
-            flex: 1;
-            font-weight: 600;
-            text-align: left;
-            color: var(--text);
-            word-break: break-word;
-            overflow-wrap: anywhere;
-        }
+    .modal-content {
+      width: min(440px, 92vw);
+      background: rgba(17, 26, 46, 0.98);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      padding: 24px;
+    }
 
-        .modal-actions {
-            margin-top: 20px;
-            text-align: right;
-        }
+    .modal-content h3 {
+      margin: 0 0 8px;
+    }
 
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            border: 1px solid transparent;
-        }
+    .modal-text {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 15px;
+    }
 
-        .pill.processing {
-            background: rgba(245, 158, 11, .12);
-            color: #fbbf24;
-            border-color: rgba(245, 158, 11, .2);
-        }
+    .modal-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
 
-        .pill.ready {
-            background: rgba(34, 197, 94, .12);
-            color: #4ade80;
-            border-color: rgba(34, 197, 94, .2);
-        }
+    .modal-info-label {
+      color: var(--muted);
+      min-width: 72px;
+    }
 
-        .pill.failed {
-            background: rgba(239, 68, 68, .12);
-            color: #f87171;
-            border-color: rgba(239, 68, 68, .2);
-        }
+    .modal-info-value {
+      flex: 1;
+      font-weight: 600;
+      text-align: left;
+      color: var(--text);
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
 
-        .task-list {
-            display: grid;
-            gap: 10px;
-        }
+    .modal-actions {
+      margin-top: 20px;
+      text-align: right;
+    }
 
-        .task-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border-radius: 12px;
-            background: var(--card-2);
-            border: 1px solid #2a3954;
-        }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
 
-        .task-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-shrink: 0;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
+    .pill.processing {
+      background: rgba(245, 158, 11, .12);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, .2);
+    }
 
-        .btn-compact {
-            min-height: 34px;
-            padding: 6px 12px;
-            font-size: 14px;
-        }
+    .pill.ready {
+      background: rgba(34, 197, 94, .12);
+      color: #4ade80;
+      border-color: rgba(34, 197, 94, .2);
+    }
 
-        .task-meta {
-            min-width: 0;
-            flex: 1;
-        }
+    .pill.failed {
+      background: rgba(239, 68, 68, .12);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, .2);
+    }
 
-        .task-title {
-            font-size: 14px;
-            font-weight: 600;
-            white-space: normal;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-            margin-bottom: 4px;
-        }
+    .task-list {
+      display: grid;
+      gap: 10px;
+    }
 
-        .task-time {
-            color: var(--muted);
-            font-size: 12px;
-        }
+    .task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--card-2);
+      border: 1px solid #2a3954;
+    }
 
-        .footer-note {
-            margin-top: 8px;
-            color: var(--muted);
-            font-size: 13px;
-        }
+    .task-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
 
-        .build-info {
-            text-align: center;
-            color: #7f8795;
-            font-size: 12px;
-            margin-top: 20px;
-        }
+    .btn-compact {
+      min-height: 34px;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
 
-        .player-wrap {
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-            border: 1px solid #2a3954;
-        }
+    .task-meta {
+      min-width: 0;
+      flex: 1;
+    }
 
-        .video-player {
-            width: 100%;
-            display: block;
-            background: #000;
-        }
+    .task-title {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      margin-bottom: 4px;
+    }
 
-        .player-note {
-            margin-top: 10px;
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.5;
-            word-break: break-all;
-        }
+    .task-time {
+      color: var(--muted);
+      font-size: 12px;
+    }
 
+    .footer-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
 
-        @media (max-width: 640px) {
-            h1 {
-                font-size: 24px;
-            }
+    .build-info {
+      text-align: center;
+      color: #7f8795;
+      font-size: 12px;
+      margin-top: 20px;
+    }
 
-            .container {
-                padding: 18px 12px 32px;
-            }
+    .player-wrap {
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid #2a3954;
+    }
 
-            .task-item {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-        }
-    </style>
+    .video-player {
+      width: 100%;
+      display: block;
+      background: #000;
+    }
+
+    .player-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      word-break: break-all;
+    }
+
+    @media (max-width: 640px) {
+      h1 {
+        font-size: 24px;
+      }
+
+      .container {
+        padding: 18px 12px 32px;
+      }
+
+      .task-item {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="topbar">
-            <div class="lang-switch">
-                <button type="button" data-lang-btn="zh">中文</button>
-                <button type="button" data-lang-btn="en">EN</button>
-            </div>
-        </div>
-
-        <h1 data-i18n="appTitle">Auto Subtitles & Translation</h1>
-        <p class="subtitle" data-i18n="appSubtitle">
-            Paste a YouTube or X link, and we’ll generate subtitles for you.
-        </p>
-
-        <div class="card">
-            <h2 data-i18n="submitTitle">Create a task</h2>
-
-            <div class="field">
-                <label class="label" for="videoUrl"><span data-i18n="videoUrlLabel">Video link</span><span
-                        class="required">*</span></label>
-                <input id="videoUrl" class="input" data-i18n-placeholder="videoUrlPlaceholder"
-                    placeholder="Paste YouTube or X link" />
-            </div>
-
-            <div class="field">
-                <label class="label" for="email" data-i18n="emailLabel">Email (optional)</label>
-                <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
-                    placeholder="Enter your email (optional)" />
-            </div>
-
-            <div class="field">
-                <label class="label" for="targetLang" data-i18n="targetLangLabel">Subtitle target language</label>
-                <select id="targetLang" class="input"></select>
-            </div>
-
-            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
-                <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
-                <div style="display:flex; flex-direction:column; gap:2px;">
-                    <div class="muted" data-i18n="inlineNoteLine1">网页可直接下载，填写邮箱后可在夜间自动接收字幕链接。</div>
-                    <div class="muted" data-i18n="inlineNoteLine2">任务会保存在当前浏览器中，重新打开后仍可查看。</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2 data-i18n="recentTasksTitle">我的任务</h2>
-            <div id="recentTasks" class="task-list"></div>
-            <div class="footer-note" data-i18n="recentTasksNote">
-                最近任务会保存在当前浏览器中。
-            </div>
-        </div>
-
-
-        <div class="card">
-            <h2 data-i18n="defaultPlayerTitle">默认演示视频</h2>
-            <div class="player-wrap">
-                <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay
-                    muted>
-                    <source src="/media/NBC_Nightly_News_Full_Episode_-_April_12.withsub.mp4" type="video/mp4">
-                    <track kind="subtitles" srclang="zh" label="中文"
-                        src="/media/NBC_Nightly_News_Full_Episode_-_April_12_241.0_19-32.zh.vtt" default>
-                </video>
-            </div>
-        </div>
-
+  <div class="container">
+    <div class="topbar">
+      <div class="lang-switch">
+        <button type="button" data-lang-btn="zh">中文</button>
+        <button type="button" data-lang-btn="en">EN</button>
+      </div>
     </div>
 
-    <div id="taskConfirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="taskConfirmHeading"
-        aria-hidden="true">
-        <div class="modal-content">
-            <h3 id="taskConfirmHeading" data-i18n="taskCreatedHeading">任务创建成功</h3>
-            <p id="taskConfirmMessage" class="modal-text" data-i18n="taskCreatedMessage">
-                已完成视频校验，任务正在排队处理中。
-            </p>
-            <div class="modal-info-row">
-                <span class="modal-info-label" data-i18n="taskCreatedVideoTitleLabel">视频标题</span>
-                <span class="modal-info-value" id="taskConfirmVideoTitle">--</span>
-            </div>
-            <div class="modal-info-row">
-                <span class="modal-info-label" data-i18n="taskCreatedVideoDurationLabel">视频时长</span>
-                <span class="modal-info-value" id="taskConfirmVideoDuration">--</span>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn" id="taskConfirmOk" data-i18n="taskCreatedConfirm">我知道了</button>
-            </div>
+    <h1 data-i18n="appTitle">Auto Subtitles & Translation</h1>
+    <p class="subtitle" data-i18n="appSubtitle">
+      Paste a YouTube or X link, and we’ll generate subtitles for you. Thanks for testing.
+    </p>
+
+    <div class="card">
+      <h2 data-i18n="submitTitle">Create a task</h2>
+
+      <div class="field">
+        <label class="label" for="videoUrl"><span data-i18n="videoUrlLabel">Video link</span><span
+            class="required">*</span></label>
+        <div class="input-wrap" id="videoUrlWrap">
+          <input id="videoUrl" class="input" data-i18n-placeholder="videoUrlPlaceholder"
+            placeholder="Paste YouTube or X link" />
+          <button type="button" class="input-clear" id="clearVideoUrl" aria-label="Clear">×</button>
         </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="email" data-i18n="emailLabel">Email (optional)</label>
+        <div class="input-wrap" id="emailWrap">
+          <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
+            placeholder="Enter your email (optional)" />
+          <button type="button" class="input-clear" id="clearEmail" aria-label="Clear">×</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="targetLang" data-i18n="targetLangLabel">Subtitle target language</label>
+        <select id="targetLang" class="input"></select>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+        <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <div class="muted" data-i18n="inlineNoteLine1">处理完成，播放器自动播放带翻译字幕的视频，字幕发邮箱。</div>
+          <div class="muted" data-i18n="inlineNoteLine2">任务保存在当前浏览器中，重新打开或者刷新后亦可查看。</div>
+        </div>
+      </div>
     </div>
 
-    <script>
-        const API_BASE = 'https://mmx.multmatrix.com';
-        const LS_KEY_RECENT = 'mmx:recentTasks';
-        const MAX_RECENT = 3;
+    <div class="card">
+      <h2 data-i18n="recentTasksTitle">我的任务</h2>
+      <div id="recentTasks" class="task-list"></div>
+      <div class="footer-note" data-i18n="recentTasksNote">
+        最近任务会保存在当前浏览器中。
+      </div>
+    </div>
 
-        const I18N = {
-            zh: {
-                appTitle: '自动字幕与翻译',
-                appSubtitle: '粘贴 YouTube 或 X 链接，自动生成多格式字幕与翻译',
-                submitTitle: '创建任务',
-                videoUrlLabel: '视频链接',
-                videoUrlPlaceholder: '粘贴 YouTube 或 X 链接',
-                emailLabel: '邮箱（可选）',
-                emailPlaceholder: '输入邮箱（可选），用于接收多格式字幕链接（含逐词级）',
-                targetLangLabel: '字幕目标语言',
-                targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
-                generateBtn: '生成字幕',
-                inlineNoteLine1: '网页可直接下载，填写邮箱后可在夜间自动接收字幕链接。',
-                inlineNoteLine2: '任务会保存在当前浏览器中，重新打开后仍可查看。',
-                downloadOriginal: '原文',
-                downloadTranslated: '译文',
-                downloadOriginalHint: '下载原文字幕',
-                downloadTranslatedHint: '下载翻译字幕',
-                playVideo: '播放翻译视频',
-                recentTasksTitle: '我的任务',
-                recentTasksNote: '最近任务会保存在当前浏览器中。',
-                noRecentTasks: '还没有最近任务。',
-                recentChecking: '正在检查最近任务...',
-                statusProcessing: '处理中',
-                statusReady: '已完成',
-                statusFailed: '失败',
-                statusCanceled: '已取消',
-                statusUnknown: '未知',
-                statusPrefix: '状态',
-                viewResult: '查看结果',
-                viewDetail: '查看详情',
-                warnNeedVideoUrl: '请填写视频链接',
-                warnNeedTargetLang: '请填写目标语言',
-                warnCreateFail: '创建任务失败',
-                errorIpQuotaLimit: '本视频和已处理的视频总时长已达到 90 分钟。请明天再试。',
-                errorIpQuotaInvalid: '无法识别该网络，暂时无法创建任务。',
-                taskCreatedHeading: '任务创建成功',
-                taskCreatedMessage: '已完成视频信息校验，任务开始排队处理。',
-                taskCreatedVideoTitleLabel: '视频标题',
-                taskCreatedVideoDurationLabel: '视频时长',
-                taskCreatedConfirm: '我知道了',
-                taskCreatedUntitled: '未命名视频',
-                taskCreatedDurationUnknown: '未知',
-                langChinese: '中文',
-                langEnglish: '英文'
-            },
-            en: {
-                appTitle: 'Auto Subtitles & Translation',
-                appSubtitle: 'Paste a YouTube or X link, and we’ll generate subtitles for you.',
-                submitTitle: 'Create a task',
-                videoUrlLabel: 'Video link',
-                videoUrlPlaceholder: 'Paste YouTube or X link',
-                emailLabel: 'Email (optional)',
-                emailPlaceholder: 'Enter your email (optional) to receive subtitle download links (including word-level).',
-                targetLangLabel: 'Subtitle target language',
-                targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
-                generateBtn: 'Generate subtitles',
-                inlineNoteLine1: 'Download directly on this page; add an email if you want nightly subtitle links.',
-                inlineNoteLine2: 'Tasks are stored in this browser and remain after reopening it.',
-                downloadOriginal: 'Original',
-                downloadTranslated: 'Translation',
-                downloadOriginalHint: 'Download original subtitle',
-                downloadTranslatedHint: 'Download translated subtitle',
-                playVideo: 'Play translated video',
-                recentTasksTitle: 'My tasks',
-                recentTasksNote: 'Your recent tasks are stored in this browser.',
-                noRecentTasks: 'No recent tasks yet.',
-                recentChecking: 'Checking recent tasks...',
-                statusProcessing: 'Processing',
-                statusReady: 'Ready',
-                statusFailed: 'Failed',
-                statusCanceled: 'Canceled',
-                statusUnknown: 'Unknown',
-                statusPrefix: 'Status',
-                viewResult: 'View result',
-                viewDetail: 'View details',
-                warnNeedVideoUrl: 'Please enter a video link',
-                warnNeedTargetLang: 'Please enter a target language',
-                warnCreateFail: 'Failed to create job',
-                errorIpQuotaLimit: 'This network has reached today’s 90-minute limit. Please try again tomorrow.',
-                errorIpQuotaInvalid: 'Unable to verify this network for quota tracking.',
-                taskCreatedHeading: 'Task created',
-                taskCreatedMessage: 'The video has been verified and your task is queued.',
-                taskCreatedVideoTitleLabel: 'Video title',
-                taskCreatedVideoDurationLabel: 'Duration',
-                taskCreatedConfirm: 'OK',
-                taskCreatedUntitled: 'Untitled video',
-                taskCreatedDurationUnknown: 'Unknown',
-                langChinese: 'Chinese',
-                langEnglish: 'English'
-            }
-        };
+    <div class="card">
+      <div class="player-wrap">
+        <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay muted>
+          <source src="/media/default.mp4" type="video/mp4">
+          <track kind="subtitles" srclang="zh" label="中文" src="/media/default.vtt" default>
+        </video>
+      </div>
+    </div>
+  </div>
 
-        const TARGET_LANG_OPTIONS = [
-            { value: 'zh', label: { zh: '中文', en: 'Chinese' } },
-            { value: 'en', label: { zh: '英文', en: 'English' } },
-            { value: 'ja', label: { zh: '日语', en: 'Japanese' } },
-            { value: 'ko', label: { zh: '韩语', en: 'Korean' } },
-            { value: 'es', label: { zh: '西班牙语', en: 'Spanish' } },
-            { value: 'fr', label: { zh: '法语', en: 'French' } },
-            { value: 'de', label: { zh: '德语', en: 'German' } },
-            { value: 'it', label: { zh: '意大利语', en: 'Italian' } },
-            { value: 'pt', label: { zh: '葡萄牙语', en: 'Portuguese' } },
-            { value: 'ru', label: { zh: '俄语', en: 'Russian' } },
-            { value: 'vi', label: { zh: '越南语', en: 'Vietnamese' } },
-            { value: 'th', label: { zh: '泰语', en: 'Thai' } }
-        ];
+  <div id="taskConfirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="taskConfirmHeading"
+    aria-hidden="true">
+    <div class="modal-content">
+      <h3 id="taskConfirmHeading" data-i18n="taskCreatedHeading">任务创建成功</h3>
+      <p id="taskConfirmMessage" class="modal-text" data-i18n="taskCreatedMessage">
+        已完成视频校验，任务正在排队处理中。
+      </p>
+      <div class="modal-info-row">
+        <span class="modal-info-label" data-i18n="taskCreatedVideoTitleLabel">视频标题</span>
+        <span class="modal-info-value" id="taskConfirmVideoTitle">--</span>
+      </div>
+      <div class="modal-info-row">
+        <span class="modal-info-label" data-i18n="taskCreatedVideoDurationLabel">视频时长</span>
+        <span class="modal-info-value" id="taskConfirmVideoDuration">--</span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="taskConfirmOk" data-i18n="taskCreatedConfirm">我知道了</button>
+      </div>
+    </div>
+  </div>
 
-        function detectUiLang() {
-            const stored = localStorage.getItem('UI_LANG');
-            if (stored && I18N[stored]) return stored;
-            const nav = (navigator.language || 'en').toLowerCase();
-            return nav.startsWith('zh') ? 'zh' : 'en';
+  <script src="https://openfpcdn.io/fingerprintjs/v4/iife.min.js"></script>
+
+  <script>
+    const API_BASE = 'https://mmx.multmatrix.com';
+    const LS_KEY_RECENT = 'mmx:recentTasks';
+    const LS_KEY_CLIENT_ID = 'mmx:clientId';
+    const MAX_RECENT = 3;
+
+    const I18N = {
+      zh: {
+        appTitle: '自动字幕与翻译',
+        appSubtitle: '粘贴 YouTube 或 X 链接，自动生成多格式字幕与翻译，感谢帮助测试',
+        submitTitle: '创建任务',
+        videoUrlLabel: '视频链接',
+        videoUrlPlaceholder: '粘贴 YouTube 或 X 链接',
+        emailLabel: '邮箱（可选）',
+        emailPlaceholder: '邮箱可接收多格式字幕链接（词级）',
+        targetLangLabel: '字幕目标语言',
+        targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
+        generateBtn: '生成字幕',
+        inlineNoteLine1: '处理完成后，下方播放带翻译字幕的视频，字幕链接自动发送至邮箱',
+        inlineNoteLine2: '任务会保存在当前浏览器中，重新打开后仍可查看。',
+        downloadOriginal: '原文',
+        downloadTranslated: '译文',
+        downloadOriginalHint: '下载原文字幕',
+        downloadTranslatedHint: '下载翻译字幕',
+        playVideo: '播放翻译视频',
+        recentTasksTitle: '我的任务',
+        recentTasksNote: '最近任务会保存在当前浏览器中。',
+        noRecentTasks: '还没有最近任务。',
+        recentChecking: '正在检查最近任务...',
+        statusProcessing: '处理中',
+        statusReady: '已完成',
+        statusFailed: '失败',
+        statusCanceled: '已取消',
+        statusUnknown: '未知',
+        statusPrefix: '状态',
+        viewResult: '查看结果',
+        viewDetail: '查看详情',
+        warnNeedVideoUrl: '请填写视频链接',
+        warnNeedTargetLang: '请填写目标语言',
+        warnCreateFail: '创建任务失败',
+        errorIpQuotaLimit: '本视频和已处理的视频总时长已达到 90 分钟。请明天再试。',
+        errorIpQuotaInvalid: '无法识别该网络，暂时无法创建任务。',
+        taskCreatedHeading: '任务创建成功',
+        taskCreatedMessage: '已完成视频信息校验，任务开始排队处理。',
+        taskCreatedVideoTitleLabel: '视频标题',
+        taskCreatedVideoDurationLabel: '视频时长',
+        taskCreatedConfirm: '我知道了',
+        taskCreatedUntitled: '未命名视频',
+        taskCreatedDurationUnknown: '未知',
+        langChinese: '中文',
+        langEnglish: '英文'
+      },
+      en: {
+        appTitle: 'Auto Subtitles & Translation',
+        appSubtitle: 'Paste a YouTube or X link, and we’ll generate subtitles for you. Thanks for testing.',
+        submitTitle: 'Create a task',
+        videoUrlLabel: 'Video link',
+        videoUrlPlaceholder: 'Paste YouTube or X link',
+        emailLabel: 'Email (optional)',
+        emailPlaceholder: 'Email for receiving subtitle download links (word-level).',
+        targetLangLabel: 'Subtitle target language',
+        targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
+        generateBtn: 'Generate subtitles',
+        inlineNoteLine1: 'After processing, video and translated subtitles will be played below, subtitle will be sent to your email box.',
+        inlineNoteLine2: 'Tasks are stored in this browser and remain after reopening it.',
+        downloadOriginal: 'Original',
+        downloadTranslated: 'Translation',
+        downloadOriginalHint: 'Download original subtitle',
+        downloadTranslatedHint: 'Download translated subtitle',
+        playVideo: 'Play translated video',
+        recentTasksTitle: 'My tasks',
+        recentTasksNote: 'Your recent tasks are stored in this browser.',
+        noRecentTasks: 'No recent tasks yet.',
+        recentChecking: 'Checking recent tasks...',
+        statusProcessing: 'Processing',
+        statusReady: 'Ready',
+        statusFailed: 'Failed',
+        statusCanceled: 'Canceled',
+        statusUnknown: 'Unknown',
+        statusPrefix: 'Status',
+        viewResult: 'View result',
+        viewDetail: 'View details',
+        warnNeedVideoUrl: 'Please enter a video link',
+        warnNeedTargetLang: 'Please enter a target language',
+        warnCreateFail: 'Failed to create job',
+        errorIpQuotaLimit: 'This network has reached today’s 90-minute limit. Please try again tomorrow.',
+        errorIpQuotaInvalid: 'Unable to verify this network for quota tracking.',
+        taskCreatedHeading: 'Task created',
+        taskCreatedMessage: 'The video has been verified and your task is queued.',
+        taskCreatedVideoTitleLabel: 'Video title',
+        taskCreatedVideoDurationLabel: 'Duration',
+        taskCreatedConfirm: 'OK',
+        taskCreatedUntitled: 'Untitled video',
+        taskCreatedDurationUnknown: 'Unknown',
+        langChinese: 'Chinese',
+        langEnglish: 'English'
+      }
+    };
+
+    const TARGET_LANG_OPTIONS = [
+      { value: 'zh', label: { zh: '中文', en: 'Chinese' } },
+      { value: 'en', label: { zh: '英文', en: 'English' } },
+      { value: 'ja', label: { zh: '日语', en: 'Japanese' } },
+      { value: 'ko', label: { zh: '韩语', en: 'Korean' } },
+      { value: 'es', label: { zh: '西班牙语', en: 'Spanish' } },
+      { value: 'fr', label: { zh: '法语', en: 'French' } },
+      { value: 'de', label: { zh: '德语', en: 'German' } },
+      { value: 'it', label: { zh: '意大利语', en: 'Italian' } },
+      { value: 'pt', label: { zh: '葡萄牙语', en: 'Portuguese' } },
+      { value: 'ru', label: { zh: '俄语', en: 'Russian' } },
+      { value: 'vi', label: { zh: '越南语', en: 'Vietnamese' } },
+      { value: 'th', label: { zh: '泰语', en: 'Thai' } }
+    ];
+
+    function detectUiLang() {
+      const stored = localStorage.getItem('UI_LANG');
+      if (stored && I18N[stored]) return stored;
+      const nav = (navigator.language || 'en').toLowerCase();
+      return nav.startsWith('zh') ? 'zh' : 'en';
+    }
+
+    function detectDefaultTargetLang() {
+      const guess = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+      for (const opt of TARGET_LANG_OPTIONS) {
+        if (guess.startsWith(opt.value)) return opt.value;
+      }
+      return 'en';
+    }
+
+    let uiLang = detectUiLang();
+
+    function t(key, fallback = '') {
+      return (I18N[uiLang] && I18N[uiLang][key]) || fallback || key;
+    }
+
+    function applyI18n() {
+      document.documentElement.lang = uiLang === 'zh' ? 'zh-CN' : 'en';
+      document.title = t('appTitle', 'Subtitle Generator');
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (key) el.textContent = t(key, el.textContent || key);
+      });
+
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        if (key) el.placeholder = t(key, el.placeholder || key);
+      });
+
+      document.querySelectorAll('[data-lang-btn]').forEach(btn => {
+        const lang = btn.dataset.langBtn;
+        if (lang === 'zh') btn.textContent = t('langChinese', '中文');
+        if (lang === 'en') btn.textContent = 'EN';
+        btn.classList.toggle('active', lang === uiLang);
+      });
+
+      renderTargetLangOptions();
+      renderRecentTasks();
+    }
+
+    function renderTargetLangOptions(preferred) {
+      const select = document.getElementById('targetLang');
+      if (!select) return;
+      const keep = preferred || select.value || detectDefaultTargetLang();
+      select.innerHTML = TARGET_LANG_OPTIONS.map(opt => {
+        const label = opt.label?.[uiLang] || opt.label?.en || opt.value;
+        return `<option value="${opt.value}">${escapeHtml(label)}</option>`;
+      }).join('');
+      const exists = TARGET_LANG_OPTIONS.some(opt => opt.value === keep);
+      select.value = exists ? keep : (TARGET_LANG_OPTIONS[0]?.value || '');
+    }
+
+    function setLang(lang) {
+      if (!I18N[lang]) lang = 'en';
+      uiLang = lang;
+      localStorage.setItem('UI_LANG', lang);
+      applyI18n();
+    }
+
+    document.querySelectorAll('[data-lang-btn]').forEach(btn => {
+      btn.addEventListener('click', () => setLang(btn.dataset.langBtn));
+    });
+
+    const els = {
+      videoUrl: document.getElementById('videoUrl'),
+      email: document.getElementById('email'),
+      videoUrlWrap: document.getElementById('videoUrlWrap'),
+      emailWrap: document.getElementById('emailWrap'),
+      clearVideoUrl: document.getElementById('clearVideoUrl'),
+      clearEmail: document.getElementById('clearEmail'),
+      targetLang: document.getElementById('targetLang'),
+      createByUrlBtn: document.getElementById('createByUrlBtn'),
+      recentTasks: document.getElementById('recentTasks'),
+      taskConfirmModal: document.getElementById('taskConfirmModal'),
+      taskConfirmTitle: document.getElementById('taskConfirmVideoTitle'),
+      taskConfirmDuration: document.getElementById('taskConfirmVideoDuration'),
+      taskConfirmOk: document.getElementById('taskConfirmOk')
+    };
+
+    els.taskConfirmOk?.addEventListener('click', closeTaskConfirmModal);
+    els.taskConfirmModal?.addEventListener('click', (event) => {
+      if (event.target === els.taskConfirmModal) {
+        closeTaskConfirmModal();
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && els.taskConfirmModal && !els.taskConfirmModal.classList.contains('hidden')) {
+        closeTaskConfirmModal();
+      }
+    });
+
+    let es = null;
+    let currentJobId = null;
+    let recentTasksRenderToken = 0;
+    let creatingJob = false;
+    const clientId = getOrCreateClientId();
+
+    let playbackPollTimer = null;
+
+    function updateClearButtonState(inputEl, wrapEl) {
+      if (!inputEl || !wrapEl) return;
+      wrapEl.classList.toggle('has-value', !!inputEl.value.trim());
+    }
+
+    function bindClearableInput(inputEl, wrapEl, clearBtn) {
+      if (!inputEl || !wrapEl || !clearBtn) return;
+
+      const refresh = () => updateClearButtonState(inputEl, wrapEl);
+
+      inputEl.addEventListener('input', refresh);
+      inputEl.addEventListener('change', refresh);
+
+      clearBtn.addEventListener('click', () => {
+        inputEl.value = '';
+        updateClearButtonState(inputEl, wrapEl);
+        inputEl.focus();
+      });
+
+      refresh();
+    }
+
+    bindClearableInput(els.videoUrl, els.videoUrlWrap, els.clearVideoUrl);
+    bindClearableInput(els.email, els.emailWrap, els.clearEmail);
+
+
+    function getDefaultPlaybackTarget() {
+    return {
+        videoUrl: '/media/default.mp4',
+        subtitleUrl: '/media/default.vtt'
+    };
+    }
+
+    function getCurrentPlayingUrls() {
+    const video = document.getElementById('defaultVideoPlayer');
+    if (!video) {
+        return { videoUrl: '', subtitleUrl: '' };
+    }
+
+    const currentVideoUrl = video.querySelector('source')?.src || '';
+    const currentSubtitleUrl = video.querySelector('track')?.src || '';
+
+    return {
+        videoUrl: currentVideoUrl,
+        subtitleUrl: currentSubtitleUrl
+    };
+    }
+
+
+    function isWorkingStatus(status) {
+      const st = String(status || '').toUpperCase();
+      return !!st && !['FINISHED', 'FAILED', 'CANCELED'].includes(st);
+    }
+
+    function getLatestTask() {
+      const tasks = getStoredRecentTasks().filter(x => x?.jobId);
+      return tasks.length ? tasks[0] : null;
+    }
+
+    function normalizeMediaUrl(u) {
+      if (!u && u !== '') return null;
+      let val = String(u).trim();
+      if (!val) return null;
+      if (/^https?:\/\//i.test(val)) return val;
+      val = val.replace(/\\/g, '/');
+      if (val.startsWith('/download/') || val.startsWith('/files/')) return val;
+      const dataToken = '/data/';
+      const idx = val.indexOf(dataToken);
+      if (idx >= 0) {
+        const rel = val.slice(idx + dataToken.length).replace(/^\/+/g, '');
+        return rel ? `/download/${rel}` : '/download';
+      }
+      if (val.startsWith('data/')) {
+        return `/download/${val.slice('data/'.length)}`;
+      }
+      return val.startsWith('/') ? val : `/${val}`;
+    }
+
+    function absUrl(u) {
+      const normalized = normalizeMediaUrl(u);
+      if (!normalized) return null;
+      if (/^https?:\/\//i.test(normalized)) return normalized;
+      return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
+    }
+
+    async function downloadMedia(u, filename) {
+      const abs = absUrl(u);
+      if (!abs) return false;
+      const name = filename || 'subtitle.vtt';
+      try {
+        const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(blobUrl);
+          a.remove();
+        }, 0);
+        return true;
+      } catch (err) {
+        console.error('download failed', err);
+        window.open(abs, '_blank', 'noopener');
+        return false;
+      }
+    }
+
+    function sanitizeFilename(n) {
+      return (n ? String(n) : 'subtitle').trim().replace(/[\\/:*?"<>|]/g, '_');
+    }
+
+    function getStoredRecentTasks() {
+      try {
+        const raw = localStorage.getItem(LS_KEY_RECENT);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRecentTasks(list) {
+      localStorage.setItem(LS_KEY_RECENT, JSON.stringify(list.slice(0, MAX_RECENT)));
+    }
+
+    function upsertRecentTask(task) {
+      const list = getStoredRecentTasks().filter(x => x.jobId !== task.jobId);
+      list.unshift(task);
+      saveRecentTasks(list);
+      renderRecentTasks();
+    }
+
+    function updateRecentTask(jobId, patch) {
+      const list = getStoredRecentTasks();
+      const idx = list.findIndex(x => x.jobId === jobId);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
+        saveRecentTasks(list);
+        renderRecentTasksLocal();
+      }
+    }
+
+    async function refreshJobDetails(jobId) {
+      const job = await fetchJobSnapshot(jobId);
+      if (!job) return;
+      const sources = extractSubtitleSources(job);
+      updateRecentTask(jobId, {
+        status: job.status || 'PROCESSING',
+        title: taskTitleFromPayload(job),
+        subtitleBase: sources.baseTitle,
+        origSubtitleUrl: sources.origUrl,
+        transSubtitleUrl: sources.transUrl,
+        transLang: sources.transLang,
+        exemptVideoUrl: sources.exemptUrl,
+        verified: String(job.status || '').toUpperCase() === 'FINISHED'
+      });
+    }
+
+    function statusLabel(status) {
+      const s = String(status || '').toUpperCase();
+      if (s === 'FINISHED' || s === 'READY') return t('statusReady', 'Ready');
+      if (s === 'FAILED') return t('statusFailed', 'Failed');
+      if (s === 'CANCELED') return t('statusCanceled', 'Canceled');
+      if (s) return t('statusProcessing', 'Processing');
+      return t('statusUnknown', 'Unknown');
+    }
+
+    async function fetchJobSnapshot(jobId) {
+      try {
+        const resp = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+        if (!resp.ok) return null;
+        return await resp.json();
+      } catch {
+        return null;
+      }
+    }
+
+    async function renderRecentTasks() {
+      const token = ++recentTasksRenderToken;
+      try {
+        const tasks = getStoredRecentTasks();
+        if (!tasks.length) {
+          els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
+          return;
         }
 
-        function detectDefaultTargetLang() {
-            const guess = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
-            for (const opt of TARGET_LANG_OPTIONS) {
-                if (guess.startsWith(opt.value)) return opt.value;
-            }
-            return 'en';
+        els.recentTasks.innerHTML = `<div class="muted">${t('recentChecking', 'Checking recent tasks...')}</div>`;
+
+        const kept = [];
+        const items = [];
+
+        for (const task of tasks) {
+          if (!task?.jobId) continue;
+          const job = await fetchJobSnapshot(task.jobId);
+          if (!job) continue;
+
+          const serverId = job.id || job.jobId || task.jobId;
+          const title = taskTitleFromPayload(job) || task.title || job.url || task.url || serverId;
+          const { baseTitle, origUrl, transUrl, transLang, exemptUrl } = extractSubtitleSources(job);
+
+          const merged = {
+            ...task,
+            jobId: serverId,
+            title,
+            status: job.status || task.status || 'PROCESSING',
+            message: job.message || task.message || '',
+            updatedAt: job.updated_at ? job.updated_at * 1000 : Date.now(),
+            url: job.url || task.url,
+            subtitleBase: baseTitle,
+            origSubtitleUrl: origUrl,
+            transSubtitleUrl: transUrl,
+            transLang,
+            exemptVideoUrl: exemptUrl,
+            verified: true,
+          };
+          kept.push(merged);
+          items.push(toRecentTaskItem(merged));
         }
 
-        let uiLang = detectUiLang();
+        if (token !== recentTasksRenderToken) return;
 
-        function t(key, fallback = '') {
-            return (I18N[uiLang] && I18N[uiLang][key]) || fallback || key;
-        }
+        saveRecentTasks(kept);
+        drawRecentTaskList(items);
+      } catch (err) {
+        console.error('renderRecentTasks failed', err);
+      }
+    }
 
-        function applyI18n() {
-            document.documentElement.lang = uiLang === 'zh' ? 'zh-CN' : 'en';
-            document.title = t('appTitle', 'Subtitle Generator');
+    function renderRecentTasksLocal() {
+      const tasks = getStoredRecentTasks().filter(x => x?.jobId);
+      const items = tasks.map(toRecentTaskItem);
+      drawRecentTaskList(items);
+    }
 
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.dataset.i18n;
-                if (key) el.textContent = t(key, el.textContent || key);
-            });
+    function toRecentTaskItem(task) {
+      const jobId = task.jobId;
+      const title = task.title || task.url || jobId;
+      const state = String(task.status || '').toUpperCase();
+      return {
+        jobId,
+        title,
+        state,
+        statusText: statusLabel(state),
+        message: task.message || '',
+        subtitleBase: task.subtitleBase,
+        origUrl: task.origSubtitleUrl,
+        transUrl: task.transSubtitleUrl,
+        transLang: task.transLang || 'trans',
+        exemptUrl: task.exemptVideoUrl,
+      };
+    }
 
-            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-                const key = el.dataset.i18nPlaceholder;
-                if (key) el.placeholder = t(key, el.placeholder || key);
-            });
+    function drawRecentTaskList(items) {
+      const limited = items.slice(0, MAX_RECENT);
+      if (!limited.length) {
+        els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
+        return;
+      }
 
-            document.querySelectorAll('[data-lang-btn]').forEach(btn => {
-                const lang = btn.dataset.langBtn;
-                if (lang === 'zh') btn.textContent = t('langChinese', '中文');
-                if (lang === 'en') btn.textContent = 'EN';
-                btn.classList.toggle('active', lang === uiLang);
-            });
+      els.recentTasks.innerHTML = limited.map(item => {
+        const statusLine = item.message
+          ? `${t('statusPrefix', 'Status')}: ${escapeHtml(item.statusText)} · ${escapeHtml(item.message)}`
+          : `${t('statusPrefix', 'Status')}: ${escapeHtml(item.statusText)}`;
+        const buttons = [];
+        if (item.state === 'FINISHED' || item.state === 'READY') {
+          const nameBase = item.subtitleBase || sanitizeFilename(item.title) || 'subtitle';
 
-            renderTargetLangOptions();
-            renderRecentTasks();
-        }
-
-        function renderTargetLangOptions(preferred) {
-            const select = document.getElementById('targetLang');
-            if (!select) return;
-            const keep = preferred || select.value || detectDefaultTargetLang();
-            select.innerHTML = TARGET_LANG_OPTIONS.map(opt => {
-                const label = opt.label?.[uiLang] || opt.label?.en || opt.value;
-                return `<option value="${opt.value}">${escapeHtml(label)}</option>`;
-            }).join('');
-            const exists = TARGET_LANG_OPTIONS.some(opt => opt.value === keep);
-            select.value = exists ? keep : (TARGET_LANG_OPTIONS[0]?.value || '');
-        }
-
-        function setLang(lang) {
-            if (!I18N[lang]) lang = 'en';
-            uiLang = lang;
-            localStorage.setItem('UI_LANG', lang);
-            applyI18n();
-        }
-
-        document.querySelectorAll('[data-lang-btn]').forEach(btn => {
-            btn.addEventListener('click', () => setLang(btn.dataset.langBtn));
-        });
-
-        const els = {
-            videoUrl: document.getElementById('videoUrl'),
-            email: document.getElementById('email'),
-            targetLang: document.getElementById('targetLang'),
-            createByUrlBtn: document.getElementById('createByUrlBtn'),
-            recentTasks: document.getElementById('recentTasks'),
-            taskConfirmModal: document.getElementById('taskConfirmModal'),
-            taskConfirmTitle: document.getElementById('taskConfirmVideoTitle'),
-            taskConfirmDuration: document.getElementById('taskConfirmVideoDuration'),
-            taskConfirmOk: document.getElementById('taskConfirmOk')
-        };
-
-        els.taskConfirmOk?.addEventListener('click', closeTaskConfirmModal);
-        els.taskConfirmModal?.addEventListener('click', (event) => {
-            if (event.target === els.taskConfirmModal) {
-                closeTaskConfirmModal();
-            }
-        });
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && els.taskConfirmModal && !els.taskConfirmModal.classList.contains('hidden')) {
-                closeTaskConfirmModal();
-            }
-        });
-
-        let es = null;
-        let currentJobId = null;
-        let recentTasksRenderToken = 0;
-        let creatingJob = false;
-
-        function normalizeMediaUrl(u) {
-            if (!u && u !== '') return null;
-            let val = String(u).trim();
-            if (!val) return null;
-            if (/^https?:\/\//i.test(val)) return val;
-            val = val.replace(/\\/g, '/');
-            if (val.startsWith('/download/') || val.startsWith('/files/')) return val;
-            const dataToken = '/data/';
-            const idx = val.indexOf(dataToken);
-            if (idx >= 0) {
-                const rel = val.slice(idx + dataToken.length).replace(/^\/+/g, '');
-                return rel ? `/download/${rel}` : '/download';
-            }
-            if (val.startsWith('data/')) {
-                return `/download/${val.slice('data/'.length)}`;
-            }
-            return val.startsWith('/') ? val : `/${val}`;
-        }
-
-        function absUrl(u) {
-            const normalized = normalizeMediaUrl(u);
-            if (!normalized) return null;
-            if (/^https?:\/\//i.test(normalized)) return normalized;
-            return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
-        }
-
-        async function downloadMedia(u, filename) {
-            const abs = absUrl(u);
-            if (!abs) return false;
-            const name = filename || 'subtitle.vtt';
-            try {
-                const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const blob = await resp.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = name;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => {
-                    URL.revokeObjectURL(blobUrl);
-                    a.remove();
-                }, 0);
-                return true;
-            } catch (err) {
-                console.error('download failed', err);
-                window.open(abs, '_blank', 'noopener');
-                return false;
-            }
-        }
-
-        function sanitizeFilename(n) {
-            return (n ? String(n) : 'subtitle').trim().replace(/[\\/:*?"<>|]/g, '_');
-        }
-
-        function getStoredRecentTasks() {
-            try {
-                const raw = localStorage.getItem(LS_KEY_RECENT);
-                if (!raw) return [];
-                const data = JSON.parse(raw);
-                return Array.isArray(data) ? data : [];
-            } catch {
-                return [];
-            }
-        }
-
-        function saveRecentTasks(list) {
-            localStorage.setItem(LS_KEY_RECENT, JSON.stringify(list.slice(0, MAX_RECENT)));
-        }
-
-        function upsertRecentTask(task) {
-            const list = getStoredRecentTasks().filter(x => x.jobId !== task.jobId);
-            list.unshift(task);
-            saveRecentTasks(list);
-            renderRecentTasks();
-        }
-
-        function updateRecentTask(jobId, patch) {
-            const list = getStoredRecentTasks();
-            const idx = list.findIndex(x => x.jobId === jobId);
-            if (idx >= 0) {
-                list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
-                saveRecentTasks(list);
-                renderRecentTasksLocal();
-            }
-        }
-
-        async function refreshJobDetails(jobId) {
-            const job = await fetchJobSnapshot(jobId);
-            if (!job) return;
-            const sources = extractSubtitleSources(job);
-            updateRecentTask(jobId, {
-                status: job.status || 'PROCESSING',
-                title: taskTitleFromPayload(job),
-                subtitleBase: sources.baseTitle,
-                origSubtitleUrl: sources.origUrl,
-                transSubtitleUrl: sources.transUrl,
-                transLang: sources.transLang,
-                exemptVideoUrl: sources.exemptUrl,
-                verified: String(job.status || '').toUpperCase() === 'FINISHED'
-            });
-        }
-
-        function statusLabel(status) {
-            const s = String(status || '').toUpperCase();
-            if (s === 'FINISHED' || s === 'READY') return t('statusReady', 'Ready');
-            if (s === 'FAILED') return t('statusFailed', 'Failed');
-            if (s === 'CANCELED') return t('statusCanceled', 'Canceled');
-            if (s) return t('statusProcessing', 'Processing');
-            return t('statusUnknown', 'Unknown');
-        }
-
-        async function fetchJobSnapshot(jobId) {
-            try {
-                const resp = await fetch(`${API_BASE}/api/jobs/${jobId}`);
-                if (!resp.ok) return null;
-                return await resp.json();
-            } catch {
-                return null;
-            }
-        }
-
-        async function renderRecentTasks() {
-            const token = ++recentTasksRenderToken;
-            try {
-                const tasks = getStoredRecentTasks();
-                if (!tasks.length) {
-                    els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
-                    return;
-                }
-
-                els.recentTasks.innerHTML = `<div class="muted">${t('recentChecking', 'Checking recent tasks...')}</div>`;
-
-                const kept = [];
-                const items = [];
-
-                for (const task of tasks) {
-                    if (!task?.jobId) continue;
-                    const job = await fetchJobSnapshot(task.jobId);
-                    if (!job) continue;
-
-                    const serverId = job.id || job.jobId || task.jobId;
-                    const state = String(job.status || '').toUpperCase();
-                    const title = taskTitleFromPayload(job) || task.title || job.url || task.url || serverId;
-                    const { baseTitle, origUrl, transUrl, transLang, exemptUrl } = extractSubtitleSources(job);
-                    const merged = {
-                        ...task,
-                        jobId: serverId,
-                        title,
-                        status: job.status || task.status || 'PROCESSING',
-                        updatedAt: job.updated_at ? job.updated_at * 1000 : Date.now(),
-                        url: job.url || task.url,
-                        subtitleBase: baseTitle,
-                        origSubtitleUrl: origUrl,
-                        transSubtitleUrl: transUrl,
-                        transLang,
-                        exemptVideoUrl: exemptUrl,
-                        verified: true,
-                    };
-                    kept.push(merged);
-                    items.push(toRecentTaskItem(merged));
-                }
-
-                if (token !== recentTasksRenderToken) {
-                    return;
-                }
-
-                saveRecentTasks(kept);
-
-                drawRecentTaskList(items);
-            } catch (err) {
-                console.error('renderRecentTasks failed', err);
-            }
-        }
-
-        function renderRecentTasksLocal() {
-            const tasks = getStoredRecentTasks().filter(x => x?.jobId);
-            const items = tasks.map(toRecentTaskItem);
-            drawRecentTaskList(items);
-        }
-
-        function toRecentTaskItem(task) {
-            const jobId = task.jobId;
-            const title = task.title || task.url || jobId;
-            const state = String(task.status || '').toUpperCase();
-            return {
-                jobId,
-                title,
-                state,
-                statusText: statusLabel(state),
-                subtitleBase: task.subtitleBase,
-                origUrl: task.origSubtitleUrl,
-                transUrl: task.transSubtitleUrl,
-                transLang: task.transLang || 'trans',
-                exemptUrl: task.exemptVideoUrl,
-            };
-        }
-
-        function drawRecentTaskList(items) {
-            const limited = items.slice(0, MAX_RECENT);
-            if (!limited.length) {
-                els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
-                return;
-            }
-
-            els.recentTasks.innerHTML = limited.map(item => {
-                const statusLine = `${t('statusPrefix', 'Status')}: ${escapeHtml(item.statusText)}`;
-                const buttons = [];
-                if (item.state === 'FINISHED' || item.state === 'READY') {
-                    const nameBase = item.subtitleBase || sanitizeFilename(item.title) || 'subtitle';
-
-                    if (item.exemptUrl) {
-                        buttons.push(`
+          if (item.exemptUrl) {
+            buttons.push(`
               <button
                 class="btn btn-secondary btn-compact"
                 data-switch-video="${escapeHtml(item.exemptUrl)}"
@@ -891,10 +998,10 @@
                 ${t('playVideo', '播放翻译视频')}
               </button>
             `);
-                    }
+          }
 
-                    if (item.origUrl) {
-                        buttons.push(`
+          if (item.origUrl) {
+            buttons.push(`
               <button
                 class="btn btn-secondary btn-compact"
                 data-download-url="${escapeHtml(item.origUrl)}"
@@ -904,10 +1011,10 @@
                 ${t('downloadOriginal', '原文')}
               </button>
             `);
-                    }
+          }
 
-                    if (item.transUrl) {
-                        buttons.push(`
+          if (item.transUrl) {
+            buttons.push(`
               <button
                 class="btn btn-compact"
                 data-download-url="${escapeHtml(item.transUrl)}"
@@ -917,12 +1024,11 @@
                 ${t('downloadTranslated', '译文')}
               </button>
             `);
-                    }
-                }
-                else if (item.state === 'FAILED' || item.state === 'CANCELED') {
-                    buttons.push(`<button class="btn btn-secondary btn-compact" data-view-job="${item.jobId}">${t('viewDetail', 'View details')}</button>`);
-                }
-                return `
+          }
+        } else if (item.state === 'FAILED' || item.state === 'CANCELED') {
+          buttons.push(`<button class="btn btn-secondary btn-compact" data-view-job="${item.jobId}">${t('viewDetail', 'View details')}</button>`);
+        }
+        return `
           <div class="task-item" data-job-id="${item.jobId}">
             <div class="task-meta">
               <div class="task-title">${escapeHtml(item.title)}</div>
@@ -931,502 +1037,545 @@
             ${buttons.length ? `<div class="task-actions">${buttons.join('')}</div>` : ''}
           </div>
         `;
-            }).join('');
+      }).join('');
 
-            els.recentTasks.querySelectorAll('[data-download-url]').forEach(btn => {
-                const url = btn.getAttribute('data-download-url');
-                const filename = btn.getAttribute('data-download-name') || 'subtitle.vtt';
-                btn.addEventListener('click', async () => {
-                    await downloadMedia(url, filename);
-                });
-            });
+      els.recentTasks.querySelectorAll('[data-download-url]').forEach(btn => {
+        const url = btn.getAttribute('data-download-url');
+        const filename = btn.getAttribute('data-download-name') || 'subtitle.vtt';
+        btn.addEventListener('click', async () => {
+          await downloadMedia(url, filename);
+        });
+      });
 
-            els.recentTasks.querySelectorAll('[data-view-job]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const jobId = btn.getAttribute('data-view-job');
-                    if (jobId) {
-                        window.open(`${API_BASE}/api/jobs/${jobId}`, '_blank', 'noopener');
-                    }
-                });
-            });
+      els.recentTasks.querySelectorAll('[data-view-job]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const jobId = btn.getAttribute('data-view-job');
+          if (jobId) {
+            window.open(`${API_BASE}/api/jobs/${jobId}`, '_blank', 'noopener');
+          }
+        });
+      });
 
-            els.recentTasks.querySelectorAll('[data-switch-video]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const videoUrl = btn.getAttribute('data-switch-video');
-                    const subtitleUrl = btn.getAttribute('data-switch-subtitle');
-                    switchVideo(videoUrl, subtitleUrl);
-                });
-            });
+      els.recentTasks.querySelectorAll('[data-switch-video]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const videoUrl = btn.getAttribute('data-switch-video');
+          const subtitleUrl = btn.getAttribute('data-switch-subtitle');
+          switchVideo(videoUrl, subtitleUrl);
+        });
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function extractSubtitleSources(payload) {
+      const result = payload?.result || {};
+      const info = payload?.info || {};
+      const baseTitle = sanitizeFilename(
+        result?.details?.title ||
+        info?.title ||
+        'subtitle'
+      );
+
+      const origUrl = result?.subtitle?.url || null;
+
+      let transUrl = null;
+      let transLang = 'trans';
+      const tmap = result?.subtitle_translated || {};
+      if (tmap && typeof tmap === 'object') {
+        for (const k of Object.keys(tmap)) {
+          if (tmap[k]?.url) {
+            transUrl = tmap[k].url;
+            transLang = k;
+            break;
+          }
         }
+      }
 
-        function escapeHtml(s) {
-            return String(s || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
+      if (!transUrl && result?.playback?.subtitleUrl) {
+        transUrl = result.playback.subtitleUrl;
+      }
+
+      const exemptUrl = result?.playback?.exemptVideoUrl || null;
+      return { baseTitle, origUrl, transUrl, transLang, exemptUrl };
+    }
+
+    function toObjectOrNull(val) {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      if (typeof val === 'string') {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return null;
         }
+      }
+      return null;
+    }
 
-        function extractSubtitleSources(payload) {
-            const result = payload?.result || {};
-            const info = payload?.info || {};
-            const baseTitle = sanitizeFilename(
-                result?.details?.title ||
-                info?.title ||
-                'subtitle'
-            );
+    function taskTitleFromPayload(payload) {
+      const info = toObjectOrNull(payload?.info);
+      const infoPath = toObjectOrNull(info?.path);
+      const infoDetails = toObjectOrNull(info?.details);
+      const infoPathDetails = toObjectOrNull(infoPath?.details);
+      const result = toObjectOrNull(payload?.result);
+      const resultDetails = toObjectOrNull(result?.details);
 
-            const origUrl = result?.subtitle?.url || null;
+      const candidates = [
+        info?.title,
+        infoDetails?.title,
+        infoPath?.title,
+        infoPathDetails?.title,
+        result?.title,
+        resultDetails?.title,
+        payload?.title,
+        payload?.url,
+        payload?.jobId,
+      ];
 
-            let transUrl = null;
-            let transLang = 'trans';
-            const tmap = result?.subtitle_translated || {};
-            if (tmap && typeof tmap === 'object') {
-                for (const k of Object.keys(tmap)) {
-                    if (tmap[k]?.url) {
-                        transUrl = tmap[k].url;
-                        transLang = k;
-                        break;
-                    }
-                }
-            }
-
-            if (!transUrl && result?.playback?.subtitleUrl) {
-                transUrl = result.playback.subtitleUrl;
-            }
-
-            const exemptUrl = result?.playback?.exemptVideoUrl || null;
-
-            return { baseTitle, origUrl, transUrl, transLang, exemptUrl };
+      for (const candidate of candidates) {
+        if (candidate && String(candidate).trim()) {
+          return String(candidate).trim();
         }
+      }
+      return 'video';
+    }
 
-        function toObjectOrNull(val) {
-            if (!val) return null;
-            if (typeof val === 'object') return val;
-            if (typeof val === 'string') {
-                try {
-                    return JSON.parse(val);
-                } catch {
-                    return null;
-                }
-            }
-            return null;
+    function extractDurationSecondsFromInfo(info) {
+      if (!info) return 0;
+      if (typeof info === 'string') {
+        try {
+          info = JSON.parse(info);
+        } catch {
+          return 0;
         }
-
-        function taskTitleFromPayload(payload) {
-            const info = toObjectOrNull(payload?.info);
-            const infoPath = toObjectOrNull(info?.path);
-            const infoDetails = toObjectOrNull(info?.details);
-            const infoPathDetails = toObjectOrNull(infoPath?.details);
-            const result = toObjectOrNull(payload?.result);
-            const resultDetails = toObjectOrNull(result?.details);
-
-            const candidates = [
-                info?.title,
-                infoDetails?.title,
-                infoPath?.title,
-                infoPathDetails?.title,
-                result?.title,
-                resultDetails?.title,
-                payload?.title,
-                payload?.url,
-                payload?.jobId,
-            ];
-
-            for (const candidate of candidates) {
-                if (candidate && String(candidate).trim()) {
-                    return String(candidate).trim();
-                }
-            }
-            return 'video';
+      }
+      if (typeof info !== 'object') return 0;
+      const sources = [];
+      if (info.details && typeof info.details === 'object') sources.push(info.details);
+      if (info.path && typeof info.path === 'object') sources.push(info.path);
+      sources.push(info);
+      for (const src of sources) {
+        if (!src || typeof src !== 'object') continue;
+        const candidate = src.duration_seconds ?? src.durationSeconds ?? src.duration ?? src.length;
+        const val = Number(candidate);
+        if (Number.isFinite(val) && val > 0) {
+          return val;
         }
+      }
+      return 0;
+    }
 
-        function extractDurationSecondsFromInfo(info) {
-            if (!info) return 0;
-            if (typeof info === 'string') {
-                try {
-                    info = JSON.parse(info);
-                } catch {
-                    return 0;
-                }
-            }
-            if (typeof info !== 'object') return 0;
-            const sources = [];
-            if (info.details && typeof info.details === 'object') sources.push(info.details);
-            if (info.path && typeof info.path === 'object') sources.push(info.path);
-            sources.push(info);
-            for (const src of sources) {
-                if (!src || typeof src !== 'object') continue;
-                const candidate = src.duration_seconds ?? src.durationSeconds ?? src.duration ?? src.length;
-                const val = Number(candidate);
-                if (Number.isFinite(val) && val > 0) {
-                    return val;
-                }
-            }
-            return 0;
+    function formatDurationClock(seconds) {
+      if (!Number.isFinite(seconds) || seconds <= 0) return '';
+      const total = Math.round(seconds);
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const secs = total % 60;
+      const mm = String(minutes).padStart(2, '0');
+      const ss = String(secs).padStart(2, '0');
+      if (hours > 0) {
+        return `${hours}:${mm}:${ss}`;
+      }
+      return `${mm}:${ss}`;
+    }
+
+    function formatDurationLabel(seconds) {
+      const formatted = formatDurationClock(seconds);
+      return formatted || t('taskCreatedDurationUnknown', 'Unknown');
+    }
+
+    function openTaskConfirmModal(title, durationSeconds) {
+      if (!els.taskConfirmModal) return;
+      const videoTitle = title || t('taskCreatedUntitled', 'Untitled video');
+      if (els.taskConfirmTitle) {
+        els.taskConfirmTitle.textContent = videoTitle;
+      }
+      if (els.taskConfirmDuration) {
+        els.taskConfirmDuration.textContent = formatDurationLabel(durationSeconds);
+      }
+      els.taskConfirmModal.classList.remove('hidden');
+      els.taskConfirmModal.setAttribute('aria-hidden', 'false');
+      if (els.taskConfirmOk) {
+        requestAnimationFrame(() => {
+          els.taskConfirmOk.focus();
+        });
+      }
+    }
+
+    function closeTaskConfirmModal() {
+      if (!els.taskConfirmModal) return;
+
+      if (document.activeElement && els.taskConfirmModal.contains(document.activeElement)) {
+        document.activeElement.blur();
+        els.createByUrlBtn?.focus();
+      }
+
+      els.taskConfirmModal.classList.add('hidden');
+      els.taskConfirmModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function showTaskCreatedDialog(payload) {
+      if (!payload) return;
+      const title = taskTitleFromPayload(payload) || t('taskCreatedUntitled', 'Untitled video');
+      const durationSeconds = extractDurationSecondsFromInfo(payload.info);
+      openTaskConfirmModal(title, durationSeconds);
+    }
+
+    function handleSnapshot(payload) {
+      const jobId = payload?.jobId || currentJobId;
+      if (!jobId) return;
+
+      const sources = extractSubtitleSources(payload);
+      const normalizedStatus = String(payload?.status || '').toUpperCase();
+
+      updateRecentTask(jobId, {
+        status: payload?.status || 'PROCESSING',
+        message: payload?.message || '',
+        title: taskTitleFromPayload(payload),
+        subtitleBase: sources.baseTitle,
+        origSubtitleUrl: sources.origUrl,
+        transSubtitleUrl: sources.transUrl,
+        transLang: sources.transLang,
+        exemptVideoUrl: sources.exemptUrl,
+        verified: normalizedStatus === 'FINISHED'
+      });
+
+      if (normalizedStatus === 'FINISHED') {
+        const needsRefresh = !sources.origUrl && !sources.transUrl && !sources.exemptUrl;
+        if (needsRefresh) {
+          refreshJobDetails(jobId);
         }
+      }
 
-        function formatDurationClock(seconds) {
-            if (!Number.isFinite(seconds) || seconds <= 0) return '';
-            const total = Math.round(seconds);
-            const hours = Math.floor(total / 3600);
-            const minutes = Math.floor((total % 3600) / 60);
-            const secs = total % 60;
-            const mm = String(minutes).padStart(2, '0');
-            const ss = String(secs).padStart(2, '0');
-            if (hours > 0) {
-                return `${hours}:${mm}:${ss}`;
-            }
-            return `${mm}:${ss}`;
-        }
+    }
 
-        function formatDurationLabel(seconds) {
-            const formatted = formatDurationClock(seconds);
-            return formatted || t('taskCreatedDurationUnknown', 'Unknown');
-        }
+    function closeSSE() {
+      if (es) {
+        es.close();
+        es = null;
+      }
+    }
 
-        function openTaskConfirmModal(title, durationSeconds) {
-            if (!els.taskConfirmModal) return;
-            const videoTitle = title || t('taskCreatedUntitled', 'Untitled video');
-            if (els.taskConfirmTitle) {
-                els.taskConfirmTitle.textContent = videoTitle;
-            }
-            if (els.taskConfirmDuration) {
-                els.taskConfirmDuration.textContent = formatDurationLabel(durationSeconds);
-            }
-            els.taskConfirmModal.classList.remove('hidden');
-            els.taskConfirmModal.setAttribute('aria-hidden', 'false');
-            if (els.taskConfirmOk) {
-                requestAnimationFrame(() => {
-                    els.taskConfirmOk.focus();
-                });
-            }
-        }
+    function subscribeJob(jobId) {
+        closeSSE();
+        currentJobId = jobId;
 
-        function closeTaskConfirmModal() {
-            if (!els.taskConfirmModal) return;
-            els.taskConfirmModal.classList.add('hidden');
-            els.taskConfirmModal.setAttribute('aria-hidden', 'true');
-        }
+        es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
 
-        function showTaskCreatedDialog(payload) {
-            if (!payload) return;
-            const title = taskTitleFromPayload(payload) || t('taskCreatedUntitled', 'Untitled video');
-            const durationSeconds = extractDurationSecondsFromInfo(payload.info);
-            openTaskConfirmModal(title, durationSeconds);
-        }
-
-        function handleSnapshot(payload) {
-            const jobId = payload?.jobId || currentJobId;
-            if (!jobId) return;
-
-            const sources = extractSubtitleSources(payload);
-
-            updateRecentTask(jobId, {
-                status: payload?.status || 'PROCESSING',
-                title: taskTitleFromPayload(payload),
-                subtitleBase: sources.baseTitle,
-                origSubtitleUrl: sources.origUrl,
-                transSubtitleUrl: sources.transUrl,
-                transLang: sources.transLang,
-                exemptVideoUrl: sources.exemptUrl,
-                verified: Boolean(payload?.status && payload.status.toUpperCase() === 'FINISHED')
-            });
-
-            const normalizedStatus = String(payload?.status || '').toUpperCase();
-            if (normalizedStatus === 'FINISHED') {
-                const needsRefresh = !sources.origUrl && !sources.transUrl && !sources.exemptUrl;
-                if (needsRefresh) {
-                    refreshJobDetails(jobId);
-                }
-            }
-        }
-
-        function closeSSE() {
-            if (es) {
-                es.close();
-                es = null;
-            }
-        }
-
-        // function subscribeJob(jobId) {
-        //     closeSSE();
-        //     currentJobId = jobId;
-
-        //     es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
-        //     es.onmessage = (ev) => {
-        //         let msg;
-        //         try { msg = JSON.parse(ev.data); } catch { return; }
-        //         if (msg.type === 'heartbeat') return;
-
-        //         handleSnapshot(msg);
-
-        //         const st = String(msg.status || '').toUpperCase();
-        //         if (st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED') {
-        //             closeSSE();
-        //         }
-        //     };
-
-        //     es.onerror = () => { };
-        // }
-
-        function subscribeJob(jobId) {
-            closeSSE();
-            currentJobId = jobId;
-
-            es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
-
-            es.onmessage = (ev) => {
-                let msg;
-                try {
-                    msg = JSON.parse(ev.data);
-                } catch {
-                    return;
-                }
-
-                if (msg.type === 'heartbeat') return;
-
-                if (msg.type === 'snapshot') {
-                    handleSnapshot(msg);
-
-                    const st = String(msg.status || '').toUpperCase();
-                    if (st === 'FAILED' || st === 'CANCELED') {
-                        closeSSE();
-                    }
-                    return;
-                }
-
-                if (msg.type === 'play_ready') {
-                    if (msg.videoUrl) {
-                        switchVideo(msg.videoUrl, msg.subtitleUrl || null);
-                    }
-                    closeSSE();
-                    return;
-                }
-            };
-
-            es.onerror = () => { };
-        }
-
-
-
-        async function createJobByUrl() {
-            if (creatingJob) {
-                return;
-            }
-
-            const url = els.videoUrl.value.trim();
-            const email = els.email.value.trim();
-            const targetLang = els.targetLang.value.trim();
-
-            if (!url) {
-                alert(t('warnNeedVideoUrl', 'Please enter a video link'));
-                return;
-            }
-
-            if (!targetLang) {
-                alert(t('warnNeedTargetLang', 'Please enter a target language'));
-                return;
-            }
-
-            creatingJob = true;
-            els.createByUrlBtn.disabled = true;
-
+        es.onmessage = (ev) => {
+            let msg;
             try {
-                const res = await fetch(`${API_BASE}/api/jobs`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        url,
-                        email: email || null,
-                        targetLang,
-                        outputDir: 'data',
-                        proxy: null,
-                        priority: 0
-                    })
-                });
-
-                const data = await res.json().catch(() => ({}));
-
-                if (!res.ok) {
-                    let errorMsg = data.message || data.error || data.detail || '';
-                    if (data.errorCode === 'IP_QUOTA_LIMIT') {
-                        errorMsg = t('errorIpQuotaLimit', 'This network has reached today’s 90-minute limit. Please try again tomorrow.');
-                    } else if (data.errorCode === 'IP_QUOTA_INVALID') {
-                        errorMsg = t('errorIpQuotaInvalid', 'Unable to verify this network for quota tracking.');
-                    }
-                    if (!errorMsg) {
-                        errorMsg = t('warnCreateFail', 'Failed to create job');
-                    }
-                    alert(errorMsg);
-                    return;
-                }
-
-                const jobId = data.jobId || data?.job?.jobId;
-                if (!jobId) {
-                    alert(t('warnCreateFail', 'Failed to create job'));
-                    return;
-                }
-
-                currentJobId = jobId;
-                const jobPayload = data.job || data;
-                const derivedTitle = taskTitleFromPayload(jobPayload) || url;
-                upsertRecentTask({
-                    jobId,
-                    title: derivedTitle,
-                    url,
-                    status: data?.job?.status || data?.status || 'PROCESSING',
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                    verified: false
-                });
-
-                showTaskCreatedDialog(jobPayload);
-
-                const st = String(jobPayload?.status || '').toUpperCase();
-                if (!(st === 'FINISHED' || st === 'FAILED' || st === 'CANCELED')) {
-                    subscribeJob(jobId);
-                } else {
-                    handleSnapshot(jobPayload);
-                }
-            } finally {
-                els.createByUrlBtn.disabled = false;
-                creatingJob = false;
+                msg = JSON.parse(ev.data);
+            } catch {
+                return;
             }
+
+            if (msg.type === 'heartbeat') return;
+
+            if (msg.type === 'snapshot') {
+                handleSnapshot(msg);
+
+                const st = String(msg.status || '').toUpperCase();
+                if (!isWorkingStatus(st)) {
+                    closeSSE();
+                }
+                return;
+            }
+
+            if (msg.type === 'play_ready') {
+                updateRecentTask(jobId, {
+                    status: 'FINISHED'
+                });
+
+                if (msg.videoUrl) {
+                    switchVideo(msg.videoUrl, msg.subtitleUrl || null);
+                }
+
+                closeSSE();
+                return;
+            }
+
+            if (msg.type === 'error') {
+                console.warn('sse error event', msg);
+            }
+        };
+
+        es.onerror = () => {
+            console.log('SSE closed/error', jobId);
+            closeSSE();
+        };
+    }
+
+
+    async function createJobByUrl() {
+      if (creatingJob) return;
+
+      const url = els.videoUrl.value.trim();
+      const email = els.email.value.trim();
+      const targetLang = els.targetLang.value.trim();
+
+      if (!url) {
+        alert(t('warnNeedVideoUrl', 'Please enter a video link'));
+        return;
+      }
+
+      if (!targetLang) {
+        alert(t('warnNeedTargetLang', 'Please enter a target language'));
+        return;
+      }
+
+      creatingJob = true;
+      els.createByUrlBtn.disabled = true;
+
+      try {
+        const latestFingerprint = currentFingerprint || await getFingerprintVisitorId();
+        if (latestFingerprint) {
+          currentFingerprint = latestFingerprint;
         }
 
-        els.createByUrlBtn.addEventListener('click', createJobByUrl);
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            setLang(uiLang);
-
-            await restoreLatestPlayableTask();
-
-            const tasks = getStoredRecentTasks().filter(x => x?.jobId);
-            if (!tasks.length) return;
-
-            for (const task of tasks) {
-                const job = await fetchJobSnapshot(task.jobId);
-                if (!job) continue;
-
-                const st = String(job.status || '').toUpperCase();
-                if (st !== 'FINISHED' && st !== 'FAILED' && st !== 'CANCELED') {
-                    subscribeJob(task.jobId);
-                    break;
-                }
-            }
+        console.log('create job payload', {
+          url,
+          email: email || null,
+          targetLang,
+          client_id: clientId,
+          fingerprint: currentFingerprint
         });
 
+        const res = await fetch(`${API_BASE}/api/jobs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url,
+            email: email || null,
+            targetLang,
+            outputDir: 'data',
+            proxy: null,
+            priority: 0,
+            client_id: clientId,
+            fingerprint: currentFingerprint
+          })
+        });
 
+        console.log('create job status', res.status);
 
-        // function switchVideo(videoUrl, subtitleUrl = null) {
-        //     const video = document.getElementById('taskVideoPlayer');
-        //     if (!video || !videoUrl) return;
+        const data = await res.json().catch(() => ({}));
 
-        //     const absVideoUrl = absUrl(videoUrl);
-        //     if (!absVideoUrl) return;
-
-        //     // 切换视频
-        //     video.pause();
-        //     video.src = absVideoUrl;
-
-        //     // 先清掉旧字幕轨
-        //     const oldTracks = video.querySelectorAll('track');
-        //     oldTracks.forEach(t => t.remove());
-
-        //     // 加新字幕
-        //     if (subtitleUrl) {
-        //         const absSubtitleUrl = absUrl(subtitleUrl);
-        //         if (absSubtitleUrl) {
-        //             const track = document.createElement('track');
-        //             track.kind = 'subtitles';
-        //             track.label = 'Subtitle';
-        //             track.srclang = 'en';
-        //             track.src = absSubtitleUrl;
-        //             track.default = true;
-        //             video.appendChild(track);
-        //         }
-        //     }
-
-        //     video.load();
-        //     video.play().catch(() => { });
-        // }
-        function switchVideo(videoUrl, subtitleUrl = null) {
-            const video = document.getElementById('defaultVideoPlayer');
-            if (!video || !videoUrl) return;
-
-            const absVideoUrl = absUrl(videoUrl);
-            if (!absVideoUrl) return;
-
-            video.pause();
-            video.removeAttribute('src');
-
-            const oldSources = video.querySelectorAll('source');
-            oldSources.forEach(s => s.remove());
-
-            const oldTracks = video.querySelectorAll('track');
-            oldTracks.forEach(t => t.remove());
-
-            const source = document.createElement('source');
-            source.src = absVideoUrl;
-            source.type = 'video/mp4';
-            video.appendChild(source);
-
-            if (subtitleUrl) {
-                const absSubtitleUrl = absUrl(subtitleUrl);
-                if (absSubtitleUrl) {
-                    const track = document.createElement('track');
-                    track.kind = 'subtitles';
-                    track.label = 'Subtitle';
-                    track.srclang = 'zh';
-                    track.src = absSubtitleUrl;
-                    track.default = true;
-                    video.appendChild(track);
-                }
-            }
-
-            video.load();
-            video.play().catch(() => { });
+        if (!res.ok) {
+          let errorMsg = data.message || data.error || data.detail || '';
+          if (data.errorCode === 'IP_QUOTA_LIMIT') {
+            errorMsg = t('errorIpQuotaLimit', 'This network has reached today’s 90-minute limit. Please try again tomorrow.');
+          } else if (data.errorCode === 'IP_QUOTA_INVALID') {
+            errorMsg = t('errorIpQuotaInvalid', 'Unable to verify this network for quota tracking.');
+          }
+          if (!errorMsg) {
+            errorMsg = t('warnCreateFail', 'Failed to create job');
+          }
+          alert(errorMsg);
+          return;
         }
 
-        async function restoreLatestPlayableTask() {
-            const tasks = getStoredRecentTasks().filter(x => x?.jobId);
-            if (!tasks.length) return;
-
-            for (const task of tasks) {
-                const job = await fetchJobSnapshot(task.jobId);
-                if (!job) continue;
-
-                const result = job?.result || {};
-                const playback = result?.playback || {};
-                const subMap = result?.subtitle_translated || {};
-
-                let videoUrl =
-                    playback.exemptVideoUrl ||
-                    playback.videoUrl ||
-                    null;
-
-                let subtitleUrl = playback.subtitleUrl || null;
-
-                if (!subtitleUrl && subMap && typeof subMap === 'object') {
-                    for (const lang of Object.keys(subMap)) {
-                        if (subMap[lang]?.url) {
-                            subtitleUrl = subMap[lang].url;
-                            break;
-                        }
-                    }
-                }
-
-                if (videoUrl && subtitleUrl) {
-                    switchVideo(videoUrl, subtitleUrl);
-                    return;
-                }
-            }
+        const jobId = data.jobId || data?.job?.jobId;
+        if (!jobId) {
+          alert(t('warnCreateFail', 'Failed to create job'));
+          return;
         }
 
+        currentJobId = jobId;
+        const jobPayload = data.job || data;
+        const derivedTitle = taskTitleFromPayload(jobPayload) || url;
 
-    </script>
+        upsertRecentTask({
+          jobId,
+          title: derivedTitle,
+          url,
+          status: data?.job?.status || data?.status || 'PROCESSING',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          verified: false
+        });
+
+        showTaskCreatedDialog(jobPayload);
+
+        const st = String(jobPayload?.status || '').toUpperCase();
+        if (isWorkingStatus(st)) {
+          subscribeJob(jobId);
+        } else {
+          handleSnapshot(jobPayload);
+        }
+      } catch (err) {
+        console.error('createJobByUrl failed', err);
+        alert(t('warnCreateFail', 'Failed to create job'));
+      } finally {
+        els.createByUrlBtn.disabled = false;
+        creatingJob = false;
+      }
+    }
+
+    els.createByUrlBtn.addEventListener('click', createJobByUrl);
+
+    function switchVideo(videoUrl, subtitleUrl = null) {
+      const video = document.getElementById('defaultVideoPlayer');
+      if (!video || !videoUrl) return;
+
+      const absVideoUrl = absUrl(videoUrl);
+      if (!absVideoUrl) return;
+
+      const currentSource = video.querySelector('source')?.src || '';
+      const currentTrack = video.querySelector('track')?.src || '';
+      const nextTrack = subtitleUrl ? (absUrl(subtitleUrl) || '') : '';
+
+      if (currentSource === absVideoUrl && currentTrack === nextTrack) {
+        return;
+      }
+
+      video.pause();
+      video.removeAttribute('src');
+
+      const oldSources = video.querySelectorAll('source');
+      oldSources.forEach(s => s.remove());
+
+      const oldTracks = video.querySelectorAll('track');
+      oldTracks.forEach(t => t.remove());
+
+      const source = document.createElement('source');
+      source.src = absVideoUrl;
+      source.type = 'video/mp4';
+      video.appendChild(source);
+
+      if (subtitleUrl) {
+        const absSubtitleUrl = absUrl(subtitleUrl);
+        if (absSubtitleUrl) {
+          const track = document.createElement('track');
+          track.kind = 'subtitles';
+          track.label = 'Subtitle';
+          track.srclang = 'zh';
+          track.src = absSubtitleUrl;
+          track.default = true;
+          video.appendChild(track);
+        }
+      }
+
+      video.load();
+      video.play().catch(() => { });
+    }
+
+    async function syncPlaybackCurrent() {
+    try {
+        const tasks = getStoredRecentTasks().filter(x => x?.jobId);
+        const jobIds = tasks.map(x => x.jobId);
+
+        const resp = await fetch(`${API_BASE}/api/playback/current`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            jobIds,
+            client_id: clientId,
+            fingerprint: currentFingerprint
+        })
+        });
+
+        let target = getDefaultPlaybackTarget();
+
+        if (resp.ok) {
+        const data = await resp.json();
+        if (data.videoUrl) {
+            target = {
+            videoUrl: data.videoUrl,
+            subtitleUrl: data.subtitleUrl || null
+            };
+        }
+        }
+
+        const expectedVideoUrl = absUrl(target.videoUrl) || '';
+        const expectedSubtitleUrl = target.subtitleUrl ? (absUrl(target.subtitleUrl) || '') : '';
+
+        const current = getCurrentPlayingUrls();
+
+        const sameVideo = current.videoUrl === expectedVideoUrl;
+        const sameSubtitle = (current.subtitleUrl || '') === (expectedSubtitleUrl || '');
+
+        if (!sameVideo || !sameSubtitle) {
+        switchVideo(target.videoUrl, target.subtitleUrl || null);
+        }
+    } catch (err) {
+        console.error('syncPlaybackCurrent failed', err);
+    }
+    }
+    function generateClientId() {
+      if (window.crypto?.randomUUID) {
+        return window.crypto.randomUUID();
+      }
+      return 'cid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
+    }
+
+    async function restoreLatestPlayableTask() {
+    await syncPlaybackCurrent();
+    }
+
+    function getOrCreateClientId() {
+      let clientId = localStorage.getItem(LS_KEY_CLIENT_ID);
+      if (!clientId) {
+        clientId = generateClientId();
+        localStorage.setItem(LS_KEY_CLIENT_ID, clientId);
+      }
+      return clientId;
+    }
+
+    let fpPromise = null;
+    let currentFingerprint = null;
+
+    async function getFingerprintVisitorId() {
+      try {
+        if (!window.FingerprintJS) return null;
+        if (!fpPromise) {
+          fpPromise = window.FingerprintJS.load();
+        }
+        const fp = await fpPromise;
+        const result = await fp.get();
+        return result?.visitorId || null;
+      } catch (err) {
+        console.error('fingerprint load failed', err);
+        return null;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+    setLang(uiLang);
+    currentFingerprint = await getFingerprintVisitorId();
+
+    await syncPlaybackCurrent();
+
+    playbackPollTimer = setInterval(() => {
+        syncPlaybackCurrent();
+    }, 5000);
+
+    const latestTask = getLatestTask();
+    if (!latestTask) return;
+
+    const latestJob = await fetchJobSnapshot(latestTask.jobId);
+    if (!latestJob) return;
+
+    updateRecentTask(latestTask.jobId, {
+        status: latestJob.status || latestTask.status || 'PROCESSING',
+        message: latestJob.message || latestTask.message || '',
+        title: taskTitleFromPayload(latestJob)
+    });
+
+    const latestStatus = String(latestJob.status || '').toUpperCase();
+
+    if (isWorkingStatus(latestStatus)) {
+        subscribeJob(latestTask.jobId);
+    }
+    });
+
+  </script>
 </body>
 
 </html>
