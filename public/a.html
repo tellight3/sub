@@ -375,6 +375,51 @@
       border: 1px solid #2a3954;
     }
 
+    .player-title-bar {
+      padding: 10px 12px;
+      border-bottom: 1px solid #2a3954;
+      background: rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+    }
+
+    .player-title-track {
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .player-title-text {
+      display: inline-block;
+      min-width: 100%;
+      font-size: 14px;
+      font-weight: 600;
+      color: #e5e7eb;
+      white-space: nowrap;
+      will-change: transform;
+    }
+
+    .player-title-text.is-scrolling {
+      padding-right: 48px;
+      animation: player-title-marquee 12s linear infinite;
+    }
+
+    @keyframes player-title-marquee {
+      0% {
+        transform: translateX(0);
+      }
+
+      8% {
+        transform: translateX(0);
+      }
+
+      92% {
+        transform: translateX(calc(-100% + 320px));
+      }
+
+      100% {
+        transform: translateX(calc(-100% + 320px));
+      }
+    }
+
     .video-player {
       width: 100%;
       display: block;
@@ -401,6 +446,28 @@
       .task-item {
         align-items: flex-start;
         flex-direction: column;
+      }
+
+      .player-title-text.is-scrolling {
+        animation: player-title-marquee-mobile 12s linear infinite;
+      }
+
+      @keyframes player-title-marquee-mobile {
+        0% {
+          transform: translateX(0);
+        }
+
+        8% {
+          transform: translateX(0);
+        }
+
+        92% {
+          transform: translateX(calc(-100% + 220px));
+        }
+
+        100% {
+          transform: translateX(calc(-100% + 220px));
+        }
       }
     }
   </style>
@@ -466,6 +533,12 @@
 
     <div class="card">
       <div class="player-wrap">
+        <div class="player-title-bar">
+          <div class="player-title-track">
+            <div id="currentPlayingTitle" class="player-title-text">示例视频</div>
+          </div>
+        </div>
+
         <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay muted>
           <source src="/media/default.mp4" type="video/mp4">
           <track kind="subtitles" srclang="zh" label="中文" src="/media/default.vtt" default>
@@ -547,7 +620,9 @@
         taskCreatedUntitled: '未命名视频',
         taskCreatedDurationUnknown: '未知',
         langChinese: '中文',
-        langEnglish: '英文'
+        langEnglish: '英文',
+        demoVideoTitle: '示例视频',
+        generatedVideoTitle: '已生成视频'
       },
       en: {
         appTitle: 'Auto Subtitles & Translation',
@@ -592,7 +667,9 @@
         taskCreatedUntitled: 'Untitled video',
         taskCreatedDurationUnknown: 'Unknown',
         langChinese: 'Chinese',
-        langEnglish: 'English'
+        langEnglish: 'English',
+        demoVideoTitle: 'Demo video',
+        generatedVideoTitle: 'Generated video'
       }
     };
 
@@ -655,6 +732,7 @@
 
       renderTargetLangOptions();
       renderRecentTasks();
+      setCurrentPlayingTitle(guessTitleByVideoUrl(getCurrentPlayingUrls().videoUrl || '/media/default.mp4'));
     }
 
     function renderTargetLangOptions(preferred) {
@@ -693,7 +771,8 @@
       taskConfirmModal: document.getElementById('taskConfirmModal'),
       taskConfirmTitle: document.getElementById('taskConfirmVideoTitle'),
       taskConfirmDuration: document.getElementById('taskConfirmVideoDuration'),
-      taskConfirmOk: document.getElementById('taskConfirmOk')
+      taskConfirmOk: document.getElementById('taskConfirmOk'),
+      currentPlayingTitle: document.getElementById('currentPlayingTitle')
     };
 
     els.taskConfirmOk?.addEventListener('click', closeTaskConfirmModal);
@@ -713,8 +792,8 @@
     let recentTasksRenderToken = 0;
     let creatingJob = false;
     const clientId = getOrCreateClientId();
-
     let playbackPollTimer = null;
+    let latestTaskStatusPollTimer = null;
 
     function updateClearButtonState(inputEl, wrapEl) {
       if (!inputEl || !wrapEl) return;
@@ -741,29 +820,75 @@
     bindClearableInput(els.videoUrl, els.videoUrlWrap, els.clearVideoUrl);
     bindClearableInput(els.email, els.emailWrap, els.clearEmail);
 
-
     function getDefaultPlaybackTarget() {
-    return {
+      return {
         videoUrl: '/media/default.mp4',
         subtitleUrl: '/media/default.vtt'
-    };
+      };
     }
 
     function getCurrentPlayingUrls() {
-    const video = document.getElementById('defaultVideoPlayer');
-    if (!video) {
+      const video = document.getElementById('defaultVideoPlayer');
+      if (!video) {
         return { videoUrl: '', subtitleUrl: '' };
-    }
+      }
 
-    const currentVideoUrl = video.querySelector('source')?.src || '';
-    const currentSubtitleUrl = video.querySelector('track')?.src || '';
+      const currentVideoUrl = video.querySelector('source')?.src || '';
+      const currentSubtitleUrl = video.querySelector('track')?.src || '';
 
-    return {
+      return {
         videoUrl: currentVideoUrl,
         subtitleUrl: currentSubtitleUrl
-    };
+      };
     }
 
+    function getDefaultPlayerTitle() {
+      return uiLang === 'zh' ? '示例视频' : 'Demo video';
+    }
+
+    function extractJobIdFromMediaUrl(mediaUrl) {
+      const raw = String(mediaUrl || '');
+      if (!raw) return null;
+
+      const decoded = decodeURIComponent(raw);
+      const match = decoded.match(/([0-9a-f]{32})/i);
+      return match ? match[1].toLowerCase() : null;
+    }
+
+    function getTaskTitleByJobId(jobId) {
+      if (!jobId) return null;
+      const tasks = getStoredRecentTasks();
+      const task = tasks.find(x => String(x?.jobId || '').toLowerCase() === String(jobId).toLowerCase());
+      return task?.title || null;
+    }
+
+    function guessTitleByVideoUrl(videoUrl) {
+      const normalized = normalizeMediaUrl(videoUrl);
+
+      if (!normalized) return getDefaultPlayerTitle();
+      if (normalized === '/media/default.mp4') return getDefaultPlayerTitle();
+
+      const jobId = extractJobIdFromMediaUrl(normalized);
+      const taskTitle = getTaskTitleByJobId(jobId);
+
+      if (taskTitle && String(taskTitle).trim()) {
+        return String(taskTitle).trim();
+      }
+
+      return uiLang === 'zh' ? '已生成视频' : 'Generated video';
+    }
+
+    function setCurrentPlayingTitle(title) {
+      if (!els.currentPlayingTitle) return;
+
+      const text = String(title || '').trim() || getDefaultPlayerTitle();
+      els.currentPlayingTitle.textContent = text;
+
+      requestAnimationFrame(() => {
+        const needsScroll = els.currentPlayingTitle.scrollWidth > els.currentPlayingTitle.clientWidth + 8;
+        els.currentPlayingTitle.classList.toggle('is-scrolling', needsScroll);
+      });
+    }
 
     function isWorkingStatus(status) {
       const st = String(status || '').toUpperCase();
@@ -1060,7 +1185,10 @@
         btn.addEventListener('click', () => {
           const videoUrl = btn.getAttribute('data-switch-video');
           const subtitleUrl = btn.getAttribute('data-switch-subtitle');
-          switchVideo(videoUrl, subtitleUrl);
+          const taskItem = btn.closest('.task-item');
+          const jobId = taskItem?.getAttribute('data-job-id') || '';
+          const title = getTaskTitleByJobId(jobId) || guessTitleByVideoUrl(videoUrl);
+          switchVideo(videoUrl, subtitleUrl, title);
         });
       });
     }
@@ -1253,7 +1381,6 @@
           refreshJobDetails(jobId);
         }
       }
-
     }
 
     function closeSSE() {
@@ -1264,55 +1391,55 @@
     }
 
     function subscribeJob(jobId) {
-        closeSSE();
-        currentJobId = jobId;
+      closeSSE();
+      currentJobId = jobId;
 
-        es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
+      es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`);
 
-        es.onmessage = (ev) => {
-            let msg;
-            try {
-                msg = JSON.parse(ev.data);
-            } catch {
-                return;
-            }
+      es.onmessage = (ev) => {
+        let msg;
+        try {
+          msg = JSON.parse(ev.data);
+        } catch {
+          return;
+        }
 
-            if (msg.type === 'heartbeat') return;
+        if (msg.type === 'heartbeat') return;
 
-            if (msg.type === 'snapshot') {
-                handleSnapshot(msg);
+        if (msg.type === 'snapshot') {
+          handleSnapshot(msg);
 
-                const st = String(msg.status || '').toUpperCase();
-                if (!isWorkingStatus(st)) {
-                    closeSSE();
-                }
-                return;
-            }
-
-            if (msg.type === 'play_ready') {
-                updateRecentTask(jobId, {
-                    status: 'FINISHED'
-                });
-
-                if (msg.videoUrl) {
-                    switchVideo(msg.videoUrl, msg.subtitleUrl || null);
-                }
-
-                closeSSE();
-                return;
-            }
-
-            if (msg.type === 'error') {
-                console.warn('sse error event', msg);
-            }
-        };
-
-        es.onerror = () => {
-            console.log('SSE closed/error', jobId);
+          const st = String(msg.status || '').toUpperCase();
+          if (!isWorkingStatus(st)) {
             closeSSE();
-        };
-    }
+          }
+          return;
+        }
 
+        if (msg.type === 'play_ready') {
+          updateRecentTask(jobId, {
+            status: 'FINISHED'
+          });
+
+          if (msg.videoUrl) {
+            const title = getTaskTitleByJobId(jobId) || guessTitleByVideoUrl(msg.videoUrl);
+            switchVideo(msg.videoUrl, msg.subtitleUrl || null, title);
+          }
+
+          closeSSE();
+          return;
+        }
+
+        if (msg.type === 'error') {
+          console.warn('sse error event', msg);
+        }
+      };
+
+      es.onerror = () => {
+        console.log('SSE closed/error', jobId);
+        closeSSE();
+      };
+    }
 
     async function createJobByUrl() {
       if (creatingJob) return;
@@ -1420,7 +1547,7 @@
 
     els.createByUrlBtn.addEventListener('click', createJobByUrl);
 
-    function switchVideo(videoUrl, subtitleUrl = null) {
+    function switchVideo(videoUrl, subtitleUrl = null, title = null) {
       const video = document.getElementById('defaultVideoPlayer');
       if (!video || !videoUrl) return;
 
@@ -1431,7 +1558,10 @@
       const currentTrack = video.querySelector('track')?.src || '';
       const nextTrack = subtitleUrl ? (absUrl(subtitleUrl) || '') : '';
 
+      const resolvedTitle = title || guessTitleByVideoUrl(videoUrl);
+
       if (currentSource === absVideoUrl && currentTrack === nextTrack) {
+        setCurrentPlayingTitle(resolvedTitle);
         return;
       }
 
@@ -1462,35 +1592,41 @@
         }
       }
 
+      setCurrentPlayingTitle(resolvedTitle);
+
       video.load();
       video.play().catch(() => { });
     }
 
     async function syncPlaybackCurrent() {
-    try {
+      try {
         const tasks = getStoredRecentTasks().filter(x => x?.jobId);
         const jobIds = tasks.map(x => x.jobId);
 
         const resp = await fetch(`${API_BASE}/api/playback/current`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             jobIds,
             client_id: clientId,
             fingerprint: currentFingerprint
-        })
+          })
         });
 
-        let target = getDefaultPlaybackTarget();
+        let target = {
+          ...getDefaultPlaybackTarget(),
+          title: getDefaultPlayerTitle()
+        };
 
         if (resp.ok) {
-        const data = await resp.json();
-        if (data.videoUrl) {
+          const data = await resp.json();
+          if (data.videoUrl) {
             target = {
-            videoUrl: data.videoUrl,
-            subtitleUrl: data.subtitleUrl || null
+              videoUrl: data.videoUrl,
+              subtitleUrl: data.subtitleUrl || null,
+              title: guessTitleByVideoUrl(data.videoUrl)
             };
-        }
+          }
         }
 
         const expectedVideoUrl = absUrl(target.videoUrl) || '';
@@ -1502,21 +1638,50 @@
         const sameSubtitle = (current.subtitleUrl || '') === (expectedSubtitleUrl || '');
 
         if (!sameVideo || !sameSubtitle) {
-        switchVideo(target.videoUrl, target.subtitleUrl || null);
+          switchVideo(target.videoUrl, target.subtitleUrl || null, target.title);
+        } else {
+          setCurrentPlayingTitle(target.title);
         }
-    } catch (err) {
+      } catch (err) {
         console.error('syncPlaybackCurrent failed', err);
+      }
     }
+
+    async function syncLatestTaskStatus() {
+      try {
+        const latestTask = getLatestTask();
+        if (!latestTask?.jobId) return;
+
+        const job = await fetchJobSnapshot(latestTask.jobId);
+        if (!job) return;
+
+        const sources = extractSubtitleSources(job);
+
+        updateRecentTask(latestTask.jobId, {
+          status: job.status || latestTask.status || 'PROCESSING',
+          message: job.message || '',
+          title: taskTitleFromPayload(job) || latestTask.title,
+          subtitleBase: sources.baseTitle,
+          origSubtitleUrl: sources.origUrl,
+          transSubtitleUrl: sources.transUrl,
+          transLang: sources.transLang,
+          exemptVideoUrl: sources.exemptUrl,
+          verified: String(job.status || '').toUpperCase() === 'FINISHED'
+        });
+      } catch (err) {
+        console.error('syncLatestTaskStatus failed', err);
+      }
     }
+
+    async function restoreLatestPlayableTask() {
+      await syncPlaybackCurrent();
+    }
+
     function generateClientId() {
       if (window.crypto?.randomUUID) {
         return window.crypto.randomUUID();
       }
       return 'cid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
-    }
-
-    async function restoreLatestPlayableTask() {
-    await syncPlaybackCurrent();
     }
 
     function getOrCreateClientId() {
@@ -1547,34 +1712,37 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-    setLang(uiLang);
-    currentFingerprint = await getFingerprintVisitorId();
+      setLang(uiLang);
+      currentFingerprint = await getFingerprintVisitorId();
 
-    await syncPlaybackCurrent();
+      await syncPlaybackCurrent();
 
-    playbackPollTimer = setInterval(() => {
+      playbackPollTimer = setInterval(() => {
         syncPlaybackCurrent();
-    }, 5000);
+      }, 5000);
 
-    const latestTask = getLatestTask();
-    if (!latestTask) return;
+      latestTaskStatusPollTimer = setInterval(() => {
+        syncLatestTaskStatus();
+      }, 5000);
 
-    const latestJob = await fetchJobSnapshot(latestTask.jobId);
-    if (!latestJob) return;
+      const latestTask = getLatestTask();
+      if (!latestTask) return;
 
-    updateRecentTask(latestTask.jobId, {
+      const latestJob = await fetchJobSnapshot(latestTask.jobId);
+      if (!latestJob) return;
+
+      updateRecentTask(latestTask.jobId, {
         status: latestJob.status || latestTask.status || 'PROCESSING',
         message: latestJob.message || latestTask.message || '',
         title: taskTitleFromPayload(latestJob)
-    });
+      });
 
-    const latestStatus = String(latestJob.status || '').toUpperCase();
+      const latestStatus = String(latestJob.status || '').toUpperCase();
 
-    if (isWorkingStatus(latestStatus)) {
+      if (isWorkingStatus(latestStatus)) {
         subscribeJob(latestTask.jobId);
-    }
+      }
     });
-
   </script>
 </body>
 
