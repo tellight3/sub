@@ -704,6 +704,15 @@
     }
 
     let uiLang = detectUiLang();
+    let taskConfirmAutoCloseTimer = null;
+
+    let es = null;
+    let currentJobId = null;
+    let recentTasksRenderToken = 0;
+    let creatingJob = false;
+    const clientId = getOrCreateClientId();
+    let playbackPollTimer = null;
+    let latestTaskStatusPollTimer = null;
 
     function t(key, fallback = '') {
       return (I18N[uiLang] && I18N[uiLang][key]) || fallback || key;
@@ -787,13 +796,6 @@
       }
     });
 
-    let es = null;
-    let currentJobId = null;
-    let recentTasksRenderToken = 0;
-    let creatingJob = false;
-    const clientId = getOrCreateClientId();
-    let playbackPollTimer = null;
-    let latestTaskStatusPollTimer = null;
 
     function updateClearButtonState(inputEl, wrapEl) {
       if (!inputEl || !wrapEl) return;
@@ -1319,35 +1321,63 @@
       return formatted || t('taskCreatedDurationUnknown', 'Unknown');
     }
 
+    // function openTaskConfirmModal(title, durationSeconds) {
+    //   if (!els.taskConfirmModal) return;
+    //   const videoTitle = title || t('taskCreatedUntitled', 'Untitled video');
+    //   if (els.taskConfirmTitle) {
+    //     els.taskConfirmTitle.textContent = videoTitle;
+    //   }
+    //   if (els.taskConfirmDuration) {
+    //     els.taskConfirmDuration.textContent = formatDurationLabel(durationSeconds);
+    //   }
+    //   els.taskConfirmModal.classList.remove('hidden');
+    //   els.taskConfirmModal.setAttribute('aria-hidden', 'false');
+    //   if (els.taskConfirmOk) {
+    //     requestAnimationFrame(() => {
+    //       els.taskConfirmOk.focus();
+    //     });
+    //   }
+    // }
+
     function openTaskConfirmModal(title, durationSeconds) {
-      if (!els.taskConfirmModal) return;
-      const videoTitle = title || t('taskCreatedUntitled', 'Untitled video');
-      if (els.taskConfirmTitle) {
-        els.taskConfirmTitle.textContent = videoTitle;
-      }
-      if (els.taskConfirmDuration) {
-        els.taskConfirmDuration.textContent = formatDurationLabel(durationSeconds);
-      }
-      els.taskConfirmModal.classList.remove('hidden');
-      els.taskConfirmModal.setAttribute('aria-hidden', 'false');
-      if (els.taskConfirmOk) {
-        requestAnimationFrame(() => {
-          els.taskConfirmOk.focus();
-        });
-      }
+        if (!els.taskConfirmModal) return;
+        const videoTitle = title || t('taskCreatedUntitled', 'Untitled video');
+        if (els.taskConfirmTitle) {
+            els.taskConfirmTitle.textContent = videoTitle;
+        }
+        if (els.taskConfirmDuration) {
+            els.taskConfirmDuration.textContent = formatDurationLabel(durationSeconds);
+        }
+        els.taskConfirmModal.classList.remove('hidden');
+        els.taskConfirmModal.setAttribute('aria-hidden', 'false');
+
+        if (els.taskConfirmOk) {
+            requestAnimationFrame(() => {
+            els.taskConfirmOk.focus();
+            });
+        }
+
+        if (taskConfirmAutoCloseTimer) {
+            clearTimeout(taskConfirmAutoCloseTimer);
+        }
+        taskConfirmAutoCloseTimer = setTimeout(() => {
+            closeTaskConfirmModal();
+        }, 3000);
     }
 
-    function closeTaskConfirmModal() {
-      if (!els.taskConfirmModal) return;
 
-      if (document.activeElement && els.taskConfirmModal.contains(document.activeElement)) {
-        document.activeElement.blur();
-        els.createByUrlBtn?.focus();
-      }
 
-      els.taskConfirmModal.classList.add('hidden');
-      els.taskConfirmModal.setAttribute('aria-hidden', 'true');
-    }
+    // function closeTaskConfirmModal() {
+    //   if (!els.taskConfirmModal) return;
+
+    //   if (document.activeElement && els.taskConfirmModal.contains(document.activeElement)) {
+    //     document.activeElement.blur();
+    //     els.createByUrlBtn?.focus();
+    //   }
+
+    //   els.taskConfirmModal.classList.add('hidden');
+    //   els.taskConfirmModal.setAttribute('aria-hidden', 'true');
+    // }
 
     function showTaskCreatedDialog(payload) {
       if (!payload) return;
@@ -1355,6 +1385,25 @@
       const durationSeconds = extractDurationSecondsFromInfo(payload.info);
       openTaskConfirmModal(title, durationSeconds);
     }
+
+    function closeTaskConfirmModal() {
+        if (!els.taskConfirmModal) return;
+
+        if (taskConfirmAutoCloseTimer) {
+            clearTimeout(taskConfirmAutoCloseTimer);
+            taskConfirmAutoCloseTimer = null;
+        }
+
+        if (document.activeElement && els.taskConfirmModal.contains(document.activeElement)) {
+            document.activeElement.blur();
+            els.createByUrlBtn?.focus();
+        }
+
+        els.taskConfirmModal.classList.add('hidden');
+        els.taskConfirmModal.setAttribute('aria-hidden', 'true');
+    }
+
+
 
     function handleSnapshot(payload) {
       const jobId = payload?.jobId || currentJobId;
