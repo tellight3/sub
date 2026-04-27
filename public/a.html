@@ -870,24 +870,24 @@
             return currentSubtitles.length - 1;
         }
 
+
         function scrollToActiveSubtitleOnce() {
             const box = document.getElementById('subtitleBox');
             if (!box) return;
 
-            let line = box.querySelector('.subtitle-line.active');
+            const activeLine = box.querySelector('.subtitle-line.active');
+            if (!activeLine) return;
 
-            if (!line) {
-                const index = findSubtitleIndexForCurrentTime();
-                if (index < 0) return;
-                line = box.querySelector(`.subtitle-line[data-sub-index="${index}"]`);
-            }
+            const boxRect = box.getBoundingClientRect();
+            const lineRect = activeLine.getBoundingClientRect();
 
-            if (!line) return;
+            const currentScrollTop = box.scrollTop;
 
             const targetTop =
-                line.offsetTop -
+                currentScrollTop +
+                (lineRect.top - boxRect.top) -
                 box.clientHeight / 2 +
-                line.offsetHeight / 2;
+                activeLine.clientHeight / 2;
 
             box.scrollTo({
                 top: Math.max(0, targetTop),
@@ -1915,25 +1915,33 @@
             }
         }
 
+        function getSubtitleIndexForTime(time) {
+            if (!currentSubtitles.length) return -1;
+
+            for (let i = 0; i < currentSubtitles.length; i++) {
+                const cue = currentSubtitles[i];
+
+                if (time >= cue.start && time <= cue.end) {
+                    return i;
+                }
+
+                if (time < cue.start) {
+                    return i;
+                }
+            }
+
+            return currentSubtitles.length - 1;
+        }
+
         function syncSubtitleHighlight() {
             const video = document.getElementById('defaultVideoPlayer');
             const box = document.getElementById('subtitleBox');
             if (!video || !box || !currentSubtitles.length) return;
 
-            const now = video.currentTime;
-
-            let activeIndex = -1;
-            for (let i = 0; i < currentSubtitles.length; i++) {
-                const cue = currentSubtitles[i];
-                if (now >= cue.start && now <= cue.end) {
-                    activeIndex = i;
-                    break;
-                }
-            }
+            const activeIndex = getSubtitleIndexForTime(video.currentTime);
 
             box.querySelectorAll('.subtitle-line').forEach((line, index) => {
-                const active = index === activeIndex;
-                line.classList.toggle('active', active);
+                line.classList.toggle('active', index === activeIndex);
             });
         }
 
