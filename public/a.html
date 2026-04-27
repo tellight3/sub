@@ -651,7 +651,7 @@
         <div class="card player-card">
             <div class="player-wrap">
                 <div class="player-main">
-                    <div class="player-title-bar">
+                    <div class="player-title-bar" id="playerTitleBar"></div>
                         <div class="player-title-track">
                             <div id="currentPlayingTitle" class="player-title-text">示例视频</div>
                         </div>
@@ -841,6 +841,39 @@
 
         let currentSubtitles = [];
 
+
+        let snapPlayerTimer = null;
+        let snappingPlayer = false;
+
+        function bindPlayerTitleSnap() {
+            const titleBar = document.getElementById('playerTitleBar');
+            if (!titleBar) return;
+
+            window.addEventListener('scroll', () => {
+                if (snappingPlayer) return;
+
+                if (snapPlayerTimer) {
+                    clearTimeout(snapPlayerTimer);
+                }
+
+                snapPlayerTimer = setTimeout(() => {
+                    const rect = titleBar.getBoundingClientRect();
+
+                    if (rect.top > 0 && rect.top < 120) {
+                        snappingPlayer = true;
+
+                        titleBar.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+
+                        setTimeout(() => {
+                            snappingPlayer = false;
+                        }, 500);
+                    }
+                }, 120);
+            });
+        }
 
         function t(key, fallback = '') {
             return (I18N[uiLang] && I18N[uiLang][key]) || fallback || key;
@@ -1589,7 +1622,6 @@
 
             if (currentSource === absVideoUrl && currentTrack === nextTrack) {
                 setCurrentPlayingTitle(resolvedTitle);
-                scrollToPlayerTitle();
                 return;
             }
 
@@ -1903,6 +1935,7 @@
             const current = getCurrentPlayingUrls();
             await loadSubtitleBox(current.subtitleUrl);
             bindSubtitleBoxScroll();
+            bindPlayerTitleSnap();
 
             playbackPollTimer = setInterval(() => {
                 syncPlaybackCurrent();
