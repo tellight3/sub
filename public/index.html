@@ -86,8 +86,13 @@
         .card {
             width: 100%;
             max-width: 100%;
+            background: rgba(17, 26, 46, 0.92);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
         }
-
 
         .card h2 {
             margin: 0 0 12px;
@@ -331,15 +336,53 @@
             justify-content: flex-end;
         }
 
+        .player-wrap {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            height: 70vh;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            border: 1px solid #2a3954;
+        }
+
+        .player-main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-player {
+            width: 100%;
+            max-width: 100%;
+            flex: 1;
+            min-height: 0;
+            object-fit: contain;
+            background: #000;
+        }
+
         .subtitle-box {
-            max-height: 360px;
+            width: 360px;
+            flex: 0 0 360px;
+            height: 100%;
+            max-height: none;
             overflow-y: auto;
             background: #0a1324;
-            border-top: 1px solid #2a3954;
             padding: 10px 12px;
+            border-top: none;
+            border-left: 1px solid #2a3954;
         }
 
         .subtitle-line {
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            color: #9ca3af;
+            font-size: 15px;
+            line-height: 1.5;
+            cursor: pointer;
             white-space: pre-line;
             word-break: break-word;
             overflow-wrap: anywhere;
@@ -395,12 +438,7 @@
             margin-top: 20px;
         }
 
-        .player-wrap {
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-            border: 1px solid #2a3954;
-        }
+
 
         .player-title-bar {
             padding: 10px 12px;
@@ -447,11 +485,6 @@
             }
         }
 
-        .video-player {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-        }
 
         .player-note {
             margin-top: 10px;
@@ -473,6 +506,62 @@
             .task-item {
                 align-items: flex-start;
                 flex-direction: column;
+            }
+
+            .player-card {
+                padding: 0;
+                border: none;
+                background: transparent;
+                box-shadow: none;
+            }
+
+            .player-wrap {
+                display: block;
+                height: auto;
+                border: none;
+                border-radius: 12px;
+                overflow: hidden;
+                background: #000;
+            }
+
+            .player-main {
+                display: block;
+            }
+
+            .video-player {
+                display: block;
+                width: 100%;
+                height: auto;
+                max-width: 100%;
+                flex: none;
+                object-fit: contain;
+                background: #000;
+            }
+
+            .subtitle-box {
+                display: block;
+                width: 100%;
+                height: auto;
+                max-height: 450px;
+                overflow-y: auto;
+                flex: none;
+                border-left: none;
+                border-top: none;
+                padding: 6px 6px;
+                background: #0a1324;
+            }
+
+            .subtitle-line {
+                padding: 1px 2px;
+                margin-bottom: 2px;
+                border-radius: 6px;
+                font-size: 14px;
+                line-height: 1.2;
+                color: #9ca3af;
+                cursor: pointer;
+                white-space: pre-line;
+                word-break: break-word;
+                overflow-wrap: anywhere;
             }
 
             .player-title-text.is-scrolling {
@@ -558,22 +647,27 @@
             </div>
         </div>
 
-        <div class="card">
+        <div class="card player-card">
             <div class="player-wrap">
-                <div class="player-title-bar">
-                    <div class="player-title-track">
-                        <div id="currentPlayingTitle" class="player-title-text">示例视频</div>
+                <div class="player-main">
+                    <div class="player-title-bar" id="playerTitleBar">
+                        <div class="player-title-track">
+                            <div id="currentPlayingTitle" class="player-title-text">示例视频</div>
+                        </div>
                     </div>
+
+                    <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay
+                        muted>
+                        <source src="/media/default.mp4" type="video/mp4">
+                        <track kind="subtitles" srclang="zh" label="中文" src="/media/default.vtt" default>
+                    </video>
                 </div>
 
-                <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay
-                    muted>
-                    <source src="/media/default.mp4" type="video/mp4">
-                    <track kind="subtitles" srclang="zh" label="中文" src="/media/default.vtt" default>
-                </video>
                 <div id="subtitleBox" class="subtitle-box"></div>
             </div>
         </div>
+
+
     </div>
 
     <div id="taskConfirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="taskConfirmHeading"
@@ -748,7 +842,89 @@
         let currentFingerprint = null;
 
         let currentSubtitles = [];
+        let subtitleClickSeeking = false;
+        let videoWasPaused = true;
 
+
+        let snapPlayerTimer = null;
+        let snappingPlayer = false;
+
+        function findSubtitleIndexForCurrentTime() {
+            const video = document.getElementById('defaultVideoPlayer');
+            if (!video || !currentSubtitles.length) return -1;
+
+            const now = video.currentTime;
+
+            for (let i = 0; i < currentSubtitles.length; i++) {
+                const cue = currentSubtitles[i];
+
+                if (now >= cue.start && now <= cue.end) {
+                    return i;
+                }
+
+                if (now < cue.start) {
+                    return i;
+                }
+            }
+
+            return currentSubtitles.length - 1;
+        }
+
+
+        function scrollToActiveSubtitleOnce() {
+            const box = document.getElementById('subtitleBox');
+            if (!box) return;
+
+            const activeLine = box.querySelector('.subtitle-line.active');
+            if (!activeLine) return;
+
+            const boxRect = box.getBoundingClientRect();
+            const lineRect = activeLine.getBoundingClientRect();
+
+            const currentScrollTop = box.scrollTop;
+
+            const targetTop =
+                currentScrollTop +
+                (lineRect.top - boxRect.top) -
+                box.clientHeight / 2 +
+                activeLine.clientHeight / 2;
+
+            box.scrollTo({
+                top: Math.max(0, targetTop),
+                behavior: 'smooth'
+            });
+        }
+
+
+        function bindPlayerTitleSnap() {
+            const titleBar = document.getElementById('playerTitleBar');
+            if (!titleBar) return;
+
+            window.addEventListener('scroll', () => {
+                if (snappingPlayer) return;
+
+                if (snapPlayerTimer) {
+                    clearTimeout(snapPlayerTimer);
+                }
+
+                snapPlayerTimer = setTimeout(() => {
+                    const rect = titleBar.getBoundingClientRect();
+
+                    if (rect.top > 0 && rect.top < 120) {
+                        snappingPlayer = true;
+
+                        titleBar.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+
+                        setTimeout(() => {
+                            snappingPlayer = false;
+                        }, 500);
+                    }
+                }, 120);
+            });
+        }
 
         function t(key, fallback = '') {
             return (I18N[uiLang] && I18N[uiLang][key]) || fallback || key;
@@ -1291,7 +1467,7 @@
             }
             taskConfirmAutoCloseTimer = setTimeout(() => {
                 closeTaskConfirmModal();
-            }, 3000);
+            }, 10000);
         }
 
         function showTaskCreatedDialog(payload) {
@@ -1630,6 +1806,17 @@
             return clientId;
         }
 
+        function scrollToPlayerTitle() {
+            if (window.innerWidth > 640) return;
+
+            const titleBar = document.getElementById('playerTitleBar');
+            if (!titleBar) return;
+
+            titleBar.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
 
         function parseVttTime(t) {
             const parts = t.trim().split(':');
@@ -1715,6 +1902,7 @@
                         const video = document.getElementById('defaultVideoPlayer');
 
                         if (video && cue) {
+                            subtitleClickSeeking = true;
                             video.currentTime = cue.start + 0.05;
                             video.play().catch(() => { });
                         }
@@ -1727,32 +1915,33 @@
             }
         }
 
+        function getSubtitleIndexForTime(time) {
+            if (!currentSubtitles.length) return -1;
+
+            for (let i = 0; i < currentSubtitles.length; i++) {
+                const cue = currentSubtitles[i];
+
+                if (time >= cue.start && time <= cue.end) {
+                    return i;
+                }
+
+                if (time < cue.start) {
+                    return i;
+                }
+            }
+
+            return currentSubtitles.length - 1;
+        }
+
         function syncSubtitleHighlight() {
             const video = document.getElementById('defaultVideoPlayer');
             const box = document.getElementById('subtitleBox');
             if (!video || !box || !currentSubtitles.length) return;
 
-            const now = video.currentTime;
-
-            let activeIndex = -1;
-            for (let i = 0; i < currentSubtitles.length; i++) {
-                const cue = currentSubtitles[i];
-                if (now >= cue.start && now <= cue.end) {
-                    activeIndex = i;
-                    break;
-                }
-            }
+            const activeIndex = getSubtitleIndexForTime(video.currentTime);
 
             box.querySelectorAll('.subtitle-line').forEach((line, index) => {
-                const active = index === activeIndex;
-                line.classList.toggle('active', active);
-
-                if (active && !subtitleUserScrolling) {
-                    line.scrollIntoView({
-                        block: 'center',
-                        behavior: 'smooth'
-                    });
-                }
+                line.classList.toggle('active', index === activeIndex);
             });
         }
 
@@ -1774,6 +1963,29 @@
         }
 
         document.getElementById('defaultVideoPlayer')?.addEventListener('timeupdate', syncSubtitleHighlight);
+
+        const videoEl = document.getElementById('defaultVideoPlayer');
+
+        videoEl?.addEventListener('pause', () => {
+            videoWasPaused = true;
+        });
+
+        videoEl?.addEventListener('play', () => {
+            if (subtitleClickSeeking) {
+                subtitleClickSeeking = false;
+                videoWasPaused = false;
+                return;
+            }
+
+            if (videoWasPaused) {
+                setTimeout(() => {
+                    syncSubtitleHighlight();
+                    scrollToActiveSubtitleOnce();
+                }, 200);
+            }
+
+            videoWasPaused = false;
+        });
 
 
         async function getFingerprintVisitorId() {
@@ -1799,6 +2011,7 @@
             const current = getCurrentPlayingUrls();
             await loadSubtitleBox(current.subtitleUrl);
             bindSubtitleBoxScroll();
+            bindPlayerTitleSnap();
 
             playbackPollTimer = setInterval(() => {
                 syncPlaybackCurrent();
