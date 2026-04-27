@@ -336,10 +336,38 @@
             justify-content: flex-end;
         }
 
+        .player-wrap {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            height: 70vh;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            border: 1px solid #2a3954;
+        }
+
+        .player-main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-player {
+            width: 100%;
+            max-width: 100%;
+            flex: 1;
+            min-height: 0;
+            object-fit: contain;
+            background: #000;
+        }
+
         .subtitle-box {
             width: 360px;
             flex: 0 0 360px;
-            max-height: 520px;
+            height: 100%;
+            max-height: none;
             overflow-y: auto;
             background: #0a1324;
             padding: 10px 12px;
@@ -410,20 +438,6 @@
             margin-top: 20px;
         }
 
-        .player-wrap {
-            display: flex;
-            flex-direction: row;
-            width: 100%;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-            border: 1px solid #2a3954;
-        }
-
-        .player-main {
-            flex: 1;
-            min-width: 0;
-        }
 
 
         .player-title-bar {
@@ -471,11 +485,6 @@
             }
         }
 
-        .video-player {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-        }
 
         .player-note {
             margin-top: 10px;
@@ -499,18 +508,42 @@
                 flex-direction: column;
             }
 
+            .player-title-text.is-scrolling {
+                animation: player-title-marquee-mobile 12s linear infinite;
+            }
+
+
             .player-wrap {
                 flex-direction: column;
+                height: auto;
+                border: none;
+                border-radius: 12px;
+                overflow: hidden;
+            }
+
+            .player-main {
+                display: block;
+            }
+
+            .video-player {
+                flex: none;
+                height: auto;
             }
 
             .subtitle-box {
-                border-left: none;
-                border-top: 1px solid #2a3954;
+                width: 100%;
+                flex: none;
+                height: auto;
                 max-height: 450px;
+                border-left: none;
+                border-top: none;
+                padding: 10px 12px;
             }
 
-            .player-title-text.is-scrolling {
-                animation: player-title-marquee-mobile 12s linear infinite;
+            .subtitle-line {
+                padding: 8px 10px;
+                margin-bottom: 6px;
+                line-height: 1.5;
             }
 
             @keyframes player-title-marquee-mobile {
@@ -1328,7 +1361,7 @@
             }
             taskConfirmAutoCloseTimer = setTimeout(() => {
                 closeTaskConfirmModal();
-            }, 3000);
+            }, 10000);
         }
 
         function showTaskCreatedDialog(payload) {
