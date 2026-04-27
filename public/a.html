@@ -605,7 +605,6 @@
 
     <script>
         const API_BASE = 'https://mmx.multmatrix.com';
-        const LS_KEY_RECENT = 'mmx:recentTasks';
         const LS_KEY_CLIENT_ID = 'mmx:clientId';
         const MAX_RECENT = 3;
 
@@ -898,28 +897,15 @@
             return match ? match[1].toLowerCase() : null;
         }
 
-        function getTaskTitleByJobId(jobId) {
-            if (!jobId) return null;
-            const tasks = getStoredRecentTasks();
-            const task = tasks.find(x => String(x?.jobId || '').toLowerCase() === String(jobId).toLowerCase());
-            return task?.title || null;
-        }
-
         function guessTitleByVideoUrl(videoUrl) {
             const normalized = normalizeMediaUrl(videoUrl);
 
             if (!normalized) return getDefaultPlayerTitle();
             if (normalized === '/media/default.mp4') return getDefaultPlayerTitle();
 
-            const jobId = extractJobIdFromMediaUrl(normalized);
-            const taskTitle = getTaskTitleByJobId(jobId);
-
-            if (taskTitle && String(taskTitle).trim()) {
-                return String(taskTitle).trim();
-            }
-
             return uiLang === 'zh' ? '已生成视频' : 'Generated video';
         }
+
 
         function setCurrentPlayingTitle(title) {
             if (!els.currentPlayingTitle) return;
@@ -938,10 +924,6 @@
             return !!st && !['FINISHED', 'FAILED', 'CANCELED'].includes(st);
         }
 
-        function getLatestTask() {
-            const tasks = getStoredRecentTasks().filter(x => x?.jobId);
-            return tasks.length ? tasks[0] : null;
-        }
 
         function normalizeMediaUrl(u) {
             if (!u && u !== '') return null;
@@ -999,52 +981,8 @@
             return (n ? String(n) : 'subtitle').trim().replace(/[\\/:*?"<>|]/g, '_');
         }
 
-        function getStoredRecentTasks() {
-            try {
-                const raw = localStorage.getItem(LS_KEY_RECENT);
-                if (!raw) return [];
-                const data = JSON.parse(raw);
-                return Array.isArray(data) ? data : [];
-            } catch {
-                return [];
-            }
-        }
-
-        function saveRecentTasks(list) {
-            localStorage.setItem(LS_KEY_RECENT, JSON.stringify(list.slice(0, MAX_RECENT)));
-        }
-
-        function upsertRecentTask(task) {
-            const list = getStoredRecentTasks().filter(x => x.jobId !== task.jobId);
-            list.unshift(task);
-            saveRecentTasks(list);
-            renderRecentTasks();
-        }
-
-        function updateRecentTask(jobId, patch) {
-            const list = getStoredRecentTasks();
-            const idx = list.findIndex(x => x.jobId === jobId);
-            if (idx >= 0) {
-                list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
-                saveRecentTasks(list);
-                renderRecentTasksLocal();
-            }
-        }
-
         async function refreshJobDetails(jobId) {
-            const job = await fetchJobSnapshot(jobId);
-            if (!job) return;
-            const sources = extractSubtitleSources(job);
-            updateRecentTask(jobId, {
-                status: job.status || 'PROCESSING',
-                title: taskTitleFromPayload(job),
-                subtitleBase: sources.baseTitle,
-                origSubtitleUrl: sources.origUrl,
-                transSubtitleUrl: sources.transUrl,
-                transLang: sources.transLang,
-                exemptVideoUrl: sources.exemptUrl,
-                verified: String(job.status || '').toUpperCase() === 'FINISHED'
-            });
+            await syncPlaybackCurrent();
         }
 
         function statusLabel(status) {
@@ -1067,61 +1005,33 @@
         }
 
         async function renderRecentTasks() {
-            const token = ++recentTasksRenderToken;
-            try {
-                const tasks = getStoredRecentTasks();
-                if (!tasks.length) {
-                    els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
-                    return;
-                }
-
-                els.recentTasks.innerHTML = `<div class="muted">${t('recentChecking', 'Checking recent tasks...')}</div>`;
-
-                const kept = [];
-                const items = [];
-
-                for (const task of tasks) {
-                    if (!task?.jobId) continue;
-                    const job = await fetchJobSnapshot(task.jobId);
-                    if (!job) continue;
-
-                    const serverId = job.id || job.jobId || task.jobId;
-                    const title = taskTitleFromPayload(job) || task.title || job.url || task.url || serverId;
-                    const { baseTitle, origUrl, transUrl, transLang, exemptUrl } = extractSubtitleSources(job);
-
-                    const merged = {
-                        ...task,
-                        jobId: serverId,
-                        title,
-                        status: job.status || task.status || 'PROCESSING',
-                        message: job.message || task.message || '',
-                        updatedAt: job.updated_at ? job.updated_at * 1000 : Date.now(),
-                        url: job.url || task.url,
-                        subtitleBase: baseTitle,
-                        origSubtitleUrl: origUrl,
-                        transSubtitleUrl: transUrl,
-                        transLang,
-                        exemptVideoUrl: exemptUrl,
-                        verified: true,
-                    };
-                    kept.push(merged);
-                    items.push(toRecentTaskItem(merged));
-                }
-
-                if (token !== recentTasksRenderToken) return;
-
-                saveRecentTasks(kept);
-                drawRecentTaskList(items);
-            } catch (err) {
-                console.error('renderRecentTasks failed', err);
-            }
+            await syncPlaybackCurrent();
         }
 
-        function renderRecentTasksLocal() {
-            const tasks = getStoredRecentTasks().filter(x => x?.jobId);
-            const items = tasks.map(toRecentTaskItem);
+
+        function renderRecentTasksFromJobs(jobs) {
+            if (!Array.isArray(jobs) || !jobs.length) {
+                els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
+                return;
+            }
+
+            const items = jobs.slice(0, MAX_RECENT).map(job => {
+                return toRecentTaskItem({
+                    jobId: job.jobId || job.id,
+                    title: job.title || job.url || job.jobId || job.id,
+                    status: job.status || 'PROCESSING',
+                    message: job.message || '',
+                    subtitleBase: job.subtitleBase,
+                    origSubtitleUrl: job.origSubtitleUrl,
+                    transSubtitleUrl: job.transSubtitleUrl,
+                    transLang: job.transLang || 'trans',
+                    exemptVideoUrl: job.exemptVideoUrl,
+                });
+            });
+
             drawRecentTaskList(items);
         }
+
 
         function toRecentTaskItem(task) {
             const jobId = task.jobId;
@@ -1230,7 +1140,7 @@
                     const subtitleUrl = btn.getAttribute('data-switch-subtitle');
                     const taskItem = btn.closest('.task-item');
                     const jobId = taskItem?.getAttribute('data-job-id') || '';
-                    const title = getTaskTitleByJobId(jobId) || guessTitleByVideoUrl(videoUrl);
+                    const title = taskItem?.querySelector('.task-title')?.textContent || guessTitleByVideoUrl(videoUrl);
                     switchVideo(videoUrl, subtitleUrl, title);
                 });
             });
@@ -1412,32 +1322,15 @@
             els.taskConfirmModal.setAttribute('aria-hidden', 'true');
         }
 
-
-
         function handleSnapshot(payload) {
-            const jobId = payload?.jobId || currentJobId;
+            const jobId = payload?.jobId || payload?.id || currentJobId;
             if (!jobId) return;
 
-            const sources = extractSubtitleSources(payload);
+            syncPlaybackCurrent();
+
             const normalizedStatus = String(payload?.status || '').toUpperCase();
-
-            updateRecentTask(jobId, {
-                status: payload?.status || 'PROCESSING',
-                message: payload?.message || '',
-                title: taskTitleFromPayload(payload),
-                subtitleBase: sources.baseTitle,
-                origSubtitleUrl: sources.origUrl,
-                transSubtitleUrl: sources.transUrl,
-                transLang: sources.transLang,
-                exemptVideoUrl: sources.exemptUrl,
-                verified: normalizedStatus === 'FINISHED'
-            });
-
             if (normalizedStatus === 'FINISHED') {
-                const needsRefresh = !sources.origUrl && !sources.transUrl && !sources.exemptUrl;
-                if (needsRefresh) {
-                    refreshJobDetails(jobId);
-                }
+                refreshJobDetails(jobId);
             }
         }
 
@@ -1475,12 +1368,10 @@
                 }
 
                 if (msg.type === 'play_ready') {
-                    updateRecentTask(jobId, {
-                        status: 'FINISHED'
-                    });
+                    syncPlaybackCurrent();
 
                     if (msg.videoUrl) {
-                        const title = getTaskTitleByJobId(jobId) || guessTitleByVideoUrl(msg.videoUrl);
+                        const title = msg.title || guessTitleByVideoUrl(msg.videoUrl);
                         switchVideo(msg.videoUrl, msg.subtitleUrl || null, title);
                     }
 
@@ -1574,17 +1465,7 @@
 
                 currentJobId = jobId;
                 const jobPayload = data.job || data;
-                const derivedTitle = taskTitleFromPayload(jobPayload) || url;
-
-                upsertRecentTask({
-                    jobId,
-                    title: derivedTitle,
-                    url,
-                    status: data?.job?.status || data?.status || 'PROCESSING',
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                    verified: false
-                });
+                await syncPlaybackCurrent();
 
                 showTaskCreatedDialog(jobPayload);
 
@@ -1659,14 +1540,10 @@
 
         async function syncPlaybackCurrent() {
             try {
-                const tasks = getStoredRecentTasks().filter(x => x?.jobId);
-                const jobIds = tasks.map(x => x.jobId);
-
                 const resp = await fetch(`${API_BASE}/api/playback/current`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        jobIds,
                         client_id: clientId,
                         fingerprint: currentFingerprint
                     })
@@ -1679,11 +1556,14 @@
 
                 if (resp.ok) {
                     const data = await resp.json();
+                    if (Array.isArray(data.jobs)) {
+                        renderRecentTasksFromJobs(data.jobs);
+                    }
                     if (data.videoUrl) {
                         target = {
                             videoUrl: data.videoUrl,
                             subtitleUrl: data.subtitleUrl || null,
-                            title: guessTitleByVideoUrl(data.videoUrl)
+                            title: data.title || guessTitleByVideoUrl(data.videoUrl)
                         };
                     }
                 }
@@ -1707,29 +1587,7 @@
         }
 
         async function syncLatestTaskStatus() {
-            try {
-                const latestTask = getLatestTask();
-                if (!latestTask?.jobId) return;
-
-                const job = await fetchJobSnapshot(latestTask.jobId);
-                if (!job) return;
-
-                const sources = extractSubtitleSources(job);
-
-                updateRecentTask(latestTask.jobId, {
-                    status: job.status || latestTask.status || 'PROCESSING',
-                    message: job.message || '',
-                    title: taskTitleFromPayload(job) || latestTask.title,
-                    subtitleBase: sources.baseTitle,
-                    origSubtitleUrl: sources.origUrl,
-                    transSubtitleUrl: sources.transUrl,
-                    transLang: sources.transLang,
-                    exemptVideoUrl: sources.exemptUrl,
-                    verified: String(job.status || '').toUpperCase() === 'FINISHED'
-                });
-            } catch (err) {
-                console.error('syncLatestTaskStatus failed', err);
-            }
+            await syncPlaybackCurrent();
         }
 
         async function restoreLatestPlayableTask() {
@@ -1743,12 +1601,36 @@
             return 'cid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
         }
 
+        function saveClientId(clientId) {
+            localStorage.setItem(LS_KEY_CLIENT_ID, clientId);
+
+            document.cookie =
+                `${LS_KEY_CLIENT_ID}=${encodeURIComponent(clientId)}; ` +
+                `Max-Age=${60 * 60 * 24 * 365 * 2}; ` +
+                `Path=/; SameSite=Lax; Secure`;
+        }
+
+        function getCookie(name) {
+            const parts = document.cookie.split('; ');
+            for (const part of parts) {
+                const [k, v] = part.split('=');
+                if (k === name) {
+                    return decodeURIComponent(v || '');
+                }
+            }
+            return '';
+        }
+
         function getOrCreateClientId() {
-            let clientId = localStorage.getItem(LS_KEY_CLIENT_ID);
+            let clientId =
+                localStorage.getItem(LS_KEY_CLIENT_ID) ||
+                getCookie(LS_KEY_CLIENT_ID);
+
             if (!clientId) {
                 clientId = generateClientId();
-                localStorage.setItem(LS_KEY_CLIENT_ID, clientId);
             }
+
+            saveClientId(clientId);
             return clientId;
         }
 
@@ -1930,23 +1812,6 @@
                 syncLatestTaskStatus();
             }, 5000);
 
-            const latestTask = getLatestTask();
-            if (!latestTask) return;
-
-            const latestJob = await fetchJobSnapshot(latestTask.jobId);
-            if (!latestJob) return;
-
-            updateRecentTask(latestTask.jobId, {
-                status: latestJob.status || latestTask.status || 'PROCESSING',
-                message: latestJob.message || latestTask.message || '',
-                title: taskTitleFromPayload(latestJob)
-            });
-
-            const latestStatus = String(latestJob.status || '').toUpperCase();
-
-            if (isWorkingStatus(latestStatus)) {
-                subscribeJob(latestTask.jobId);
-            }
         });
     </script>
 </body>
