@@ -1929,8 +1929,10 @@
 
             setTimeout(() => {
                 syncSubtitleHighlight();
-                scrollToActiveSubtitleOnce();
-            }, 100);
+                setTimeout(() => {
+                    scrollToActiveSubtitleOnce();
+                }, 50);
+            }, 150);
         });
 
 
