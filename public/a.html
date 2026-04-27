@@ -842,10 +842,25 @@
         let currentFingerprint = null;
 
         let currentSubtitles = [];
+        let subtitleClickSeeking = false;
 
 
         let snapPlayerTimer = null;
         let snappingPlayer = false;
+
+        function scrollToActiveSubtitleOnce() {
+            const box = document.getElementById('subtitleBox');
+            if (!box) return;
+
+            const activeLine = box.querySelector('.subtitle-line.active');
+            if (!activeLine) return;
+
+            activeLine.scrollIntoView({
+                block: 'center',
+                behavior: 'smooth'
+            });
+        }
+
 
         function bindPlayerTitleSnap() {
             const titleBar = document.getElementById('playerTitleBar');
@@ -1853,6 +1868,7 @@
                         const video = document.getElementById('defaultVideoPlayer');
 
                         if (video && cue) {
+                            subtitleClickSeeking = true;
                             video.currentTime = cue.start + 0.05;
                             video.play().catch(() => { });
                         }
@@ -1905,6 +1921,17 @@
         }
 
         document.getElementById('defaultVideoPlayer')?.addEventListener('timeupdate', syncSubtitleHighlight);
+        document.getElementById('defaultVideoPlayer')?.addEventListener('play', () => {
+            if (subtitleClickSeeking) {
+                subtitleClickSeeking = false;
+                return;
+            }
+
+            setTimeout(() => {
+                syncSubtitleHighlight();
+                scrollToActiveSubtitleOnce();
+            }, 100);
+        });
 
 
         async function getFingerprintVisitorId() {
