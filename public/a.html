@@ -508,8 +508,11 @@
                 flex-direction: column;
             }
 
-            .player-title-text.is-scrolling {
-                animation: player-title-marquee-mobile 12s linear infinite;
+            .player-card {
+                padding: 0;
+                border: none;
+                background: transparent;
+                box-shadow: none;
             }
 
             .player-wrap {
@@ -518,6 +521,7 @@
                 border: none;
                 border-radius: 12px;
                 overflow: hidden;
+                background: #000;
             }
 
             .player-main {
@@ -531,6 +535,7 @@
                 max-width: 100%;
                 flex: none;
                 object-fit: contain;
+                background: #000;
             }
 
             .subtitle-box {
@@ -542,13 +547,25 @@
                 flex: none;
                 border-left: none;
                 border-top: none;
-                padding: 10px 12px;
+                padding: 6px 6px;
+                background: #0a1324;
             }
 
             .subtitle-line {
-                padding: 8px 10px;
-                margin-bottom: 6px;
-                line-height: 1.5;
+                padding: 4px 6px;
+                margin-bottom: 2px;
+                border-radius: 6px;
+                font-size: 14px;
+                line-height: 1.35;
+                color: #9ca3af;
+                cursor: pointer;
+                white-space: pre-line;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+
+            .player-title-text.is-scrolling {
+                animation: player-title-marquee-mobile 12s linear infinite;
             }
 
             @keyframes player-title-marquee-mobile {
@@ -631,7 +648,7 @@
             </div>
         </div>
 
-        <div class="card">
+        <div class="card player-card">
             <div class="player-wrap">
                 <div class="player-main">
                     <div class="player-title-bar">
@@ -640,12 +657,12 @@
                         </div>
                     </div>
 
-                    <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay
-                        muted>
+                    <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay muted>
                         <source src="/media/default.mp4" type="video/mp4">
                         <track kind="subtitles" srclang="zh" label="中文" src="/media/default.vtt" default>
                     </video>
                 </div>
+
                 <div id="subtitleBox" class="subtitle-box"></div>
             </div>
         </div>
