@@ -586,7 +586,6 @@
                 }
             }
         }
-
     </style>
 </head>
 
@@ -657,7 +656,8 @@
                         </div>
                     </div>
 
-                    <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay muted>
+                    <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay
+                        muted>
                         <source src="/media/default.mp4" type="video/mp4">
                         <track kind="subtitles" srclang="zh" label="中文" src="/media/default.vtt" default>
                     </video>
@@ -849,15 +849,48 @@
         let snapPlayerTimer = null;
         let snappingPlayer = false;
 
+        function findSubtitleIndexForCurrentTime() {
+            const video = document.getElementById('defaultVideoPlayer');
+            if (!video || !currentSubtitles.length) return -1;
+
+            const now = video.currentTime;
+
+            for (let i = 0; i < currentSubtitles.length; i++) {
+                const cue = currentSubtitles[i];
+
+                if (now >= cue.start && now <= cue.end) {
+                    return i;
+                }
+
+                if (now < cue.start) {
+                    return i;
+                }
+            }
+
+            return currentSubtitles.length - 1;
+        }
+
         function scrollToActiveSubtitleOnce() {
             const box = document.getElementById('subtitleBox');
             if (!box) return;
 
-            const activeLine = box.querySelector('.subtitle-line.active');
-            if (!activeLine) return;
+            let line = box.querySelector('.subtitle-line.active');
 
-            activeLine.scrollIntoView({
-                block: 'center',
+            if (!line) {
+                const index = findSubtitleIndexForCurrentTime();
+                if (index < 0) return;
+                line = box.querySelector(`.subtitle-line[data-sub-index="${index}"]`);
+            }
+
+            if (!line) return;
+
+            const targetTop =
+                line.offsetTop -
+                box.clientHeight / 2 +
+                line.offsetHeight / 2;
+
+            box.scrollTo({
+                top: Math.max(0, targetTop),
                 behavior: 'smooth'
             });
         }
