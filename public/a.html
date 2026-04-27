@@ -26,19 +26,7 @@
             box-sizing: border-box;
         }
 
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(180deg, #08101d 0%, #0b1220 100%);
-            color: var(--text);
-            min-height: 100vh;
-        }
 
-        .container {
-            max-width: 860px;
-            margin: 0 auto;
-            padding: 24px 16px 40px;
-        }
 
         .topbar {
             display: flex;
@@ -79,7 +67,25 @@
             line-height: 1.5;
         }
 
+        body {
+            margin: 0;
+            overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(180deg, #08101d 0%, #0b1220 100%);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 16px;
+        }
+
         .card {
+            width: 100%;
+            max-width: 100%;
             background: rgba(17, 26, 46, 0.92);
             border: 1px solid var(--border);
             border-radius: 16px;
@@ -331,11 +337,14 @@
         }
 
         .subtitle-box {
-            max-height: 220px;
+            flex: 1;
             overflow-y: auto;
             background: #0a1324;
-            border-top: 1px solid #2a3954;
             padding: 10px 12px;
+            max-height: none;
+            height: auto;
+            border-top: none;
+            border-left: 1px solid #2a3954;
         }
 
         .subtitle-line {
@@ -347,6 +356,8 @@
             line-height: 1.5;
             cursor: pointer;
             white-space: pre-line;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
 
         .subtitle-line:hover {
@@ -400,11 +411,20 @@
         }
 
         .player-wrap {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
             border-radius: 12px;
             overflow: hidden;
             background: #000;
             border: 1px solid #2a3954;
         }
+
+        .player-main {
+            flex: 2;
+            min-width: 0;
+        }
+
 
         .player-title-bar {
             padding: 10px 12px;
@@ -453,8 +473,8 @@
 
         .video-player {
             width: 100%;
-            display: block;
-            background: #000;
+            max-width: 100%;
+            height: auto;
         }
 
         .player-note {
@@ -479,6 +499,16 @@
                 flex-direction: column;
             }
 
+            .player-wrap {
+                flex-direction: column;
+            }
+
+            .subtitle-box {
+                border-left: none;
+                border-top: 1px solid #2a3954;
+                max-height: 450px;
+            }
+
             .player-title-text.is-scrolling {
                 animation: player-title-marquee-mobile 12s linear infinite;
             }
@@ -501,6 +531,7 @@
                 }
             }
         }
+
     </style>
 </head>
 
@@ -564,17 +595,19 @@
 
         <div class="card">
             <div class="player-wrap">
-                <div class="player-title-bar">
-                    <div class="player-title-track">
-                        <div id="currentPlayingTitle" class="player-title-text">示例视频</div>
+                <div class="player-main">
+                    <div class="player-title-bar">
+                        <div class="player-title-track">
+                            <div id="currentPlayingTitle" class="player-title-text">示例视频</div>
+                        </div>
                     </div>
-                </div>
 
-                <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay
-                    muted>
-                    <source src="/media/default.mp4" type="video/mp4">
-                    <track kind="subtitles" srclang="zh" label="中文" src="/media/default.vtt" default>
-                </video>
+                    <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay
+                        muted>
+                        <source src="/media/default.mp4" type="video/mp4">
+                        <track kind="subtitles" srclang="zh" label="中文" src="/media/default.vtt" default>
+                    </video>
+                </div>
                 <div id="subtitleBox" class="subtitle-box"></div>
             </div>
         </div>
