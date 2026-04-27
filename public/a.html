@@ -843,6 +843,7 @@
 
         let currentSubtitles = [];
         let subtitleClickSeeking = false;
+        let videoWasPaused = true;
 
 
         let snapPlayerTimer = null;
@@ -1924,18 +1925,25 @@
 
         const videoEl = document.getElementById('defaultVideoPlayer');
 
-        videoEl?.addEventListener('click', () => {
+        videoEl?.addEventListener('pause', () => {
+            videoWasPaused = true;
+        });
+
+        videoEl?.addEventListener('play', () => {
             if (subtitleClickSeeking) {
                 subtitleClickSeeking = false;
+                videoWasPaused = false;
                 return;
             }
 
-            if (videoEl.paused) {
+            if (videoWasPaused) {
                 setTimeout(() => {
                     syncSubtitleHighlight();
                     scrollToActiveSubtitleOnce();
                 }, 200);
             }
+
+            videoWasPaused = false;
         });
 
 
