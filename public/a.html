@@ -1589,6 +1589,7 @@
 
             if (currentSource === absVideoUrl && currentTrack === nextTrack) {
                 setCurrentPlayingTitle(resolvedTitle);
+                scrollToPlayerTitle();
                 return;
             }
 
@@ -1722,6 +1723,17 @@
             return clientId;
         }
 
+        function scrollToPlayerTitle() {
+            if (window.innerWidth > 640) return;
+
+            const titleBar = document.getElementById('playerTitleBar');
+            if (!titleBar) return;
+
+            titleBar.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
 
         function parseVttTime(t) {
             const parts = t.trim().split(':');
