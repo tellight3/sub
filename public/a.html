@@ -346,6 +346,7 @@
             font-size: 15px;
             line-height: 1.5;
             cursor: pointer;
+            white-space: pre-line;
         }
 
         .subtitle-line:hover {
@@ -745,6 +746,14 @@
         const clientId = getOrCreateClientId();
         let playbackPollTimer = null;
         let latestTaskStatusPollTimer = null;
+        let subtitleUserScrolling = false;
+        let subtitleScrollTimer = null;
+
+        let fpPromise = null;
+        let currentFingerprint = null;
+
+        let currentSubtitles = [];
+
 
         function t(key, fallback = '') {
             return (I18N[uiLang] && I18N[uiLang][key]) || fallback || key;
@@ -1353,24 +1362,6 @@
             return formatted || t('taskCreatedDurationUnknown', 'Unknown');
         }
 
-        // function openTaskConfirmModal(title, durationSeconds) {
-        //   if (!els.taskConfirmModal) return;
-        //   const videoTitle = title || t('taskCreatedUntitled', 'Untitled video');
-        //   if (els.taskConfirmTitle) {
-        //     els.taskConfirmTitle.textContent = videoTitle;
-        //   }
-        //   if (els.taskConfirmDuration) {
-        //     els.taskConfirmDuration.textContent = formatDurationLabel(durationSeconds);
-        //   }
-        //   els.taskConfirmModal.classList.remove('hidden');
-        //   els.taskConfirmModal.setAttribute('aria-hidden', 'false');
-        //   if (els.taskConfirmOk) {
-        //     requestAnimationFrame(() => {
-        //       els.taskConfirmOk.focus();
-        //     });
-        //   }
-        // }
-
         function openTaskConfirmModal(title, durationSeconds) {
             if (!els.taskConfirmModal) return;
             const videoTitle = title || t('taskCreatedUntitled', 'Untitled video');
@@ -1396,20 +1387,6 @@
                 closeTaskConfirmModal();
             }, 3000);
         }
-
-
-
-        // function closeTaskConfirmModal() {
-        //   if (!els.taskConfirmModal) return;
-
-        //   if (document.activeElement && els.taskConfirmModal.contains(document.activeElement)) {
-        //     document.activeElement.blur();
-        //     els.createByUrlBtn?.focus();
-        //   }
-
-        //   els.taskConfirmModal.classList.add('hidden');
-        //   els.taskConfirmModal.setAttribute('aria-hidden', 'true');
-        // }
 
         function showTaskCreatedDialog(payload) {
             if (!payload) return;
@@ -1775,10 +1752,6 @@
             return clientId;
         }
 
-        let fpPromise = null;
-        let currentFingerprint = null;
-
-        let currentSubtitles = [];
 
         function parseVttTime(t) {
             const parts = t.trim().split(':');
@@ -1896,12 +1869,29 @@
                 const active = index === activeIndex;
                 line.classList.toggle('active', active);
 
-                if (active) {
+                if (active && !subtitleUserScrolling) {
                     line.scrollIntoView({
                         block: 'center',
                         behavior: 'smooth'
                     });
                 }
+            });
+        }
+
+        function bindSubtitleBoxScroll() {
+            const box = document.getElementById('subtitleBox');
+            if (!box) return;
+
+            box.addEventListener('scroll', () => {
+                subtitleUserScrolling = true;
+
+                if (subtitleScrollTimer) {
+                    clearTimeout(subtitleScrollTimer);
+                }
+
+                subtitleScrollTimer = setTimeout(() => {
+                    subtitleUserScrolling = false;
+                }, 3000);
             });
         }
 
@@ -1930,6 +1920,7 @@
             await syncPlaybackCurrent();
             const current = getCurrentPlayingUrls();
             await loadSubtitleBox(current.subtitleUrl);
+            bindSubtitleBoxScroll();
 
             playbackPollTimer = setInterval(() => {
                 syncPlaybackCurrent();
