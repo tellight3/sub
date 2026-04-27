@@ -1921,18 +1921,21 @@
         }
 
         document.getElementById('defaultVideoPlayer')?.addEventListener('timeupdate', syncSubtitleHighlight);
-        document.getElementById('defaultVideoPlayer')?.addEventListener('play', () => {
+
+        const videoEl = document.getElementById('defaultVideoPlayer');
+
+        videoEl?.addEventListener('click', () => {
             if (subtitleClickSeeking) {
                 subtitleClickSeeking = false;
                 return;
             }
 
-            setTimeout(() => {
-                syncSubtitleHighlight();
+            if (videoEl.paused) {
                 setTimeout(() => {
+                    syncSubtitleHighlight();
                     scrollToActiveSubtitleOnce();
-                }, 50);
-            }, 150);
+                }, 200);
+            }
         });
 
 
