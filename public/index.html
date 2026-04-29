@@ -717,6 +717,7 @@
     <script>
         const API_BASE = 'https://mmx.multmatrix.com';
         const LS_KEY_CLIENT_ID = 'mmx:clientId';
+        const LS_KEY_EMAIL = 'mmx:email';
         const MAX_RECENT = 3;
 
         const I18N = {
@@ -1588,6 +1589,11 @@
 
             const url = els.videoUrl.value.trim();
             const email = els.email.value.trim();
+            if (email) {
+                localStorage.setItem(LS_KEY_EMAIL, email);
+            } else {
+                localStorage.removeItem(LS_KEY_EMAIL);
+            }
             const targetLang = els.targetLang.value.trim();
 
             if (!url) {
@@ -2026,6 +2032,13 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             setLang(uiLang);
+
+            const savedEmail = localStorage.getItem(LS_KEY_EMAIL);
+            if (savedEmail) {
+                els.email.value = savedEmail;
+                updateClearButtonState(els.email, els.emailWrap);
+            }
+
             currentFingerprint = await getFingerprintVisitorId();
 
             await syncPlaybackCurrent();
