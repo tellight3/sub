@@ -67,9 +67,15 @@
             line-height: 1.5;
         }
 
+        html,
+        body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
         body {
             margin: 0;
-            overflow-x: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: linear-gradient(180deg, #08101d 0%, #0b1220 100%);
             color: var(--text);
@@ -495,12 +501,41 @@
         }
 
         @media (max-width: 640px) {
+            html,
+            body {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+
             h1 {
                 font-size: 24px;
             }
 
             .container {
-                padding: 18px 12px 32px;
+                width: 100%;
+                max-width: 100%;
+                overflow-x: hidden;
+                padding: 18px 0 32px;
+            }
+
+            .card:not(.player-card) {
+                width: calc(100% - 24px);
+                max-width: calc(100% - 24px);
+                margin-left: 12px;
+                margin-right: 12px;
+            }
+
+            .player-card {
+                width: 100%;
+                max-width: 100%;
+                margin-left: 0;
+                margin-right: 0;
+                padding: 0;
+                border: none;
+                background: transparent;
+                box-shadow: none;
+                overflow-x: hidden;
             }
 
             .task-item {
@@ -508,31 +543,49 @@
                 flex-direction: column;
             }
 
-            .player-card {
-                padding: 0;
-                border: none;
-                background: transparent;
-                box-shadow: none;
-            }
-
             .player-wrap {
                 display: block;
+                width: 100%;
+                max-width: 100%;
                 height: auto;
                 border: none;
                 border-radius: 12px;
-                overflow: hidden;
+                overflow-x: hidden;
+                overflow-y: hidden;
                 background: #000;
             }
 
             .player-main {
                 display: block;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: hidden;
+            }
+
+            .player-title-bar {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow: hidden;
+            }
+
+            .player-title-track {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow: hidden;
+            }
+
+            .player-title-text {
+                max-width: 100%;
             }
 
             .video-player {
                 display: block;
                 width: 100%;
-                height: auto;
                 max-width: 100%;
+                height: auto;
                 flex: none;
                 object-fit: contain;
                 background: #000;
@@ -541,9 +594,12 @@
             .subtitle-box {
                 display: block;
                 width: 100%;
+                max-width: 100%;
+                min-width: 0;
                 height: auto;
                 max-height: 450px;
                 overflow-y: auto;
+                overflow-x: hidden;
                 flex: none;
                 border-left: none;
                 border-top: none;
@@ -569,23 +625,13 @@
             }
 
             @keyframes player-title-marquee-mobile {
-                0% {
-                    transform: translateX(0);
-                }
-
-                8% {
-                    transform: translateX(0);
-                }
-
-                92% {
-                    transform: translateX(calc(-100% + 220px));
-                }
-
-                100% {
-                    transform: translateX(calc(-100% + 220px));
-                }
+                0% { transform: translateX(0); }
+                8% { transform: translateX(0); }
+                92% { transform: translateX(calc(-100% + 220px)); }
+                100% { transform: translateX(calc(-100% + 220px)); }
             }
         }
+
     </style>
 </head>
 
@@ -696,6 +742,7 @@
     <script>
         const API_BASE = 'https://mmx.multmatrix.com';
         const LS_KEY_CLIENT_ID = 'mmx:clientId';
+        const LS_KEY_EMAIL = 'mmx:email';
         const MAX_RECENT = 3;
 
         const I18N = {
@@ -1567,6 +1614,11 @@
 
             const url = els.videoUrl.value.trim();
             const email = els.email.value.trim();
+            if (email) {
+                localStorage.setItem(LS_KEY_EMAIL, email);
+            } else {
+                localStorage.removeItem(LS_KEY_EMAIL);
+            }
             const targetLang = els.targetLang.value.trim();
 
             if (!url) {
@@ -2005,6 +2057,13 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             setLang(uiLang);
+
+            const savedEmail = localStorage.getItem(LS_KEY_EMAIL);
+            if (savedEmail) {
+                els.email.value = savedEmail;
+                updateClearButtonState(els.email, els.emailWrap);
+            }
+
             currentFingerprint = await getFingerprintVisitorId();
 
             await syncPlaybackCurrent();
