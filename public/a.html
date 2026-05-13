@@ -1175,21 +1175,24 @@
         async function downloadMedia(u, filename) {
             const abs = absUrl(u);
             if (!abs) return false;
-            const name = filename || 'subtitle.vtt';
+
+            const name = filename || 'download';
+
             try {
-                const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const blob = await resp.blob();
-                const blobUrl = URL.createObjectURL(blob);
+                const url = new URL(abs, window.location.href);
+
+                if (name) {
+                    url.searchParams.set('filename', name);
+                }
+
                 const a = document.createElement('a');
-                a.href = blobUrl;
+                a.href = url.toString();
                 a.download = name;
+                a.rel = 'noopener';
                 document.body.appendChild(a);
                 a.click();
-                setTimeout(() => {
-                    URL.revokeObjectURL(blobUrl);
-                    a.remove();
-                }, 0);
+                a.remove();
+
                 return true;
             } catch (err) {
                 console.error('download failed', err);
