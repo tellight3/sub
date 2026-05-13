@@ -501,27 +501,41 @@
         }
 
         @media (max-width: 640px) {
+            html,
+            body {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+
             h1 {
                 font-size: 24px;
             }
 
             .container {
                 width: 100%;
-                max-width: 100vw;
+                max-width: 100%;
                 overflow-x: hidden;
                 padding: 18px 0 32px;
             }
 
             .card:not(.player-card) {
                 width: calc(100% - 24px);
+                max-width: calc(100% - 24px);
                 margin-left: 12px;
                 margin-right: 12px;
             }
 
             .player-card {
                 width: 100%;
+                max-width: 100%;
                 margin-left: 0;
                 margin-right: 0;
+                padding: 0;
+                border: none;
+                background: transparent;
+                box-shadow: none;
+                overflow-x: hidden;
             }
 
             .task-item {
@@ -529,31 +543,49 @@
                 flex-direction: column;
             }
 
-            .player-card {
-                padding: 0;
-                border: none;
-                background: transparent;
-                box-shadow: none;
-            }
-
             .player-wrap {
                 display: block;
+                width: 100%;
+                max-width: 100%;
                 height: auto;
                 border: none;
                 border-radius: 12px;
-                overflow: hidden;
+                overflow-x: hidden;
+                overflow-y: hidden;
                 background: #000;
             }
 
             .player-main {
                 display: block;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: hidden;
+            }
+
+            .player-title-bar {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow: hidden;
+            }
+
+            .player-title-track {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow: hidden;
+            }
+
+            .player-title-text {
+                max-width: 100%;
             }
 
             .video-player {
                 display: block;
                 width: 100%;
-                height: auto;
                 max-width: 100%;
+                height: auto;
                 flex: none;
                 object-fit: contain;
                 background: #000;
@@ -562,9 +594,12 @@
             .subtitle-box {
                 display: block;
                 width: 100%;
+                max-width: 100%;
+                min-width: 0;
                 height: auto;
                 max-height: 450px;
                 overflow-y: auto;
+                overflow-x: hidden;
                 flex: none;
                 border-left: none;
                 border-top: none;
@@ -590,23 +625,13 @@
             }
 
             @keyframes player-title-marquee-mobile {
-                0% {
-                    transform: translateX(0);
-                }
-
-                8% {
-                    transform: translateX(0);
-                }
-
-                92% {
-                    transform: translateX(calc(-100% + 220px));
-                }
-
-                100% {
-                    transform: translateX(calc(-100% + 220px));
-                }
+                0% { transform: translateX(0); }
+                8% { transform: translateX(0); }
+                92% { transform: translateX(calc(-100% + 220px)); }
+                100% { transform: translateX(calc(-100% + 220px)); }
             }
         }
+
     </style>
 </head>
 
@@ -738,6 +763,7 @@
                 downloadTranslated: '译文',
                 downloadOriginalHint: '下载原文字幕',
                 downloadTranslatedHint: '下载翻译字幕',
+                downloadVideoHint: '下载带字幕视频',
                 playVideo: '播放翻译视频',
                 recentTasksTitle: '我的任务',
                 recentTasksNote: '最近任务会保存在当前浏览器中。',
@@ -785,6 +811,7 @@
                 downloadTranslated: 'Translation',
                 downloadOriginalHint: 'Download original subtitle',
                 downloadTranslatedHint: 'Download translated subtitle',
+                downloadVideoHint: 'Download video with subtitles',
                 playVideo: 'Play translated video',
                 recentTasksTitle: 'My tasks',
                 recentTasksNote: 'Your recent tasks are stored in this browser.',
@@ -1148,21 +1175,24 @@
         async function downloadMedia(u, filename) {
             const abs = absUrl(u);
             if (!abs) return false;
-            const name = filename || 'subtitle.vtt';
+
+            const name = filename || 'download';
+
             try {
-                const resp = await fetch(abs, { mode: 'cors', credentials: 'omit' });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const blob = await resp.blob();
-                const blobUrl = URL.createObjectURL(blob);
+                const url = new URL(abs, window.location.href);
+
+                if (name) {
+                    url.searchParams.set('filename', name);
+                }
+
                 const a = document.createElement('a');
-                a.href = blobUrl;
+                a.href = url.toString();
                 a.download = name;
+                a.rel = 'noopener';
                 document.body.appendChild(a);
                 a.click();
-                setTimeout(() => {
-                    URL.revokeObjectURL(blobUrl);
-                    a.remove();
-                }, 0);
+                a.remove();
+
                 return true;
             } catch (err) {
                 console.error('download failed', err);
@@ -1220,6 +1250,7 @@
                     transSubtitleUrl: job.transSubtitleUrl,
                     transLang: job.transLang || 'trans',
                     exemptVideoUrl: job.exemptVideoUrl,
+                    localVideoUrl: job.localVideoUrl,
                 });
             });
 
@@ -1242,6 +1273,7 @@
                 transUrl: task.transSubtitleUrl,
                 transLang: task.transLang || 'trans',
                 exemptUrl: task.exemptVideoUrl,
+                localVideoUrl: task.localVideoUrl,
             };
         }
 
@@ -1262,40 +1294,54 @@
 
                     if (item.exemptUrl) {
                         buttons.push(`
-              <button
-                class="btn btn-secondary btn-compact"
-                data-switch-video="${escapeHtml(item.exemptUrl)}"
-                data-switch-subtitle="${escapeHtml(item.transUrl || '')}"
-              >
-                ${t('playVideo', '播放翻译视频')}
-              </button>
-            `);
+                        <button
+                            class="btn btn-secondary btn-compact"
+                            data-switch-video="${escapeHtml(item.exemptUrl)}"
+                            data-switch-subtitle="${escapeHtml(item.transUrl || '')}"
+                        >
+                            ${t('playVideo', '播放翻译视频')}
+                        </button>
+                        `);
                     }
+
+                    if (item.localVideoUrl) {
+                        buttons.push(`
+                        <button
+                            class="btn btn-secondary btn-compact"
+                            data-download-url="${escapeHtml(item.localVideoUrl)}"
+                            data-download-name="${escapeHtml(nameBase)}.mp4"
+                            title="${escapeHtml(t('downloadVideoHint', 'Download video with subtitles'))}"
+                        >
+                            ${t('downloadVideo', '视频')}
+                        </button>
+                        `);
+                    }
+
 
                     if (item.origUrl) {
                         buttons.push(`
-              <button
-                class="btn btn-secondary btn-compact"
-                data-download-url="${escapeHtml(item.origUrl)}"
-                data-download-name="${escapeHtml(nameBase)}.vtt"
-                title="${escapeHtml(t('downloadOriginalHint', 'Download original subtitle'))}"
-              >
-                ${t('downloadOriginal', '原文')}
-              </button>
-            `);
+                        <button
+                            class="btn btn-secondary btn-compact"
+                            data-download-url="${escapeHtml(item.origUrl)}"
+                            data-download-name="${escapeHtml(nameBase)}.vtt"
+                            title="${escapeHtml(t('downloadOriginalHint', 'Download original subtitle'))}"
+                        >
+                            ${t('downloadOriginal', '原文')}
+                        </button>
+                        `);
                     }
 
                     if (item.transUrl) {
                         buttons.push(`
-              <button
-                class="btn btn-compact"
-                data-download-url="${escapeHtml(item.transUrl)}"
-                data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt"
-                title="${escapeHtml(t('downloadTranslatedHint', 'Download translated subtitle'))}"
-              >
-                ${t('downloadTranslated', '译文')}
-              </button>
-            `);
+                        <button
+                            class="btn btn-compact"
+                            data-download-url="${escapeHtml(item.transUrl)}"
+                            data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt"
+                            title="${escapeHtml(t('downloadTranslatedHint', 'Download translated subtitle'))}"
+                        >
+                            ${t('downloadTranslated', '译文')}
+                        </button>
+                        `);
                     }
                 } else if (item.state === 'FAILED' || item.state === 'CANCELED') {
                     buttons.push(`<button class="btn btn-secondary btn-compact" data-view-job="${item.jobId}">${t('viewDetail', 'View details')}</button>`);
