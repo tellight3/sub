@@ -763,6 +763,7 @@
                 downloadTranslated: '译文',
                 downloadOriginalHint: '下载原文字幕',
                 downloadTranslatedHint: '下载翻译字幕',
+                downloadVideoHint: '下载带字幕视频',
                 playVideo: '播放翻译视频',
                 recentTasksTitle: '我的任务',
                 recentTasksNote: '最近任务会保存在当前浏览器中。',
@@ -810,6 +811,7 @@
                 downloadTranslated: 'Translation',
                 downloadOriginalHint: 'Download original subtitle',
                 downloadTranslatedHint: 'Download translated subtitle',
+                downloadVideoHint: 'Download video with subtitles',
                 playVideo: 'Play translated video',
                 recentTasksTitle: 'My tasks',
                 recentTasksNote: 'Your recent tasks are stored in this browser.',
@@ -1245,6 +1247,7 @@
                     transSubtitleUrl: job.transSubtitleUrl,
                     transLang: job.transLang || 'trans',
                     exemptVideoUrl: job.exemptVideoUrl,
+                    localVideoUrl: job.localVideoUrl,
                 });
             });
 
@@ -1267,6 +1270,7 @@
                 transUrl: task.transSubtitleUrl,
                 transLang: task.transLang || 'trans',
                 exemptUrl: task.exemptVideoUrl,
+                localVideoUrl: task.localVideoUrl,
             };
         }
 
@@ -1287,40 +1291,54 @@
 
                     if (item.exemptUrl) {
                         buttons.push(`
-              <button
-                class="btn btn-secondary btn-compact"
-                data-switch-video="${escapeHtml(item.exemptUrl)}"
-                data-switch-subtitle="${escapeHtml(item.transUrl || '')}"
-              >
-                ${t('playVideo', '播放翻译视频')}
-              </button>
-            `);
+                        <button
+                            class="btn btn-secondary btn-compact"
+                            data-switch-video="${escapeHtml(item.exemptUrl)}"
+                            data-switch-subtitle="${escapeHtml(item.transUrl || '')}"
+                        >
+                            ${t('playVideo', '播放翻译视频')}
+                        </button>
+                        `);
                     }
+
+                    if (item.localVideoUrl) {
+                        buttons.push(`
+                        <button
+                            class="btn btn-secondary btn-compact"
+                            data-download-url="${escapeHtml(item.localVideoUrl)}"
+                            data-download-name="${escapeHtml(nameBase)}.mp4"
+                            title="${escapeHtml(t('downloadVideoHint', 'Download video with subtitles'))}"
+                        >
+                            ${t('downloadVideo', '视频')}
+                        </button>
+                        `);
+                    }
+
 
                     if (item.origUrl) {
                         buttons.push(`
-              <button
-                class="btn btn-secondary btn-compact"
-                data-download-url="${escapeHtml(item.origUrl)}"
-                data-download-name="${escapeHtml(nameBase)}.vtt"
-                title="${escapeHtml(t('downloadOriginalHint', 'Download original subtitle'))}"
-              >
-                ${t('downloadOriginal', '原文')}
-              </button>
-            `);
+                        <button
+                            class="btn btn-secondary btn-compact"
+                            data-download-url="${escapeHtml(item.origUrl)}"
+                            data-download-name="${escapeHtml(nameBase)}.vtt"
+                            title="${escapeHtml(t('downloadOriginalHint', 'Download original subtitle'))}"
+                        >
+                            ${t('downloadOriginal', '原文')}
+                        </button>
+                        `);
                     }
 
                     if (item.transUrl) {
                         buttons.push(`
-              <button
-                class="btn btn-compact"
-                data-download-url="${escapeHtml(item.transUrl)}"
-                data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt"
-                title="${escapeHtml(t('downloadTranslatedHint', 'Download translated subtitle'))}"
-              >
-                ${t('downloadTranslated', '译文')}
-              </button>
-            `);
+                        <button
+                            class="btn btn-compact"
+                            data-download-url="${escapeHtml(item.transUrl)}"
+                            data-download-name="${escapeHtml(nameBase)}.${escapeHtml(item.transLang || 'trans')}.vtt"
+                            title="${escapeHtml(t('downloadTranslatedHint', 'Download translated subtitle'))}"
+                        >
+                            ${t('downloadTranslated', '译文')}
+                        </button>
+                        `);
                     }
                 } else if (item.state === 'FAILED' || item.state === 'CANCELED') {
                     buttons.push(`<button class="btn btn-secondary btn-compact" data-view-job="${item.jobId}">${t('viewDetail', 'View details')}</button>`);
