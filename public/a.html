@@ -5,7 +5,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Subtitle Generator</title>
-    <meta name="description" content="Generate subtitles and translations from YouTube, X, and Google Drive video links." />
     <link rel="icon" href="data:,">
     <style>
         :root {
@@ -27,34 +26,7 @@
             box-sizing: border-box;
         }
 
-        html,
-        body {
-            width: 100%;
-            max-width: 100%;
-            overflow-x: hidden;
-        }
 
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background:
-                radial-gradient(circle at 18% 0%, rgba(37, 99, 235, 0.22), transparent 32%),
-                radial-gradient(circle at 82% 8%, rgba(14, 165, 233, 0.12), transparent 28%),
-                linear-gradient(180deg, #08101d 0%, #0b1220 100%);
-            color: var(--text);
-            min-height: 100vh;
-        }
-
-        a {
-            color: #93c5fd;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 24px 18px 36px;
-        }
 
         .topbar {
             display: flex;
@@ -82,38 +54,39 @@
             border-color: var(--primary);
         }
 
-        .hero {
-            margin-bottom: 18px;
-            padding: 18px 4px 4px;
-        }
-
-        .eyebrow {
-            display: inline-flex;
-            margin-bottom: 10px;
-            padding: 4px 10px;
-            border: 1px solid rgba(37, 99, 235, .35);
-            border-radius: 999px;
-            background: rgba(37, 99, 235, .12);
-            color: #93c5fd;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-        }
-
         h1 {
             margin: 0 0 8px;
-            font-size: 34px;
-            line-height: 1.15;
-            letter-spacing: -0.03em;
+            font-size: 28px;
+            line-height: 1.2;
         }
 
         .subtitle {
             color: var(--muted);
             margin: 0 0 20px;
-            font-size: 16px;
-            line-height: 1.55;
-            max-width: 760px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        html,
+        body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(180deg, #08101d 0%, #0b1220 100%);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 16px;
         }
 
         .card {
@@ -125,7 +98,6 @@
             padding: 18px;
             margin-bottom: 16px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
-            backdrop-filter: blur(8px);
         }
 
         .card h2 {
@@ -138,13 +110,14 @@
         }
 
         .label {
-            display: flex;
-            align-items: center;
-            gap: 4px;
+            display: block;
             font-size: 14px;
             margin-bottom: 6px;
             color: #d1d5db;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .label .required {
@@ -432,6 +405,7 @@
             font-weight: 700;
         }
 
+
         .btn-compact {
             min-height: 34px;
             padding: 6px 12px;
@@ -470,76 +444,7 @@
             margin-top: 20px;
         }
 
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
-        }
 
-        .info-section {
-            background: rgba(15, 23, 40, 0.82);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 18px;
-        }
-
-        .info-section h2 {
-            margin: 0 0 10px;
-            font-size: 18px;
-        }
-
-        .info-section h3 {
-            margin: 18px 0 8px;
-            font-size: 15px;
-            color: #e5e7eb;
-        }
-
-        .info-section p,
-        .info-section li {
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.65;
-        }
-
-        .info-section p:last-child {
-            margin-bottom: 0;
-        }
-
-        .info-section ol,
-        .info-section ul {
-            margin: 8px 0 0 20px;
-            padding: 0;
-        }
-
-        .site-footer {
-            margin: 24px 0 8px;
-            padding: 22px 12px;
-            text-align: center;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .site-footer nav {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px 18px;
-            margin-bottom: 10px;
-        }
-
-        .site-footer a {
-            color: #cbd5e1;
-            text-decoration: none;
-        }
-
-        .site-footer a:hover {
-            color: #fff;
-            text-decoration: underline;
-        }
-
-        .site-footer .copyright {
-            color: #7f8795;
-        }
 
         .player-title-bar {
             padding: 10px 12px;
@@ -568,12 +473,6 @@
             animation: player-title-marquee 12s linear infinite;
         }
 
-        .responsive-4cols {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 16px;
-        }
-
         @keyframes player-title-marquee {
             0% {
                 transform: translateX(0);
@@ -592,6 +491,7 @@
             }
         }
 
+
         .player-note {
             margin-top: 10px;
             color: var(--muted);
@@ -600,8 +500,92 @@
             word-break: break-all;
         }
 
-        @media (max-width: 640px) {
+        .legal-footer {
+            margin: 28px 0 10px;
+            padding: 22px 16px 18px;
+            text-align: center;
+            border-top: 1px solid rgba(36, 50, 74, 0.8);
+        }
 
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 28px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .footer-link {
+            border: none;
+            background: transparent;
+            color: #cbd5e1;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+
+        .footer-link:hover,
+        .footer-link.active {
+            color: #93c5fd;
+            text-decoration: underline;
+        }
+
+        .footer-copy {
+            color: #7f8795;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .legal-panel {
+            display: none;
+            margin-top: 16px;
+        }
+
+        .legal-panel.show {
+            display: block;
+        }
+
+        .legal-card {
+            max-width: 920px;
+            margin: 0 auto;
+            text-align: left;
+            background: rgba(17, 26, 46, 0.92);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px 24px;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 15px;
+        }
+
+        .legal-card h2 {
+            margin: 0 0 16px;
+            color: var(--text);
+            font-size: 22px;
+        }
+
+        .legal-card h3 {
+            margin: 18px 0 8px;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .legal-card p {
+            margin: 0 0 12px;
+        }
+
+        .legal-card ol {
+            margin: 0;
+            padding-left: 22px;
+        }
+
+        .legal-card a {
+            color: #93c5fd;
+        }
+
+        @media (max-width: 640px) {
             html,
             body {
                 width: 100%;
@@ -613,24 +597,11 @@
                 font-size: 24px;
             }
 
-            .hero {
-                width: calc(100% - 24px);
-                margin-left: 12px;
-                margin-right: 12px;
-                padding-top: 8px;
-            }
-
             .container {
                 width: 100%;
                 max-width: 100%;
                 overflow-x: hidden;
                 padding: 18px 0 32px;
-            }
-
-            .topbar {
-                width: calc(100% - 24px);
-                margin-left: 12px;
-                margin-right: 12px;
             }
 
             .card:not(.player-card) {
@@ -734,47 +705,33 @@
                 overflow-wrap: anywhere;
             }
 
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .info-section {
-                border-radius: 12px;
-            }
-
-            .site-footer {
-                width: calc(100% - 24px);
-                margin-left: 12px;
-                margin-right: 12px;
-            }
-
-            .responsive-4cols {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-
             .player-title-text.is-scrolling {
                 animation: player-title-marquee-mobile 12s linear infinite;
             }
 
+            .footer-links {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 14px 20px;
+            }
+
+            .footer-link {
+                font-size: 15px;
+            }
+
+            .legal-card {
+                width: calc(100% - 24px);
+                padding: 18px;
+            }
+
             @keyframes player-title-marquee-mobile {
-                0% {
-                    transform: translateX(0);
-                }
-
-                8% {
-                    transform: translateX(0);
-                }
-
-                92% {
-                    transform: translateX(calc(-100% + 220px));
-                }
-
-                100% {
-                    transform: translateX(calc(-100% + 220px));
-                }
+                0% { transform: translateX(0); }
+                8% { transform: translateX(0); }
+                92% { transform: translateX(calc(-100% + 220px)); }
+                100% { transform: translateX(calc(-100% + 220px)); }
             }
         }
+
     </style>
 </head>
 
@@ -787,13 +744,10 @@
             </div>
         </div>
 
-        <div class="hero">
-            <div class="eyebrow">AI Subtitle Tool</div>
-            <h1 data-i18n="appTitle">Auto Subtitles & Translation</h1>
-            <p class="subtitle" data-i18n="appSubtitle">
-                Paste a YouTube, X, or Google Drive video link to generate subtitles and translations.
-            </p>
-        </div>
+        <h1 data-i18n="appTitle">Auto Subtitles & Translation</h1>
+        <p class="subtitle" data-i18n="appSubtitle">
+            Paste a YouTube, X, or Google Drive link, and we’ll generate subtitles for you. Thanks for testing.
+        </p>
 
         <div class="card">
             <h2 data-i18n="submitTitle">Create a task</h2>
@@ -803,7 +757,7 @@
                         class="required">*</span></label>
                 <div class="input-wrap" id="videoUrlWrap">
                     <input id="videoUrl" class="input" data-i18n-placeholder="videoUrlPlaceholder"
-                        placeholder="Paste a YouTube, X, or Google Drive video link" />
+                        placeholder="Paste a YouTube, X, or Google Drive link" />
                     <button type="button" class="input-clear" id="clearVideoUrl" aria-label="Clear">×</button>
                 </div>
             </div>
@@ -812,7 +766,7 @@
                 <label class="label" for="email" data-i18n="emailLabel">Email (optional)</label>
                 <div class="input-wrap" id="emailWrap">
                     <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
-                        placeholder="Email for receiving subtitle download links (optional)" />
+                        placeholder="Enter your email (optional)" />
                     <button type="button" class="input-clear" id="clearEmail" aria-label="Clear">×</button>
                 </div>
             </div>
@@ -825,17 +779,17 @@
             <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
                 <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
                 <div style="display:flex; flex-direction:column; gap:2px;">
-                    <div class="muted" data-i18n="inlineNoteLine1">After processing, the video with translated subtitles will appear below. Subtitle links can also be sent to your email.</div>
-                    <div class="muted" data-i18n="inlineNoteLine2">Tasks are stored in this browser and remain available after reopening or refreshing the page.</div>
+                    <div class="muted" data-i18n="inlineNoteLine1">处理完成，播放器自动播放带翻译字幕的视频，字幕发邮箱。</div>
+                    <div class="muted" data-i18n="inlineNoteLine2">任务保存在当前浏览器中，重新打开或者刷新后亦可查看。</div>
                 </div>
             </div>
         </div>
 
         <div class="card">
-            <h2 data-i18n="recentTasksTitle">My tasks</h2>
+            <h2 data-i18n="recentTasksTitle">我的任务</h2>
             <div id="recentTasks" class="task-list"></div>
             <div class="footer-note" data-i18n="recentTasksNote">
-                Your recent tasks are stored in this browser.
+                最近任务会保存在当前浏览器中。
             </div>
         </div>
 
@@ -858,136 +812,21 @@
                 <div id="subtitleBox" class="subtitle-box"></div>
             </div>
         </div>
-
-        <div class="card">
-            <div class="info-grid">
-                <section id="about" class="info-section">
-                    <h2 data-i18n="aboutTitle">About this tool</h2>
-                    <p data-i18n="aboutText">
-                        Subtitle Generator is an online tool for creating subtitles and translations from supported video links. It is designed for users who want to understand, translate, review, or save video content more easily.
-                    </p>
-                    <p data-i18n="aboutTesting">
-                        This service is currently in testing. We are improving subtitle accuracy, download formats, and playback experience.
-                    </p>
-                </section>
-
-                <section id="how-it-works" class="info-section">
-                    <h2 data-i18n="howTitle">How it works</h2>
-                    <ol>
-                        <li data-i18n="howStep1">Paste a supported video link.</li>
-                        <li data-i18n="howStep2">Optionally enter your email to receive subtitle download links.</li>
-                        <li data-i18n="howStep3">Choose the subtitle target language.</li>
-                        <li data-i18n="howStep4">Click Generate subtitles and wait for the task to finish.</li>
-                    </ol>
-                </section>
-
-                <section id="supported-links" class="info-section">
-                    <h2 data-i18n="supportedTitle">Supported links</h2>
-                    <p data-i18n="supportedText">
-                        We currently support YouTube, X, and Google Drive video links. For Google Drive videos, please make sure the file is shared as “Anyone with the link can view”.
-                    </p>
-                    <p data-i18n="copyrightNote">
-                        Please only submit videos that you own, are authorized to use, or are legally allowed to process.
-                    </p>
-                </section>
-
-                <section id="contact" class="info-section">
-                    <h2 data-i18n="contactTitle">Contact</h2>
-                    <p data-i18n="contactText">
-                        If you have questions, feedback, or need help with a subtitle task, you can contact us by email.
-                    </p>
-                    <p>
-                        Email:
-                        <a href="mailto:support@multmatrix.com">support@multmatrix.com</a>
-                    </p>
-                </section>
-
-                <section id="privacy" class="info-section">
-                    <h2 data-i18n="privacyTitle">Privacy Policy</h2>
-
-                    <h3 data-i18n="privacyCollectTitle">Information we collect</h3>
-                    <p data-i18n="privacyCollectText">
-                        When you use this service, we may collect the video link you submit, selected target language, task status, generated subtitle files, your IP address for quota and abuse prevention, browser/device identifiers for task recovery, and your email address if you choose to provide it.
-                    </p>
-
-                    <h3 data-i18n="privacyUseTitle">How we use information</h3>
-                    <p data-i18n="privacyUseText">
-                        We use this information to process subtitle tasks, provide playback and download links, prevent abuse, improve service reliability, and send task result emails if an email address is provided.
-                    </p>
-
-                    <h3 data-i18n="privacyStorageTitle">Cookies and local storage</h3>
-                    <p data-i18n="privacyStorageText">
-                        We use browser local storage and cookies to save recent tasks, language preferences, email input, and a client identifier on your device.
-                    </p>
-
-                    <h3 data-i18n="privacyAdsTitle">Advertising</h3>
-                    <p data-i18n="privacyAdsText">
-                        If Google ads are displayed, third-party vendors including Google may use cookies to serve ads based on your prior visits to this website or other websites. You can opt out of personalized advertising through Google Ads Settings.
-                    </p>
-
-                    <h3 data-i18n="privacyContactTitle">Privacy contact</h3>
-                    <p>
-                        Email:
-                        <a href="mailto:support@multmatrix.com">support@multmatrix.com</a>
-                    </p>
-                </section>
-
-                <section id="terms" class="info-section">
-                    <h2 data-i18n="termsTitle">Terms of Service</h2>
-
-                    <h3 data-i18n="termsUserTitle">User responsibility</h3>
-                    <p data-i18n="termsUserText">
-                        You are responsible for the video links you submit. Please only submit content that you own, are authorized to use, or are legally allowed to process.
-                    </p>
-
-                    <h3 data-i18n="termsCopyrightTitle">Copyright</h3>
-                    <p data-i18n="termsCopyrightText">
-                        We do not claim ownership of videos submitted by users. This service is intended to help users generate subtitles and translations for lawful use.
-                    </p>
-
-                    <h3 data-i18n="termsAvailabilityTitle">Service availability</h3>
-                    <p data-i18n="termsAvailabilityText">
-                        This service is provided on a best-effort basis during testing and may change, pause, or stop without notice.
-                    </p>
-                </section>
+        <footer class="legal-footer">
+            <div class="footer-links">
+                <button type="button" class="footer-link" data-legal-link="about" data-i18n="footerAbout">关于</button>
+                <button type="button" class="footer-link" data-legal-link="how" data-i18n="footerHow">使用方法</button>
+                <button type="button" class="footer-link" data-legal-link="privacy" data-i18n="footerPrivacy">隐私政策</button>
+                <button type="button" class="footer-link" data-legal-link="terms" data-i18n="footerTerms">服务条款</button>
+                <button type="button" class="footer-link" data-legal-link="contact" data-i18n="footerContact">联系</button>
             </div>
-        </div>
 
-        <footer class="site-footer">
-            <nav>
-                <a href="#about" data-i18n="footerAbout">About</a>
-                <a href="#how-it-works" data-i18n="footerHow">How it works</a>
-                <a href="#privacy" data-i18n="footerPrivacy">Privacy Policy</a>
-                <a href="#terms" data-i18n="footerTerms">Terms</a>
-                <a href="#contact" data-i18n="footerContact">Contact</a>
-            </nav>
-            <div class="copyright">
-                © 2026 MultMatrix Subtitle Generator
+            <div class="footer-copy">© 2026 MultMatrix Subtitle Generator</div>
+
+            <div id="legalPanel" class="legal-panel">
+                <div id="legalContent" class="legal-card"></div>
             </div>
         </footer>
-        <div class="card">
-            <div class="info-grid responsive-4cols">
-                <section id="about-tool" class="info-section">
-                    <h2 data-i18n="aboutTitle">About this tool</h2>
-                    <p data-i18n="aboutText">Subtitle Generator is an online tool for creating subtitles and translations from supported video links.</p>
-                </section>
-
-                <section id="contact-info" class="info-section">
-                    <h2 data-i18n="contactTitle">Contact</h2>
-                    <p data-i18n="contactText">Email: <a href="mailto:support@multmatrix.com">support@multmatrix.com</a></p>
-                </section>
-
-                <section id="privacy-policy" class="info-section">
-                    <h2 data-i18n="privacyTitle">Privacy Policy</h2>
-                    <p data-i18n="privacyCollectText">We may collect video link, target language, generated files, and optionally email for task delivery.</p>
-                </section>
-
-                <section id="terms-service" class="info-section">
-                    <h2 data-i18n="termsTitle">Terms of Service</h2>
-                    <p data-i18n="termsUserText">Please submit only content you own or are authorized to process.</p>
-                </section>
-            </div>
-        </div>
 
     </div>
 
@@ -1023,20 +862,19 @@
         const I18N = {
             zh: {
                 appTitle: '自动字幕与翻译',
-                appSubtitle: '粘贴 YouTube、X 或 Google 云盘视频链接，自动生成字幕与翻译。',
+                appSubtitle: '粘贴 YouTube、X 或 Google 云盘链接，自动生成多格式字幕与翻译，感谢帮助测试',
                 submitTitle: '创建任务',
                 videoUrlLabel: '视频链接',
-                videoUrlPlaceholder: '粘贴 YouTube、X 或 Google 云盘视频链接',
+                videoUrlPlaceholder: '粘贴 YouTube、X 或 Google 云盘链接',
                 emailLabel: '邮箱（可选）',
-                emailPlaceholder: '邮箱可接收字幕下载链接（可选）',
+                emailPlaceholder: '邮箱可接收多格式字幕链接（词级）',
                 targetLangLabel: '字幕目标语言',
                 targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
                 generateBtn: '生成字幕',
-                inlineNoteLine1: '处理完成后，下方会播放带翻译字幕的视频，字幕链接也可发送至邮箱。',
-                inlineNoteLine2: '任务会保存在当前浏览器中，重新打开或刷新后仍可查看。',
+                inlineNoteLine1: '处理完成后，下方播放带翻译字幕的视频，字幕链接自动发送至邮箱',
+                inlineNoteLine2: '任务会保存在当前浏览器中，重新打开后仍可查看。',
                 downloadOriginal: '原文',
                 downloadTranslated: '译文',
-                downloadVideo: '视频',
                 downloadOriginalHint: '下载原文字幕',
                 downloadTranslatedHint: '下载翻译字幕',
                 downloadVideoHint: '下载带字幕视频',
@@ -1069,60 +907,76 @@
                 langEnglish: '英文',
                 demoVideoTitle: '示例视频',
                 generatedVideoTitle: '已生成视频',
-                aboutTitle: '关于这个工具',
-                aboutText: 'Subtitle Generator 是一个在线视频字幕生成和翻译工具，适合需要理解、翻译、整理或保存视频内容的用户使用。',
-                aboutTesting: '当前服务仍在测试阶段，我们正在持续改进字幕准确率、下载格式和播放体验。',
-                howTitle: '使用方法',
-                howStep1: '粘贴一个支持的视频链接。',
-                howStep2: '可选填写邮箱，用于接收字幕下载链接。',
-                howStep3: '选择字幕目标语言。',
-                howStep4: '点击生成字幕，等待任务完成。',
-                supportedTitle: '支持的链接',
-                supportedText: '目前支持 YouTube、X 和 Google 云盘视频链接。Google 云盘视频请设置为“知道链接的任何人可查看”，否则服务器可能无法访问。',
-                copyrightNote: '请只提交你拥有、获得授权，或依法可以处理的视频内容。',
-                contactTitle: '联系',
-                contactText: '如果你有问题、反馈，或需要字幕任务相关帮助，可以通过邮件联系我们。',
-                privacyTitle: '隐私政策',
-                privacyCollectTitle: '我们收集的信息',
-                privacyCollectText: '当你使用本服务时，我们可能会收集你提交的视频链接、目标语言、任务状态、生成的字幕文件、用于配额和防滥用的 IP 地址、用于恢复任务的浏览器或设备标识，以及你自愿提供的邮箱地址。',
-                privacyUseTitle: '我们如何使用信息',
-                privacyUseText: '我们使用这些信息处理字幕任务、提供播放和下载链接、防止滥用、改进服务稳定性，并在你提供邮箱时发送任务结果邮件。',
-                privacyStorageTitle: 'Cookie 和本地存储',
-                privacyStorageText: '我们使用浏览器本地存储和 Cookie，在你的设备上保存最近任务、语言偏好、邮箱输入和客户端标识。',
-                privacyAdsTitle: '广告',
-                privacyAdsText: '如果本网站展示 Google 广告，包括 Google 在内的第三方供应商可能会使用 Cookie，根据你之前访问本网站或其他网站的情况投放广告。你可以通过 Google 广告设置关闭个性化广告。',
-                privacyContactTitle: '隐私联系',
-                termsTitle: '服务条款',
-                termsUserTitle: '用户责任',
-                termsUserText: '你需要对自己提交的视频链接负责。请只提交你拥有、获得授权，或依法可以处理的内容。',
-                termsCopyrightTitle: '版权',
-                termsCopyrightText: '我们不主张拥有用户提交的视频内容。本服务用于帮助用户在合法用途下生成字幕和翻译。',
-                termsAvailabilityTitle: '服务可用性',
-                termsAvailabilityText: '本服务在测试阶段按尽力而为原则提供，可能会变更、暂停或停止。',
                 footerAbout: '关于',
                 footerHow: '使用方法',
                 footerPrivacy: '隐私政策',
                 footerTerms: '服务条款',
                 footerContact: '联系',
-                aboutTitle: "关于这个工具",
-                aboutText: "Subtitle Generator 是一个在线视频字幕生成和翻译工具..."
+
+                legalAboutTitle: '关于这个工具',
+                legalAboutBody: `
+                    <p>Subtitle Generator 是一个在线视频字幕生成和翻译工具。</p>
+                    <p>当前服务仍在测试阶段，我们正在持续改进字幕准确率、下载格式和播放体验。</p>
+                `,
+
+                legalHowTitle: '使用方法',
+                legalHowBody: `
+                    <ol>
+                        <li>粘贴一个支持的视频链接。</li>
+                        <li>可选填写邮箱，用于接收字幕下载链接。</li>
+                        <li>选择字幕目标语言。</li>
+                        <li>点击生成字幕，等待任务完成。</li>
+                    </ol>
+                `,
+
+                legalPrivacyTitle: '隐私政策',
+                legalPrivacyBody: `
+                    <h3>我们收集的信息</h3>
+                    <p>当你使用本服务时，我们可能会收集你提交的视频链接、目标语言、任务状态、生成的字幕文件、用于配额和防滥用的 IP 地址、用于恢复任务的浏览器或设备标识，以及你自愿提供的邮箱地址。</p>
+
+                    <h3>我们如何使用信息</h3>
+                    <p>我们使用这些信息处理字幕任务、提供播放和下载链接、防止滥用、改进服务稳定性，并在你提供邮箱时发送任务结果邮件。</p>
+
+                    <h3>Cookie 和本地存储</h3>
+                    <p>我们使用浏览器本地存储和 Cookie，在你的设备上保存最近任务、语言偏好、邮箱输入和客户端标识。</p>
+
+                    <h3>Advertising</h3>
+                    <p>如果页面展示 Google 广告，Google 等第三方供应商可能会使用 Cookie 来投放广告。你可以通过浏览器或 Google 广告设置管理相关偏好。</p>
+                `,
+
+                legalTermsTitle: '服务条款',
+                legalTermsBody: `
+                    <h3>用户责任</h3>
+                    <p>你需要对自己提交的视频链接负责。请只提交你拥有、获得授权，或依法可以处理的内容。</p>
+
+                    <h3>版权</h3>
+                    <p>我们不主张拥有用户提交的视频内容。本服务用于帮助用户在合法用途下生成字幕和翻译。</p>
+
+                    <h3>服务可用性</h3>
+                    <p>本服务在测试阶段按尽力而为原则提供，可能会变更、暂停或停止。</p>
+                `,
+
+                legalContactTitle: '联系',
+                legalContactBody: `
+                    <p>如果你有问题、反馈，或需要字幕任务相关帮助，可以通过邮件联系我们。</p>
+                    <p>Email: <a href="mailto:support@multmatrix.com">support@multmatrix.com</a></p>
+                `
             },
             en: {
                 appTitle: 'Auto Subtitles & Translation',
-                appSubtitle: 'Paste a YouTube, X, or Google Drive video link to generate subtitles and translations.',
+                appSubtitle: 'Paste a YouTube, X, or Google Drive link, and we’ll generate subtitles for you. Thanks for testing.',
                 submitTitle: 'Create a task',
                 videoUrlLabel: 'Video link',
-                videoUrlPlaceholder: 'Paste a YouTube, X, or Google Drive video link',
+                videoUrlPlaceholder: 'Paste a YouTube, X, or Google Drive link',
                 emailLabel: 'Email (optional)',
-                emailPlaceholder: 'Email for receiving subtitle download links (optional)',
+                emailPlaceholder: 'Email for receiving subtitle download links (word-level).',
                 targetLangLabel: 'Subtitle target language',
                 targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
                 generateBtn: 'Generate subtitles',
-                inlineNoteLine1: 'After processing, the video with translated subtitles will appear below. Subtitle links can also be sent to your email.',
-                inlineNoteLine2: 'Tasks are stored in this browser and remain available after reopening or refreshing the page.',
+                inlineNoteLine1: 'After processing, video and translated subtitles will be played below, subtitle will be sent to your email box.',
+                inlineNoteLine2: 'Tasks are stored in this browser and remain after reopening it.',
                 downloadOriginal: 'Original',
                 downloadTranslated: 'Translation',
-                downloadVideo: 'Video',
                 downloadOriginalHint: 'Download original subtitle',
                 downloadTranslatedHint: 'Download translated subtitle',
                 downloadVideoHint: 'Download video with subtitles',
@@ -1155,43 +1009,60 @@
                 langEnglish: 'English',
                 demoVideoTitle: 'Demo video',
                 generatedVideoTitle: 'Generated video',
-                aboutTitle: 'About this tool',
-                aboutText: 'Subtitle Generator is an online tool for creating subtitles and translations from supported video links. It is designed for users who want to understand, translate, review, or save video content more easily.',
-                aboutTesting: 'This service is currently in testing. We are improving subtitle accuracy, download formats, and playback experience.',
-                howTitle: 'How it works',
-                howStep1: 'Paste a supported video link.',
-                howStep2: 'Optionally enter your email to receive subtitle download links.',
-                howStep3: 'Choose the subtitle target language.',
-                howStep4: 'Click Generate subtitles and wait for the task to finish.',
-                supportedTitle: 'Supported links',
-                supportedText: 'We currently support YouTube, X, and Google Drive video links. For Google Drive videos, please make sure the file is shared as “Anyone with the link can view”.',
-                copyrightNote: 'Please only submit videos that you own, are authorized to use, or are legally allowed to process.',
-                contactTitle: 'Contact',
-                contactText: 'If you have questions, feedback, or need help with a subtitle task, you can contact us by email.',
-                privacyTitle: 'Privacy Policy',
-                privacyCollectTitle: 'Information we collect',
-                privacyCollectText: 'When you use this service, we may collect the video link you submit, selected target language, task status, generated subtitle files, your IP address for quota and abuse prevention, browser/device identifiers for task recovery, and your email address if you choose to provide it.',
-                privacyUseTitle: 'How we use information',
-                privacyUseText: 'We use this information to process subtitle tasks, provide playback and download links, prevent abuse, improve service reliability, and send task result emails if an email address is provided.',
-                privacyStorageTitle: 'Cookies and local storage',
-                privacyStorageText: 'We use browser local storage and cookies to save recent tasks, language preferences, email input, and a client identifier on your device.',
-                privacyAdsTitle: 'Advertising',
-                privacyAdsText: 'If Google ads are displayed, third-party vendors including Google may use cookies to serve ads based on your prior visits to this website or other websites. You can opt out of personalized advertising through Google Ads Settings.',
-                privacyContactTitle: 'Privacy contact',
-                termsTitle: 'Terms of Service',
-                termsUserTitle: 'User responsibility',
-                termsUserText: 'You are responsible for the video links you submit. Please only submit content that you own, are authorized to use, or are legally allowed to process.',
-                termsCopyrightTitle: 'Copyright',
-                termsCopyrightText: 'We do not claim ownership of videos submitted by users. This service is intended to help users generate subtitles and translations for lawful use.',
-                termsAvailabilityTitle: 'Service availability',
-                termsAvailabilityText: 'This service is provided on a best-effort basis during testing and may change, pause, or stop without notice.',
                 footerAbout: 'About',
                 footerHow: 'How it works',
                 footerPrivacy: 'Privacy Policy',
-                footerTerms: 'Terms',
+                footerTerms: 'Terms of Service',
                 footerContact: 'Contact',
-                aboutTitle: "About this tool",
-                aboutText: "Subtitle Generator is an online tool..."
+
+                legalAboutTitle: 'About this tool',
+                legalAboutBody: `
+                    <p>Subtitle Generator is an online tool for generating and translating video subtitles.</p>
+                    <p>This service is currently in testing. We are improving subtitle accuracy, download formats, and playback experience.</p>
+                `,
+
+                legalHowTitle: 'How it works',
+                legalHowBody: `
+                    <ol>
+                        <li>Paste a supported video link.</li>
+                        <li>Optionally enter your email to receive subtitle download links.</li>
+                        <li>Choose the subtitle target language.</li>
+                        <li>Click Generate subtitles and wait for the task to finish.</li>
+                    </ol>
+                `,
+
+                legalPrivacyTitle: 'Privacy Policy',
+                legalPrivacyBody: `
+                    <h3>Information we collect</h3>
+                    <p>When you use this service, we may collect the video link you submit, selected target language, task status, generated subtitle files, your IP address for quota and abuse prevention, browser/device identifiers for task recovery, and your email address if you choose to provide it.</p>
+
+                    <h3>How we use information</h3>
+                    <p>We use this information to process subtitle tasks, provide playback and download links, prevent abuse, improve service reliability, and send task result emails if an email address is provided.</p>
+
+                    <h3>Cookies and local storage</h3>
+                    <p>We use browser local storage and cookies to save recent tasks, language preferences, email input, and a client identifier on your device.</p>
+
+                    <h3>Advertising</h3>
+                    <p>If Google ads are displayed, third-party vendors including Google may use cookies to serve ads. You can manage related preferences through your browser or Google ad settings.</p>
+                `,
+
+                legalTermsTitle: 'Terms of Service',
+                legalTermsBody: `
+                    <h3>User responsibility</h3>
+                    <p>You are responsible for the video links you submit. Please only submit content that you own, are authorized to use, or are legally allowed to process.</p>
+
+                    <h3>Copyright</h3>
+                    <p>We do not claim ownership of videos submitted by users. This service is intended to help users generate subtitles and translations for lawful use.</p>
+
+                    <h3>Service availability</h3>
+                    <p>This service is provided on a best-effort basis during testing and may change, pause, or stop without notice.</p>
+                `,
+
+                legalContactTitle: 'Contact',
+                legalContactBody: `
+                    <p>If you have questions, feedback, or need help with a subtitle task, you can contact us by email.</p>
+                    <p>Email: <a href="mailto:support@multmatrix.com">support@multmatrix.com</a></p>
+                `
             }
         };
 
@@ -1245,6 +1116,7 @@
         let subtitleClickSeeking = false;
         let videoWasPaused = true;
 
+
         let snapPlayerTimer = null;
         let snappingPlayer = false;
 
@@ -1269,6 +1141,7 @@
             return currentSubtitles.length - 1;
         }
 
+
         function scrollToActiveSubtitleOnce() {
             const box = document.getElementById('subtitleBox');
             if (!box) return;
@@ -1292,6 +1165,7 @@
                 behavior: 'smooth'
             });
         }
+
 
         function bindPlayerTitleSnap() {
             const titleBar = document.getElementById('playerTitleBar');
@@ -1351,6 +1225,10 @@
             renderTargetLangOptions();
             renderRecentTasks();
             setCurrentPlayingTitle(guessTitleByVideoUrl(getCurrentPlayingUrls().videoUrl || '/media/default.mp4'));
+
+            if (currentLegalSection) {
+                renderLegalSection(currentLegalSection);
+            }
         }
 
         function renderTargetLangOptions(preferred) {
@@ -1372,8 +1250,16 @@
             applyI18n();
         }
 
-        document.querySelectorAll('[data-lang-btn]').forEach(btn => {
-            btn.addEventListener('click', () => setLang(btn.dataset.langBtn));
+        document.querySelectorAll('[data-legal-link]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const section = btn.dataset.legalLink;
+
+                if (currentLegalSection === section) {
+                    renderLegalSection(null);
+                } else {
+                    renderLegalSection(section);
+                }
+            });
         });
 
         const els = {
@@ -1404,6 +1290,7 @@
                 closeTaskConfirmModal();
             }
         });
+
 
         function updateClearButtonState(inputEl, wrapEl) {
             if (!inputEl || !wrapEl) return;
@@ -1474,6 +1361,7 @@
             return uiLang === 'zh' ? '已生成视频' : 'Generated video';
         }
 
+
         function setCurrentPlayingTitle(title) {
             if (!els.currentPlayingTitle) return;
 
@@ -1490,6 +1378,7 @@
             const st = String(status || '').toUpperCase();
             return !!st && !['FINISHED', 'FAILED', 'CANCELED'].includes(st);
         }
+
 
         function normalizeMediaUrl(u) {
             if (!u && u !== '') return null;
@@ -1577,6 +1466,7 @@
             await syncPlaybackCurrent();
         }
 
+
         function renderRecentTasksFromJobs(jobs) {
             if (!Array.isArray(jobs) || !jobs.length) {
                 els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
@@ -1601,6 +1491,7 @@
             drawRecentTaskList(items);
         }
 
+
         function toRecentTaskItem(task) {
             const jobId = task.jobId;
             const title = task.title || task.url || jobId;
@@ -1619,6 +1510,58 @@
                 localVideoUrl: task.localVideoUrl,
             };
         }
+
+        let currentLegalSection = null;
+
+        function renderLegalSection(section) {
+            const panel = document.getElementById('legalPanel');
+            const content = document.getElementById('legalContent');
+
+            if (!panel || !content) return;
+
+            if (!section) {
+                currentLegalSection = null;
+                panel.classList.remove('show');
+                content.innerHTML = '';
+                document.querySelectorAll('[data-legal-link]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                return;
+            }
+
+            const map = {
+                about: ['legalAboutTitle', 'legalAboutBody'],
+                how: ['legalHowTitle', 'legalHowBody'],
+                privacy: ['legalPrivacyTitle', 'legalPrivacyBody'],
+                terms: ['legalTermsTitle', 'legalTermsBody'],
+                contact: ['legalContactTitle', 'legalContactBody']
+            };
+
+            const keys = map[section];
+            if (!keys) return;
+
+            currentLegalSection = section;
+
+            const title = t(keys[0], '');
+            const body = t(keys[1], '');
+
+            content.innerHTML = `
+                <h2>${escapeHtml(title)}</h2>
+                ${body}
+            `;
+
+            panel.classList.add('show');
+
+            document.querySelectorAll('[data-legal-link]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.legalLink === section);
+            });
+
+            panel.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
 
         function drawRecentTaskList(items) {
             const limited = items.slice(0, MAX_RECENT);
@@ -1659,6 +1602,7 @@
                         </button>
                         `);
                     }
+
 
                     if (item.origUrl) {
                         buttons.push(`
@@ -1721,6 +1665,7 @@
                     const videoUrl = btn.getAttribute('data-switch-video');
                     const subtitleUrl = btn.getAttribute('data-switch-subtitle');
                     const taskItem = btn.closest('.task-item');
+                    const jobId = taskItem?.getAttribute('data-job-id') || '';
                     const title = taskItem?.querySelector('.task-title')?.textContent || guessTitleByVideoUrl(videoUrl);
                     switchVideo(videoUrl, subtitleUrl, title);
                 });
@@ -2400,6 +2345,7 @@
 
             videoWasPaused = false;
         });
+
 
         async function getFingerprintVisitorId() {
             try {
