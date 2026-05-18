@@ -940,7 +940,7 @@
                 footerPrivacy: '隐私政策',
                 footerTerms: '服务条款',
                 footerContact: '联系',
-
+                downloadVideo: '视频',
                 legalAboutTitle: '关于这个工具',
                 legalAboutBody: `
                     <p>Subtitle Generator 是一个在线视频字幕生成和翻译工具。</p>
@@ -1043,7 +1043,7 @@
                 footerPrivacy: 'Privacy Policy',
                 footerTerms: 'Terms of Service',
                 footerContact: 'Contact',
-
+                downloadVideo: 'Video',
                 legalAboutTitle: 'About this tool',
                 legalAboutBody: `
                     <p>Subtitle Generator is an online tool for generating and translating video subtitles.</p>
@@ -1280,6 +1280,11 @@
             applyI18n();
         }
 
+
+        document.querySelectorAll('[data-lang-btn]').forEach(btn => {
+            btn.addEventListener('click', () => setLang(btn.dataset.langBtn));
+        });
+
         document.querySelectorAll('[data-legal-link]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const section = btn.dataset.legalLink;
@@ -1291,6 +1296,7 @@
                 }
             });
         });
+
 
         const els = {
             videoUrl: document.getElementById('videoUrl'),
