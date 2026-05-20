@@ -806,7 +806,7 @@
             subtitled video.
         </p>
         <div class="service-note" data-i18n="freeBetaNote">
-            Currently free to use. No login required. Each network can process up to 90 minutes of video per day.
+            Currently free to use. No login required.
         </div>
 
         <div class="card">
@@ -924,7 +924,7 @@
                 pageTitle: '免费视频字幕翻译工具 | MultMatrix',
                 appTitle: '粘贴视频链接，自动生成翻译字幕',
                 appSubtitle: '支持 YouTube、X 和 Google 云盘视频，生成原文字幕、翻译字幕和可播放的字幕视频。',
-                freeBetaNote: '目前免费使用，无需登录。每个网络每天最多处理 90 分钟视频，用于防滥用。',
+                freeBetaNote: '目前免费使用，无需登录。',
                 submitTitle: '创建任务',
                 videoUrlLabel: '视频链接',
                 videoUrlPlaceholder: '粘贴 YouTube、X 或 Google 云盘链接',
@@ -956,7 +956,7 @@
                 warnNeedVideoUrl: '请填写视频链接',
                 warnNeedTargetLang: '请填写目标语言',
                 warnCreateFail: '创建任务失败',
-                errorIpQuotaLimit: '本网络今日免费处理额度已达到 90 分钟。请明天再试。',
+                errorIpQuotaLimit: '当前网络暂时无法创建更多任务。请稍后再试。',
                 errorIpQuotaInvalid: '无法识别该网络，暂时无法创建任务。',
                 taskCreatedHeading: '任务创建成功',
                 taskCreatedMessage: '已完成视频信息校验，任务开始排队处理。',
@@ -1029,7 +1029,7 @@
                 pageTitle: 'Free Video Subtitle Translator | MultMatrix',
                 appTitle: 'Generate translated subtitles from a video link',
                 appSubtitle: 'Paste a YouTube, X, or Google Drive video link. Get original subtitles, translations, and a playable subtitled video.',
-                freeBetaNote: 'Currently free to use. No login required. Each network can process up to 90 minutes of video per day.',
+                freeBetaNote: 'Currently free to use. No login required.',
                 submitTitle: 'Create a task',
                 videoUrlLabel: 'Video link',
                 videoUrlPlaceholder: 'Paste a YouTube, X, or Google Drive link',
@@ -1061,7 +1061,7 @@
                 warnNeedVideoUrl: 'Please enter a video link',
                 warnNeedTargetLang: 'Please enter a target language',
                 warnCreateFail: 'Failed to create job',
-                errorIpQuotaLimit: 'This network has reached today’s free 90-minute processing limit. Please try again tomorrow.',
+                errorIpQuotaLimit: 'This network cannot create more tasks right now. Please try again later.',
                 errorIpQuotaInvalid: 'Unable to verify this network for quota tracking.',
                 taskCreatedHeading: 'Task created',
                 taskCreatedMessage: 'The video has been verified and your task is queued.',
@@ -2049,7 +2049,7 @@
                 if (!res.ok) {
                     let errorMsg = data.message || data.error || data.detail || '';
                     if (data.errorCode === 'IP_QUOTA_LIMIT') {
-                        errorMsg = t('errorIpQuotaLimit', 'This network has reached today’s free 90-minute processing limit. Please try again tomorrow.');
+                        errorMsg = t('errorIpQuotaLimit', 'This network cannot create more tasks right now. Please try again later.');
                     } else if (data.errorCode === 'IP_QUOTA_INVALID') {
                         errorMsg = t('errorIpQuotaInvalid', 'Unable to verify this network for quota tracking.');
                     }
