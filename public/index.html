@@ -4,7 +4,21 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Subtitle Generator</title>
+    <title>Free Video Subtitle Translator | MultMatrix</title>
+    <meta name="description"
+        content="Paste a YouTube, X, or Google Drive video link to generate original subtitles, translated subtitles, and a playable subtitled video. Currently free to use." />
+    <link rel="canonical" href="https://sub.multmatrix.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://sub.multmatrix.com/" />
+    <meta property="og:site_name" content="MultMatrix Subtitle Generator" />
+    <meta property="og:title" content="Free Video Subtitle Translator" />
+    <meta property="og:description"
+        content="Paste a YouTube, X, or Google Drive video link. Get original subtitles, translated subtitles, and a playable subtitled video." />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Free Video Subtitle Translator" />
+    <meta name="twitter:description"
+        content="Paste a YouTube, X, or Google Drive video link. Generate subtitles and translations online." />
     <link rel="icon" href="data:,">
     <style>
         :root {
@@ -65,6 +79,20 @@
             margin: 0 0 20px;
             font-size: 15px;
             line-height: 1.5;
+        }
+
+        .service-note {
+            display: inline-flex;
+            width: fit-content;
+            max-width: 100%;
+            margin: 0 0 18px;
+            padding: 8px 12px;
+            border: 1px solid rgba(34, 197, 94, .25);
+            border-radius: 999px;
+            background: rgba(34, 197, 94, .08);
+            color: #bbf7d0;
+            font-size: 13px;
+            line-height: 1.4;
         }
 
         html,
@@ -772,10 +800,14 @@
             </div>
         </div>
 
-        <h1 data-i18n="appTitle">Auto Subtitles & Translation</h1>
+        <h1 data-i18n="appTitle">Generate translated subtitles from a video link</h1>
         <p class="subtitle" data-i18n="appSubtitle">
-            Paste a YouTube, X, or Google Drive link, and we’ll generate subtitles for you. Thanks for testing.
+            Paste a YouTube, X, or Google Drive video link. Get original subtitles, translations, and a playable
+            subtitled video.
         </p>
+        <div class="service-note" data-i18n="freeBetaNote">
+            Currently free to use. No login required. Each network can process up to 90 minutes of video per day.
+        </div>
 
         <div class="card">
             <h2 data-i18n="submitTitle">Create a task</h2>
@@ -889,8 +921,10 @@
 
         const I18N = {
             zh: {
-                appTitle: '自动字幕与翻译',
-                appSubtitle: '粘贴 YouTube、X 或 Google 云盘链接，自动生成多格式字幕与翻译，感谢帮助测试',
+                pageTitle: '免费视频字幕翻译工具 | MultMatrix',
+                appTitle: '粘贴视频链接，自动生成翻译字幕',
+                appSubtitle: '支持 YouTube、X 和 Google 云盘视频，生成原文字幕、翻译字幕和可播放的字幕视频。',
+                freeBetaNote: '目前免费使用，无需登录。每个网络每天最多处理 90 分钟视频，用于防滥用。',
                 submitTitle: '创建任务',
                 videoUrlLabel: '视频链接',
                 videoUrlPlaceholder: '粘贴 YouTube、X 或 Google 云盘链接',
@@ -899,7 +933,7 @@
                 targetLangLabel: '字幕目标语言',
                 targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
                 generateBtn: '生成字幕',
-                inlineNoteLine1: '处理完成后，下方播放带翻译字幕的视频，字幕链接自动发送至邮箱',
+                inlineNoteLine1: '处理完成后，下方会播放带翻译字幕的视频；如果填写邮箱，字幕链接也会自动发送至邮箱。',
                 inlineNoteLine2: '任务会保存在当前浏览器中，重新打开后仍可查看。',
                 downloadOriginal: '原文',
                 downloadTranslated: '译文',
@@ -922,7 +956,7 @@
                 warnNeedVideoUrl: '请填写视频链接',
                 warnNeedTargetLang: '请填写目标语言',
                 warnCreateFail: '创建任务失败',
-                errorIpQuotaLimit: '本视频和已处理的视频总时长已达到 90 分钟。请明天再试。',
+                errorIpQuotaLimit: '本网络今日免费处理额度已达到 90 分钟。请明天再试。',
                 errorIpQuotaInvalid: '无法识别该网络，暂时无法创建任务。',
                 taskCreatedHeading: '任务创建成功',
                 taskCreatedMessage: '已完成视频信息校验，任务开始排队处理。',
@@ -944,7 +978,7 @@
                 legalAboutTitle: '关于这个工具',
                 legalAboutBody: `
                     <p>Subtitle Generator 是一个在线视频字幕生成和翻译工具。</p>
-                    <p>当前服务仍在测试阶段，我们正在持续改进字幕准确率、下载格式和播放体验。</p>
+                    <p>你可以粘贴 YouTube、X 或 Google 云盘视频链接，生成原文字幕、翻译字幕，并在网页中播放带字幕的视频。</p>
                 `,
 
                 legalHowTitle: '使用方法',
@@ -954,7 +988,7 @@
                         <li>选一下你想要的字幕语言，然后点击生成字幕。</li>
                         <li>处理时间不一定，有的视频几分钟就好，有的可能要几个小时。</li>
                         <li>不用一直开着页面等。你可以先关掉浏览器去忙别的，晚一点再回来看看结果。</li>
-                        <li>如果偶尔失败，也不用太担心。可能是某些视频格式或服务临时出问题，我会尽快修，过一会儿再试通常就可以。</li>
+                        <li>如果任务失败，可能是视频格式、访问权限或临时服务问题。你可以稍后重试，或通过联系邮箱反馈链接。</li>
                     </ol>
                 `,
 
@@ -992,8 +1026,10 @@
                 `
             },
             en: {
-                appTitle: 'Auto Subtitles & Translation',
-                appSubtitle: 'Paste a YouTube, X, or Google Drive link, and we’ll generate subtitles for you. Thanks for testing.',
+                pageTitle: 'Free Video Subtitle Translator | MultMatrix',
+                appTitle: 'Generate translated subtitles from a video link',
+                appSubtitle: 'Paste a YouTube, X, or Google Drive video link. Get original subtitles, translations, and a playable subtitled video.',
+                freeBetaNote: 'Currently free to use. No login required. Each network can process up to 90 minutes of video per day.',
                 submitTitle: 'Create a task',
                 videoUrlLabel: 'Video link',
                 videoUrlPlaceholder: 'Paste a YouTube, X, or Google Drive link',
@@ -1002,7 +1038,7 @@
                 targetLangLabel: 'Subtitle target language',
                 targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
                 generateBtn: 'Generate subtitles',
-                inlineNoteLine1: 'After processing, video and translated subtitles will be played below, subtitle will be sent to your email box.',
+                inlineNoteLine1: 'After processing, the subtitled video will play below. If you enter an email, subtitle links will also be sent to your inbox.',
                 inlineNoteLine2: 'Tasks are stored in this browser and remain after reopening it.',
                 downloadOriginal: 'Original',
                 downloadTranslated: 'Translation',
@@ -1025,7 +1061,7 @@
                 warnNeedVideoUrl: 'Please enter a video link',
                 warnNeedTargetLang: 'Please enter a target language',
                 warnCreateFail: 'Failed to create job',
-                errorIpQuotaLimit: 'This network has reached today’s 90-minute limit. Please try again tomorrow.',
+                errorIpQuotaLimit: 'This network has reached today’s free 90-minute processing limit. Please try again tomorrow.',
                 errorIpQuotaInvalid: 'Unable to verify this network for quota tracking.',
                 taskCreatedHeading: 'Task created',
                 taskCreatedMessage: 'The video has been verified and your task is queued.',
@@ -1047,7 +1083,7 @@
                 legalAboutTitle: 'About this tool',
                 legalAboutBody: `
                     <p>Subtitle Generator is an online tool for generating and translating video subtitles.</p>
-                    <p>This service is currently in testing. We are improving subtitle accuracy, download formats, and playback experience.</p>
+                    <p>Paste a YouTube, X, or Google Drive video link to generate original subtitles, translated subtitles, and a playable subtitled video.</p>
                 `,
 
                 legalHowTitle: 'How it works',
@@ -1057,7 +1093,7 @@
                         <li>Choose the subtitle language you want, then click Generate subtitles.</li>
                         <li>Processing time can vary. Some videos finish in a few minutes, while others may take a few hours.</li>
                         <li>You do not need to keep the page open. Feel free to close the browser and come back later to check the result.</li>
-                        <li>If a task fails occasionally, do not worry. It may be caused by a video format or a temporary service issue. I will keep improving it, and you can try again later.</li>
+                        <li>If a task fails, it may be caused by the video format, access permissions, or a temporary service issue. You can try again later or contact us with the link.</li>
                     </ol>
                 `,
 
@@ -1233,7 +1269,7 @@
 
         function applyI18n() {
             document.documentElement.lang = uiLang === 'zh' ? 'zh-CN' : 'en';
-            document.title = t('appTitle', 'Subtitle Generator');
+            document.title = t('pageTitle', 'Free Video Subtitle Translator | MultMatrix');
 
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.dataset.i18n;
@@ -2013,7 +2049,7 @@
                 if (!res.ok) {
                     let errorMsg = data.message || data.error || data.detail || '';
                     if (data.errorCode === 'IP_QUOTA_LIMIT') {
-                        errorMsg = t('errorIpQuotaLimit', 'This network has reached today’s 90-minute limit. Please try again tomorrow.');
+                        errorMsg = t('errorIpQuotaLimit', 'This network has reached today’s free 90-minute processing limit. Please try again tomorrow.');
                     } else if (data.errorCode === 'IP_QUOTA_INVALID') {
                         errorMsg = t('errorIpQuotaInvalid', 'Unable to verify this network for quota tracking.');
                     }
