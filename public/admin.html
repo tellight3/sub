@@ -134,7 +134,7 @@
       <h2>日志 sub.log</h2>
       <div class="row">
         <button id="loadLogBtn">刷新日志</button>
-        <span class="small">自动每 5 秒刷新一次</span>
+        <span class="small">点击后加载最近日志</span>
       </div>
       <pre id="logBox"></pre>
     </div>
@@ -142,7 +142,6 @@
 
   <script>
     const API_BASE = "https://mmx.multmatrix.com";
-    let logTimer = null;
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -248,11 +247,6 @@
       }
     }
 
-    function startAutoLogRefresh() {
-      if (logTimer) clearInterval(logTimer);
-      loadSubLog();
-      logTimer = setInterval(loadSubLog, 5000);
-    }
 
     async function loadTasks() {
       const day = document.getElementById("dayInput").value;
@@ -398,7 +392,6 @@
       }
 
       loadTasks();
-      startAutoLogRefresh();
     });
   </script>
 </body>
