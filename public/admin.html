@@ -4,28 +4,37 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>任务管理</title>
-  <style>
+    <style>
     * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #f6f7fb; color: #111827; }
+
+    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #0b1220; color: #e5e7eb; }
     .container { max-width: 100%; margin: 0 auto; }
-    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-    h1, h2 { margin-top: 0; }
+    .card { background: #111827; border: 1px solid #243244; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+
+    h1, h2 { margin-top: 0; color: #f9fafb; }
     .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
     input, button { padding: 10px 12px; font-size: 14px; }
-    input[type="text"], input[type="date"] { border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
-    button { cursor: pointer; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
-    button:hover { background: #f3f4f6; }
+    input[type="text"], input[type="date"] { border: 1px solid #374151; border-radius: 8px; background: #0f172a; color: #e5e7eb; }
+
+    button { cursor: pointer; border: 1px solid #374151; border-radius: 8px; background: #1f2937; color: #e5e7eb; }
+    button:hover { background: #374151; }
+
     .stats { display: flex; gap: 16px; flex-wrap: wrap; }
-    .stat { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; min-width: 120px; }
-    .table-wrap { width: 100%; overflow-x: auto; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; }
-    table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
-    th, td { border-bottom: 1px solid #e5e7eb; border-right: 1px solid #f3f4f6; padding: 10px 8px; text-align: left; vertical-align: top; }
-    th { background: #f9fafb; font-weight: 600; white-space: nowrap; position: sticky; top: 0; z-index: 2; }
-    tr:hover td { background: #fafafa; }
+    .stat { background: #0f172a; border: 1px solid #243244; border-radius: 10px; padding: 12px 16px; min-width: 120px; }
+
+    .table-wrap { width: 100%; overflow-x: auto; overflow-y: auto; border: 1px solid #243244; border-radius: 10px; background: #111827; }
+    table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 14px; background: #111827; }
+    th, td { border-bottom: 1px solid #243244; border-right: 1px solid #1f2937; padding: 10px 8px; text-align: left; vertical-align: top; }
+    th { background: #0f172a; color: #f9fafb; font-weight: 600; white-space: nowrap; position: sticky; top: 0; z-index: 2; }
+    tr:hover td { background: #1f2937; }
+
     .danger { color: #fff; background: #dc2626; border: none; border-radius: 8px; padding: 8px 10px; white-space: nowrap; }
     .danger:hover { background: #b91c1c; }
+
     .status { font-weight: 600; }
-    .small { font-size: 12px; color: #6b7280; }
+    .small { font-size: 12px; color: #9ca3af; }
+
     .cell-id { min-width: 220px; max-width: 300px; word-break: break-all; white-space: normal; }
     .cell-status { min-width: 130px; white-space: nowrap; }
     .cell-url { min-width: 320px; max-width: 520px; word-break: break-all; white-space: pre-wrap; line-height: 1.4; }
@@ -33,33 +42,28 @@
     .cell-short { min-width: 120px; white-space: nowrap; }
     .cell-medium { min-width: 180px; max-width: 260px; word-break: break-all; white-space: normal; }
     .cell-time { min-width: 180px; white-space: nowrap; }
+
     .json-cell { min-width: 180px; max-width: 260px; white-space: normal; }
     .json-summary { display: flex; flex-direction: column; gap: 6px; }
-    .json-meta { font-size: 12px; color: #6b7280; line-height: 1.4; word-break: break-word; }
-    .toggle-btn { display: inline-block; width: fit-content; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #111827; font-size: 13px; cursor: pointer; }
-    .toggle-btn:hover { background: #f3f4f6; }
-    .json-panel { display: none; margin-top: 8px; width: 720px; max-width: 80vw; max-height: 420px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; padding: 10px; }
+    .json-meta { font-size: 12px; color: #9ca3af; line-height: 1.4; word-break: break-word; }
+
+    .toggle-btn { display: inline-block; width: fit-content; padding: 6px 10px; border: 1px solid #374151; border-radius: 8px; background: #1f2937; color: #e5e7eb; font-size: 13px; cursor: pointer; }
+    .toggle-btn:hover { background: #374151; }
+
+    .json-panel { display: none; margin-top: 8px; width: 720px; max-width: 80vw; max-height: 420px; overflow: auto; border: 1px solid #374151; border-radius: 8px; background: #0f172a; padding: 10px; }
     .json-panel.open { display: block; }
-    .json-pre { margin: 0; white-space: pre; word-break: normal; font-size: 12px; line-height: 1.45; font-family: Consolas, Monaco, monospace; color: #374151; }
-    .toolbar-tip { font-size: 12px; color: #6b7280; margin-top: 8px; }
-    .empty { text-align: center; color: #6b7280; padding: 20px; }
-    a { color: #2563eb; text-decoration: none; }
+
+    .json-pre { margin: 0; white-space: pre; word-break: normal; font-size: 12px; line-height: 1.45; font-family: Consolas, Monaco, monospace; color: #d1d5db; }
+
+    .toolbar-tip { font-size: 12px; color: #9ca3af; margin-top: 8px; }
+    .empty { text-align: center; color: #9ca3af; padding: 20px; }
+
+    a { color: #60a5fa; text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    #logBox {
-      max-height: 520px;
-      overflow: auto;
-      background: #111827;
-      color: #e5e7eb;
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 12px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      font-family: Consolas, Monaco, monospace;
-      margin-top: 12px;
-    }
-  </style>
+    #logBox { max-height: 520px; overflow: auto; background: #020617; color: #d1d5db; padding: 12px; border-radius: 10px; font-size: 12px; line-height: 1.45; white-space: pre-wrap; font-family: Consolas, Monaco, monospace; margin-top: 12px; border: 1px solid #1f2937; }
+    </style>
+
 </head>
 
 <body>
@@ -86,15 +90,6 @@
         <div class="stat">失败：<span id="failed">0</span></div>
         <div class="stat">取消：<span id="canceled">0</span></div>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>日志 sub.log</h2>
-      <div class="row">
-        <button id="loadLogBtn">刷新日志</button>
-        <span class="small">自动每 5 秒刷新一次</span>
-      </div>
-      <pre id="logBox"></pre>
     </div>
 
     <div class="card">
@@ -133,6 +128,15 @@
         </table>
       </div>
       <div class="toolbar-tip">表格支持左右滚动。info / result 默认收起，点击后展开查看完整 JSON。</div>
+    </div>
+
+    <div class="card">
+      <h2>日志 sub.log</h2>
+      <div class="row">
+        <button id="loadLogBtn">刷新日志</button>
+        <span class="small">自动每 5 秒刷新一次</span>
+      </div>
+      <pre id="logBox"></pre>
     </div>
   </div>
 
