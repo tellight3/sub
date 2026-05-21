@@ -5,265 +5,59 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>任务管理</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #f6f7fb; color: #111827; }
+    .container { max-width: 100%; margin: 0 auto; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    h1, h2 { margin-top: 0; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    input, button { padding: 10px 12px; font-size: 14px; }
+    input[type="text"], input[type="date"] { border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
+    button { cursor: pointer; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
+    button:hover { background: #f3f4f6; }
+    .stats { display: flex; gap: 16px; flex-wrap: wrap; }
+    .stat { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; min-width: 120px; }
+    .table-wrap { width: 100%; overflow-x: auto; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; }
+    table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
+    th, td { border-bottom: 1px solid #e5e7eb; border-right: 1px solid #f3f4f6; padding: 10px 8px; text-align: left; vertical-align: top; }
+    th { background: #f9fafb; font-weight: 600; white-space: nowrap; position: sticky; top: 0; z-index: 2; }
+    tr:hover td { background: #fafafa; }
+    .danger { color: #fff; background: #dc2626; border: none; border-radius: 8px; padding: 8px 10px; white-space: nowrap; }
+    .danger:hover { background: #b91c1c; }
+    .status { font-weight: 600; }
+    .small { font-size: 12px; color: #6b7280; }
+    .cell-id { min-width: 220px; max-width: 300px; word-break: break-all; white-space: normal; }
+    .cell-status { min-width: 130px; white-space: nowrap; }
+    .cell-url { min-width: 320px; max-width: 520px; word-break: break-all; white-space: pre-wrap; line-height: 1.4; }
+    .cell-text { min-width: 220px; max-width: 420px; word-break: break-word; white-space: pre-wrap; line-height: 1.4; }
+    .cell-short { min-width: 120px; white-space: nowrap; }
+    .cell-medium { min-width: 180px; max-width: 260px; word-break: break-all; white-space: normal; }
+    .cell-time { min-width: 180px; white-space: nowrap; }
+    .json-cell { min-width: 180px; max-width: 260px; white-space: normal; }
+    .json-summary { display: flex; flex-direction: column; gap: 6px; }
+    .json-meta { font-size: 12px; color: #6b7280; line-height: 1.4; word-break: break-word; }
+    .toggle-btn { display: inline-block; width: fit-content; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #111827; font-size: 13px; cursor: pointer; }
+    .toggle-btn:hover { background: #f3f4f6; }
+    .json-panel { display: none; margin-top: 8px; width: 720px; max-width: 80vw; max-height: 420px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; padding: 10px; }
+    .json-panel.open { display: block; }
+    .json-pre { margin: 0; white-space: pre; word-break: normal; font-size: 12px; line-height: 1.45; font-family: Consolas, Monaco, monospace; color: #374151; }
+    .toolbar-tip { font-size: 12px; color: #6b7280; margin-top: 8px; }
+    .empty { text-align: center; color: #6b7280; padding: 20px; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
 
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 24px;
-      background: #f6f7fb;
-      color: #111827;
-    }
-
-    .container {
-      max-width: 100%;
-      margin: 0 auto;
-    }
-
-    .card {
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-
-    h1, h2 {
-      margin-top: 0;
-    }
-
-    .row {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    input, button {
-      padding: 10px 12px;
-      font-size: 14px;
-    }
-
-    input[type="text"],
-    input[type="date"] {
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      background: #fff;
-    }
-
-    button {
-      cursor: pointer;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      background: #fff;
-    }
-
-    button:hover {
-      background: #f3f4f6;
-    }
-
-    .stats {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .stat {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      padding: 12px 16px;
-      min-width: 120px;
-    }
-
-    .table-wrap {
-      width: 100%;
-      overflow-x: auto;
-      overflow-y: auto;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      background: #fff;
-    }
-
-    table {
-      width: max-content;
-      min-width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-      background: #fff;
-    }
-
-    th, td {
-      border-bottom: 1px solid #e5e7eb;
-      border-right: 1px solid #f3f4f6;
-      padding: 10px 8px;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    th {
-      background: #f9fafb;
-      font-weight: 600;
-      white-space: nowrap;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
-
-    tr:hover td {
-      background: #fafafa;
-    }
-
-    .danger {
-      color: #fff;
-      background: #dc2626;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 10px;
-      white-space: nowrap;
-    }
-
-    .danger:hover {
-      background: #b91c1c;
-    }
-
-    .status {
-      font-weight: 600;
-    }
-
-    .small {
-      font-size: 12px;
-      color: #6b7280;
-    }
-
-    .cell-id {
-      min-width: 220px;
-      max-width: 300px;
-      word-break: break-all;
-      white-space: normal;
-    }
-
-    .cell-status {
-      min-width: 130px;
-      white-space: nowrap;
-    }
-
-    .cell-url {
-      min-width: 320px;
-      max-width: 520px;
-      word-break: break-all;
-      white-space: pre-wrap;
-      line-height: 1.4;
-    }
-
-    .cell-text {
-      min-width: 220px;
-      max-width: 420px;
-      word-break: break-word;
-      white-space: pre-wrap;
-      line-height: 1.4;
-    }
-
-    .cell-short {
-      min-width: 120px;
-      white-space: nowrap;
-    }
-
-    .cell-medium {
-      min-width: 180px;
-      max-width: 260px;
-      word-break: break-all;
-      white-space: normal;
-    }
-
-    .cell-time {
-      min-width: 180px;
-      white-space: nowrap;
-    }
-
-    .json-cell {
-      min-width: 180px;
-      max-width: 260px;
-      white-space: normal;
-    }
-
-    .json-summary {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .json-meta {
-      font-size: 12px;
-      color: #6b7280;
-      line-height: 1.4;
-      word-break: break-word;
-    }
-
-    .toggle-btn {
-      display: inline-block;
-      width: fit-content;
-      padding: 6px 10px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      background: #fff;
-      color: #111827;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    .toggle-btn:hover {
-      background: #f3f4f6;
-    }
-
-    .json-panel {
-      display: none;
-      margin-top: 8px;
-      width: 720px;
-      max-width: 80vw;
-      max-height: 420px;
+    #logBox {
+      max-height: 520px;
       overflow: auto;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      background: #f9fafb;
-      padding: 10px;
-    }
-
-    .json-panel.open {
-      display: block;
-    }
-
-    .json-pre {
-      margin: 0;
-      white-space: pre;
-      word-break: normal;
+      background: #111827;
+      color: #e5e7eb;
+      padding: 12px;
+      border-radius: 10px;
       font-size: 12px;
       line-height: 1.45;
+      white-space: pre-wrap;
       font-family: Consolas, Monaco, monospace;
-      color: #374151;
-    }
-
-    .toolbar-tip {
-      font-size: 12px;
-      color: #6b7280;
-      margin-top: 8px;
-    }
-
-    .empty {
-      text-align: center;
-      color: #6b7280;
-      padding: 20px;
-    }
-
-    a {
-      color: #2563eb;
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
+      margin-top: 12px;
     }
   </style>
 </head>
@@ -292,6 +86,15 @@
         <div class="stat">失败：<span id="failed">0</span></div>
         <div class="stat">取消：<span id="canceled">0</span></div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>日志 sub.log</h2>
+      <div class="row">
+        <button id="loadLogBtn">刷新日志</button>
+        <span class="small">自动每 5 秒刷新一次</span>
+      </div>
+      <pre id="logBox"></pre>
     </div>
 
     <div class="card">
@@ -335,6 +138,7 @@
 
   <script>
     const API_BASE = "https://mmx.multmatrix.com";
+    let logTimer = null;
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -347,12 +151,8 @@
 
     function getHeaders() {
       const token = document.getElementById("tokenInput").value.trim();
-      if (token) {
-        localStorage.setItem("admin_token", token);
-      }
-      return {
-        "X-Admin-Token": token
-      };
+      if (token) localStorage.setItem("admin_token", token);
+      return { "X-Admin-Token": token };
     }
 
     function formatTs(ts) {
@@ -366,61 +166,32 @@
 
     function formatMaybeDate(value) {
       if (value === null || value === undefined || value === "") return "";
-
-      if (typeof value === "number" || /^\d+$/.test(String(value))) {
-        return formatTs(value);
-      }
-
+      if (typeof value === "number" || /^\d+$/.test(String(value))) return formatTs(value);
       const d = new Date(value);
-      if (!Number.isNaN(d.getTime())) {
-        return d.toLocaleString();
-      }
-
+      if (!Number.isNaN(d.getTime())) return d.toLocaleString();
       return String(value);
     }
 
     function formatJsonText(value) {
       if (value === null || value === undefined || value === "") return "";
-
       if (typeof value === "object") {
-        try {
-          return JSON.stringify(value, null, 2);
-        } catch {
-          return String(value);
-        }
+        try { return JSON.stringify(value, null, 2); } catch { return String(value); }
       }
-
       const str = String(value);
-
-      try {
-        const parsed = JSON.parse(str);
-        return JSON.stringify(parsed, null, 2);
-      } catch {
-        return str;
-      }
+      try { return JSON.stringify(JSON.parse(str), null, 2); } catch { return str; }
     }
 
     function jsonBrief(value) {
-      if (value === null || value === undefined || value === "") {
-        return "空";
-      }
-
+      if (value === null || value === undefined || value === "") return "空";
       if (typeof value === "object") {
-        if (Array.isArray(value)) {
-          return `数组，${value.length} 项`;
-        }
+        if (Array.isArray(value)) return `数组，${value.length} 项`;
         return `对象，${Object.keys(value).length} 个键`;
       }
-
       const str = String(value);
       try {
         const parsed = JSON.parse(str);
-        if (Array.isArray(parsed)) {
-          return `数组，${parsed.length} 项`;
-        }
-        if (parsed && typeof parsed === "object") {
-          return `对象，${Object.keys(parsed).length} 个键`;
-        }
+        if (Array.isArray(parsed)) return `数组，${parsed.length} 项`;
+        if (parsed && typeof parsed === "object") return `对象，${Object.keys(parsed).length} 个键`;
         return `JSON 标量，${str.length} 字符`;
       } catch {
         return `文本，${str.length} 字符`;
@@ -443,11 +214,7 @@
       const panelId = `${name}-${rowId}`;
 
       if (!text) {
-        return `
-          <div class="json-summary">
-            <div class="json-meta">空</div>
-          </div>
-        `;
+        return `<div class="json-summary"><div class="json-meta">空</div></div>`;
       }
 
       return `
@@ -461,6 +228,28 @@
       `;
     }
 
+    async function loadSubLog() {
+      try {
+        const resp = await fetch(`${API_BASE}/admin/logs/sub?lines=500`, { headers: getHeaders() });
+
+        if (resp.status === 401) return;
+        if (!resp.ok) return;
+
+        const data = await resp.json();
+        const box = document.getElementById("logBox");
+        box.textContent = data.log || "";
+        box.scrollTop = box.scrollHeight;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function startAutoLogRefresh() {
+      if (logTimer) clearInterval(logTimer);
+      loadSubLog();
+      logTimer = setInterval(loadSubLog, 5000);
+    }
+
     async function loadTasks() {
       const day = document.getElementById("dayInput").value;
       if (!day) {
@@ -472,12 +261,8 @@
         const headers = getHeaders();
 
         const [statsResp, listResp] = await Promise.all([
-          fetch(`${API_BASE}/admin/tasks/stats-by-day?day=${encodeURIComponent(day)}`, {
-            headers
-          }),
-          fetch(`${API_BASE}/admin/tasks/by-day?day=${encodeURIComponent(day)}`, {
-            headers
-          })
+          fetch(`${API_BASE}/admin/tasks/stats-by-day?day=${encodeURIComponent(day)}`, { headers }),
+          fetch(`${API_BASE}/admin/tasks/by-day?day=${encodeURIComponent(day)}`, { headers })
         ]);
 
         if (statsResp.status === 401 || listResp.status === 401) {
@@ -512,7 +297,7 @@
           const rowId = String(job.id || Math.random()).replace(/[^a-zA-Z0-9_-]/g, "_");
           const tr = document.createElement("tr");
 
-          const html =
+          tr.innerHTML =
             td(`<div class="small">${escapeHtml(job.id)}</div>`, "cell-id") +
             td(makeLink(job.url), "cell-url") +
             td(`<span class="status">${escapeHtml(job.status)}</span>`, "cell-status") +
@@ -536,12 +321,8 @@
             td(escapeHtml(formatTs(job.updated_at)), "cell-time") +
             td(escapeHtml(job.assigned_worker), "cell-medium") +
             td(escapeHtml(formatMaybeDate(job.assigned_at)), "cell-time") +
-            td(
-              `<button class="danger" data-id="${escapeHtml(job.id)}">删除</button>`,
-              "cell-short"
-            );
+            td(`<button class="danger" data-id="${escapeHtml(job.id)}">删除</button>`, "cell-short");
 
-          tr.innerHTML = html;
           tbody.appendChild(tr);
         }
 
@@ -598,6 +379,7 @@
     }
 
     document.getElementById("loadBtn").addEventListener("click", loadTasks);
+    document.getElementById("loadLogBtn").addEventListener("click", loadSubLog);
 
     document.addEventListener("DOMContentLoaded", () => {
       const today = new Date();
@@ -612,6 +394,7 @@
       }
 
       loadTasks();
+      startAutoLogRefresh();
     });
   </script>
 </body>
