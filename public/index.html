@@ -4,21 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Free Video Subtitle Translator | MultMatrix</title>
-    <meta name="description"
-        content="Paste a YouTube, X, or Google Drive video link to generate original subtitles, translated subtitles, and a playable subtitled video. Currently free to use." />
-    <link rel="canonical" href="https://sub.multmatrix.com/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://sub.multmatrix.com/" />
-    <meta property="og:site_name" content="MultMatrix Subtitle Generator" />
-    <meta property="og:title" content="Free Video Subtitle Translator" />
-    <meta property="og:description"
-        content="Paste a YouTube, X, or Google Drive video link. Get original subtitles, translated subtitles, and a playable subtitled video." />
-    <meta property="og:locale" content="en_US" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Free Video Subtitle Translator" />
-    <meta name="twitter:description"
-        content="Paste a YouTube, X, or Google Drive video link. Generate subtitles and translations online." />
+    <title>Subtitle Generator</title>
     <link rel="icon" href="data:,">
     <style>
         :root {
@@ -514,91 +500,6 @@
             word-break: break-all;
         }
 
-        .legal-footer {
-            margin: 28px 0 10px;
-            padding: 22px 16px 18px;
-            text-align: center;
-            border-top: 1px solid rgba(36, 50, 74, 0.8);
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 28px;
-            flex-wrap: wrap;
-            margin-bottom: 14px;
-        }
-
-        .footer-link {
-            border: none;
-            background: transparent;
-            color: #cbd5e1;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            padding: 4px 0;
-        }
-
-        .footer-link:hover,
-        .footer-link.active {
-            color: #93c5fd;
-            text-decoration: underline;
-        }
-
-        .footer-copy {
-            color: #7f8795;
-            font-size: 15px;
-            font-weight: 600;
-        }
-
-        .legal-panel {
-            display: none;
-            margin-top: 16px;
-        }
-
-        .legal-panel.show {
-            display: block;
-        }
-
-        .legal-card {
-            max-width: 920px;
-            margin: 0 auto;
-            text-align: left;
-            background: rgba(17, 26, 46, 0.92);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 22px 24px;
-            color: var(--muted);
-            line-height: 1.65;
-            font-size: 15px;
-        }
-
-        .legal-card h2 {
-            margin: 0 0 16px;
-            color: var(--text);
-            font-size: 22px;
-        }
-
-        .legal-card h3 {
-            margin: 18px 0 8px;
-            color: var(--text);
-            font-size: 16px;
-        }
-
-        .legal-card p {
-            margin: 0 0 12px;
-        }
-
-        .legal-card ol {
-            margin: 0;
-            padding-left: 22px;
-        }
-
-        .legal-card a {
-            color: #93c5fd;
-        }
-
         @media (max-width: 640px) {
             html,
             body {
@@ -723,49 +624,6 @@
                 animation: player-title-marquee-mobile 12s linear infinite;
             }
 
-
-            .legal-footer {
-                padding: 18px 0 16px;
-                margin-top: 22px;
-            }
-
-            .footer-links {
-                display: flex;
-                justify-content: center;
-                gap: 18px;
-                flex-wrap: nowrap;
-                overflow-x: auto;
-                padding: 0 12px 8px;
-                margin-bottom: 10px;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
-            }
-
-            .footer-links::-webkit-scrollbar {
-                display: none;
-            }
-
-            .footer-link {
-                flex: 0 0 auto;
-                font-size: 16px;
-                white-space: nowrap;
-            }
-
-            .footer-copy {
-                font-size: 14px;
-                padding: 0 12px;
-            }
-
-            .legal-panel {
-                padding: 0 12px;
-            }
-
-            .legal-card {
-                width: 100%;
-                padding: 18px;
-            }
-
-
             @keyframes player-title-marquee-mobile {
                 0% { transform: translateX(0); }
                 8% { transform: translateX(0); }
@@ -786,11 +644,11 @@
             </div>
         </div>
 
-        <h1 data-i18n="appTitle">Generate translated subtitles from a video link</h1>
+        <h1 data-i18n="appTitle">Auto Subtitles & Translation</h1>
         <p class="subtitle" data-i18n="appSubtitle">
-            Paste a YouTube, X, or Google Drive video link. Get original subtitles, translations, and a playable
-            subtitled video.
+            Paste a YouTube, X, or Google Drive link, and we’ll generate subtitles for you. Thanks for testing.
         </p>
+
         <div class="card">
             <h2 data-i18n="submitTitle">Create a task</h2>
 
@@ -844,8 +702,7 @@
                         </div>
                     </div>
 
-                    <video id="defaultVideoPlayer" class="video-player" controls playsinline preload="metadata" autoplay
-                        muted>
+                    <video id="defaultVideoPlayer" class="video-player" controls controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" autoplay muted>
                         <source src="/media/default.mp4" type="video/mp4">
                         <track kind="subtitles" srclang="zh" label="中文" src="/media/default.vtt" default>
                     </video>
@@ -854,21 +711,6 @@
                 <div id="subtitleBox" class="subtitle-box"></div>
             </div>
         </div>
-        <footer class="legal-footer">
-            <div class="footer-links">
-                <button type="button" class="footer-link" data-legal-link="about" data-i18n="footerAbout">关于</button>
-                <button type="button" class="footer-link" data-legal-link="how" data-i18n="footerHow">使用方法</button>
-                <button type="button" class="footer-link" data-legal-link="privacy" data-i18n="footerPrivacy">隐私政策</button>
-                <button type="button" class="footer-link" data-legal-link="terms" data-i18n="footerTerms">服务条款</button>
-                <button type="button" class="footer-link" data-legal-link="contact" data-i18n="footerContact">联系</button>
-            </div>
-
-            <div class="footer-copy">© 2026 MultMatrix Subtitle Generator</div>
-
-            <div id="legalPanel" class="legal-panel">
-                <div id="legalContent" class="legal-card"></div>
-            </div>
-        </footer>
 
     </div>
 
@@ -903,9 +745,8 @@
 
         const I18N = {
             zh: {
-                pageTitle: '免费视频字幕翻译工具 | MultMatrix',
-                appTitle: '粘贴视频链接，自动生成翻译字幕',
-                appSubtitle: '支持 YouTube、X 和 Google 云盘视频，生成原文字幕、翻译字幕和可播放的字幕视频。',
+                appTitle: '自动字幕与翻译',
+                appSubtitle: '粘贴 YouTube、X 或 Google 云盘链接，自动生成多格式字幕与翻译，感谢帮助测试',
                 submitTitle: '创建任务',
                 videoUrlLabel: '视频链接',
                 videoUrlPlaceholder: '粘贴 YouTube、X 或 Google 云盘链接',
@@ -914,7 +755,7 @@
                 targetLangLabel: '字幕目标语言',
                 targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
                 generateBtn: '生成字幕',
-                inlineNoteLine1: '处理完成后，下方会播放带翻译字幕的视频；如果填写邮箱，字幕链接也会自动发送至邮箱。',
+                inlineNoteLine1: '处理完成后，下方播放带翻译字幕的视频，字幕链接自动发送至邮箱',
                 inlineNoteLine2: '任务会保存在当前浏览器中，重新打开后仍可查看。',
                 downloadOriginal: '原文',
                 downloadTranslated: '译文',
@@ -937,7 +778,7 @@
                 warnNeedVideoUrl: '请填写视频链接',
                 warnNeedTargetLang: '请填写目标语言',
                 warnCreateFail: '创建任务失败',
-                errorIpQuotaLimit: '当前网络暂时无法创建更多任务。请稍后再试。',
+                errorIpQuotaLimit: '本视频和已处理的视频总时长已达到 90 分钟。请明天再试。',
                 errorIpQuotaInvalid: '无法识别该网络，暂时无法创建任务。',
                 taskCreatedHeading: '任务创建成功',
                 taskCreatedMessage: '已完成视频信息校验，任务开始排队处理。',
@@ -949,67 +790,11 @@
                 langChinese: '中文',
                 langEnglish: '英文',
                 demoVideoTitle: '示例视频',
-                generatedVideoTitle: '已生成视频',
-                footerAbout: '关于',
-                footerHow: '使用方法',
-                footerPrivacy: '隐私政策',
-                footerTerms: '服务条款',
-                footerContact: '联系',
-                downloadVideo: '视频',
-                legalAboutTitle: '关于这个工具',
-                legalAboutBody: `
-                    <p>Subtitle Generator 是一个在线视频字幕生成和翻译工具。</p>
-                    <p>你可以粘贴 YouTube、X 或 Google 云盘视频链接，生成原文字幕、翻译字幕，并在网页中播放带字幕的视频。</p>
-                `,
-
-                legalHowTitle: '使用方法',
-                legalHowBody: `
-                    <ol>
-                        <li>把 YouTube、X 或 Google 云盘的视频链接粘贴进来。</li>
-                        <li>选一下你想要的字幕语言，然后点击生成字幕。</li>
-                        <li>处理时间不一定，有的视频几分钟就好，有的可能要几个小时。</li>
-                        <li>不用一直开着页面等。你可以先关掉浏览器去忙别的，晚一点再回来看看结果。</li>
-                        <li>如果任务失败，可能是视频格式、访问权限或临时服务问题。你可以稍后重试，或通过联系邮箱反馈链接。</li>
-                    </ol>
-                `,
-
-                legalPrivacyTitle: '隐私政策',
-                legalPrivacyBody: `
-                    <h3>我们收集的信息</h3>
-                    <p>当你使用本服务时，我们可能会收集你提交的视频链接、目标语言、任务状态、生成的字幕文件、用于配额和防滥用的 IP 地址、用于恢复任务的浏览器或设备标识，以及你自愿提供的邮箱地址。</p>
-
-                    <h3>我们如何使用信息</h3>
-                    <p>我们使用这些信息处理字幕任务、提供播放和下载链接、防止滥用、改进服务稳定性，并在你提供邮箱时发送任务结果邮件。</p>
-
-                    <h3>Cookie 和本地存储</h3>
-                    <p>我们使用浏览器本地存储和 Cookie，在你的设备上保存最近任务、语言偏好、邮箱输入和客户端标识。</p>
-
-                    <h3>Advertising</h3>
-                    <p>如果页面展示 Google 广告，Google 等第三方供应商可能会使用 Cookie 来投放广告。你可以通过浏览器或 Google 广告设置管理相关偏好。</p>
-                `,
-
-                legalTermsTitle: '服务条款',
-                legalTermsBody: `
-                    <h3>用户责任</h3>
-                    <p>你需要对自己提交的视频链接负责。请只提交你拥有、获得授权，或依法可以处理的内容。</p>
-
-                    <h3>版权</h3>
-                    <p>我们不主张拥有用户提交的视频内容。本服务用于帮助用户在合法用途下生成字幕和翻译。</p>
-
-                    <h3>服务可用性</h3>
-                    <p>本服务在测试阶段按尽力而为原则提供，可能会变更、暂停或停止。</p>
-                `,
-
-                legalContactTitle: '联系',
-                legalContactBody: `
-                    <p>如果你有问题、反馈，或需要字幕任务相关帮助，可以通过邮件联系我们。</p>
-                    <p>Email: <a href="mailto:support@multmatrix.com">support@multmatrix.com</a></p>
-                `
+                generatedVideoTitle: '已生成视频'
             },
             en: {
-                pageTitle: 'Free Video Subtitle Translator | MultMatrix',
-                appTitle: 'Generate translated subtitles from a video link',
-                appSubtitle: 'Paste a YouTube, X, or Google Drive video link. Get original subtitles, translations, and a playable subtitled video.',
+                appTitle: 'Auto Subtitles & Translation',
+                appSubtitle: 'Paste a YouTube, X, or Google Drive link, and we’ll generate subtitles for you. Thanks for testing.',
                 submitTitle: 'Create a task',
                 videoUrlLabel: 'Video link',
                 videoUrlPlaceholder: 'Paste a YouTube, X, or Google Drive link',
@@ -1018,7 +803,7 @@
                 targetLangLabel: 'Subtitle target language',
                 targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
                 generateBtn: 'Generate subtitles',
-                inlineNoteLine1: 'After processing, the subtitled video will play below. If you enter an email, subtitle links will also be sent to your inbox.',
+                inlineNoteLine1: 'After processing, video and translated subtitles will be played below, subtitle will be sent to your email box.',
                 inlineNoteLine2: 'Tasks are stored in this browser and remain after reopening it.',
                 downloadOriginal: 'Original',
                 downloadTranslated: 'Translation',
@@ -1041,7 +826,7 @@
                 warnNeedVideoUrl: 'Please enter a video link',
                 warnNeedTargetLang: 'Please enter a target language',
                 warnCreateFail: 'Failed to create job',
-                errorIpQuotaLimit: 'This network cannot create more tasks right now. Please try again later.',
+                errorIpQuotaLimit: 'This network has reached today’s 90-minute limit. Please try again tomorrow.',
                 errorIpQuotaInvalid: 'Unable to verify this network for quota tracking.',
                 taskCreatedHeading: 'Task created',
                 taskCreatedMessage: 'The video has been verified and your task is queued.',
@@ -1053,62 +838,7 @@
                 langChinese: 'Chinese',
                 langEnglish: 'English',
                 demoVideoTitle: 'Demo video',
-                generatedVideoTitle: 'Generated video',
-                footerAbout: 'About',
-                footerHow: 'How it works',
-                footerPrivacy: 'Privacy Policy',
-                footerTerms: 'Terms of Service',
-                footerContact: 'Contact',
-                downloadVideo: 'Video',
-                legalAboutTitle: 'About this tool',
-                legalAboutBody: `
-                    <p>Subtitle Generator is an online tool for generating and translating video subtitles.</p>
-                    <p>Paste a YouTube, X, or Google Drive video link to generate original subtitles, translated subtitles, and a playable subtitled video.</p>
-                `,
-
-                legalHowTitle: 'How it works',
-                legalHowBody: `
-                    <ol>
-                        <li>Paste a YouTube, X, or Google Drive video link.</li>
-                        <li>Choose the subtitle language you want, then click Generate subtitles.</li>
-                        <li>Processing time can vary. Some videos finish in a few minutes, while others may take a few hours.</li>
-                        <li>You do not need to keep the page open. Feel free to close the browser and come back later to check the result.</li>
-                        <li>If a task fails, it may be caused by the video format, access permissions, or a temporary service issue. You can try again later or contact us with the link.</li>
-                    </ol>
-                `,
-
-                legalPrivacyTitle: 'Privacy Policy',
-                legalPrivacyBody: `
-                    <h3>Information we collect</h3>
-                    <p>When you use this service, we may collect the video link you submit, selected target language, task status, generated subtitle files, your IP address for quota and abuse prevention, browser/device identifiers for task recovery, and your email address if you choose to provide it.</p>
-
-                    <h3>How we use information</h3>
-                    <p>We use this information to process subtitle tasks, provide playback and download links, prevent abuse, improve service reliability, and send task result emails if an email address is provided.</p>
-
-                    <h3>Cookies and local storage</h3>
-                    <p>We use browser local storage and cookies to save recent tasks, language preferences, email input, and a client identifier on your device.</p>
-
-                    <h3>Advertising</h3>
-                    <p>If Google ads are displayed, third-party vendors including Google may use cookies to serve ads. You can manage related preferences through your browser or Google ad settings.</p>
-                `,
-
-                legalTermsTitle: 'Terms of Service',
-                legalTermsBody: `
-                    <h3>User responsibility</h3>
-                    <p>You are responsible for the video links you submit. Please only submit content that you own, are authorized to use, or are legally allowed to process.</p>
-
-                    <h3>Copyright</h3>
-                    <p>We do not claim ownership of videos submitted by users. This service is intended to help users generate subtitles and translations for lawful use.</p>
-
-                    <h3>Service availability</h3>
-                    <p>This service is provided on a best-effort basis during testing and may change, pause, or stop without notice.</p>
-                `,
-
-                legalContactTitle: 'Contact',
-                legalContactBody: `
-                    <p>If you have questions, feedback, or need help with a subtitle task, you can contact us by email.</p>
-                    <p>Email: <a href="mailto:support@multmatrix.com">support@multmatrix.com</a></p>
-                `
+                generatedVideoTitle: 'Generated video'
             }
         };
 
@@ -1151,7 +881,6 @@
         let creatingJob = false;
         const clientId = getOrCreateClientId();
         let playbackPollTimer = null;
-        let latestTaskStatusPollTimer = null;
         let subtitleUserScrolling = false;
         let subtitleScrollTimer = null;
 
@@ -1249,7 +978,7 @@
 
         function applyI18n() {
             document.documentElement.lang = uiLang === 'zh' ? 'zh-CN' : 'en';
-            document.title = t('pageTitle', 'Free Video Subtitle Translator | MultMatrix');
+            document.title = t('appTitle', 'Subtitle Generator');
 
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.dataset.i18n;
@@ -1271,10 +1000,6 @@
             renderTargetLangOptions();
             renderRecentTasks();
             setCurrentPlayingTitle(guessTitleByVideoUrl(getCurrentPlayingUrls().videoUrl || '/media/default.mp4'));
-
-            if (currentLegalSection) {
-                renderLegalSection(currentLegalSection);
-            }
         }
 
         function renderTargetLangOptions(preferred) {
@@ -1296,23 +1021,9 @@
             applyI18n();
         }
 
-
         document.querySelectorAll('[data-lang-btn]').forEach(btn => {
             btn.addEventListener('click', () => setLang(btn.dataset.langBtn));
         });
-
-        document.querySelectorAll('[data-legal-link]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const section = btn.dataset.legalLink;
-
-                if (currentLegalSection === section) {
-                    renderLegalSection(null);
-                } else {
-                    renderLegalSection(section);
-                }
-            });
-        });
-
 
         const els = {
             videoUrl: document.getElementById('videoUrl'),
@@ -1562,58 +1273,6 @@
                 localVideoUrl: task.localVideoUrl,
             };
         }
-
-        let currentLegalSection = null;
-
-        function renderLegalSection(section) {
-            const panel = document.getElementById('legalPanel');
-            const content = document.getElementById('legalContent');
-
-            if (!panel || !content) return;
-
-            if (!section) {
-                currentLegalSection = null;
-                panel.classList.remove('show');
-                content.innerHTML = '';
-                document.querySelectorAll('[data-legal-link]').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                return;
-            }
-
-            const map = {
-                about: ['legalAboutTitle', 'legalAboutBody'],
-                how: ['legalHowTitle', 'legalHowBody'],
-                privacy: ['legalPrivacyTitle', 'legalPrivacyBody'],
-                terms: ['legalTermsTitle', 'legalTermsBody'],
-                contact: ['legalContactTitle', 'legalContactBody']
-            };
-
-            const keys = map[section];
-            if (!keys) return;
-
-            currentLegalSection = section;
-
-            const title = t(keys[0], '');
-            const body = t(keys[1], '');
-
-            content.innerHTML = `
-                <h2>${escapeHtml(title)}</h2>
-                ${body}
-            `;
-
-            panel.classList.add('show');
-
-            document.querySelectorAll('[data-legal-link]').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.legalLink === section);
-            });
-
-            panel.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-
 
         function drawRecentTaskList(items) {
             const limited = items.slice(0, MAX_RECENT);
@@ -1873,7 +1532,7 @@
             }
             taskConfirmAutoCloseTimer = setTimeout(() => {
                 closeTaskConfirmModal();
-            }, 10000);
+            }, 3000);
         }
 
         function showTaskCreatedDialog(payload) {
@@ -2029,7 +1688,7 @@
                 if (!res.ok) {
                     let errorMsg = data.message || data.error || data.detail || '';
                     if (data.errorCode === 'IP_QUOTA_LIMIT') {
-                        errorMsg = t('errorIpQuotaLimit', 'This network cannot create more tasks right now. Please try again later.');
+                        errorMsg = t('errorIpQuotaLimit', 'This network has reached today’s 90-minute limit. Please try again tomorrow.');
                     } else if (data.errorCode === 'IP_QUOTA_INVALID') {
                         errorMsg = t('errorIpQuotaInvalid', 'Unable to verify this network for quota tracking.');
                     }
@@ -2435,9 +2094,6 @@
                 syncPlaybackCurrent();
             }, 5000);
 
-            latestTaskStatusPollTimer = setInterval(() => {
-                syncLatestTaskStatus();
-            }, 5000);
 
         });
     </script>
