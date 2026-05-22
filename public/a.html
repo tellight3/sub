@@ -1680,12 +1680,12 @@
             const targetLang = els.targetLang.value.trim();
 
             if (!url) {
-                alert(t('warnNeedVideoUrl', 'Please enter a video link'));
+                showToast(t('warnNeedVideoUrl', 'Please enter a video link'));
                 return;
             }
 
             if (!targetLang) {
-                alert(t('warnNeedTargetLang', 'Please enter a target language'));
+                showToast(t('warnNeedTargetLang', 'Please enter a target language'));
                 return;
             }
 
@@ -1735,13 +1735,14 @@
                     if (!errorMsg) {
                         errorMsg = t('warnCreateFail', 'Failed to create job');
                     }
-                    alert(errorMsg);
+                    // alert(errorMsg);
+                    showToast(errorMsg);
                     return;
                 }
 
                 const jobId = data.jobId || data?.job?.jobId;
                 if (!jobId) {
-                    alert(t('warnCreateFail', 'Failed to create job'));
+                    showToast(t('warnCreateFail', 'Failed to create job'));
                     return;
                 }
 
@@ -1759,7 +1760,7 @@
                 }
             } catch (err) {
                 console.error('createJobByUrl failed', err);
-                alert(t('warnCreateFail', 'Failed to create job'));
+                showToast(t('warnCreateFail', 'Failed to create job'));
             } finally {
                 els.createByUrlBtn.disabled = false;
                 creatingJob = false;
