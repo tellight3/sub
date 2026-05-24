@@ -83,14 +83,19 @@
     </div>
 
     <div class="card">
-      <h2>统计</h2>
-      <div class="stats">
+    <h2>统计</h2>
+    <div class="stats">
         <div class="stat">总任务：<span id="count">0</span></div>
         <div class="stat">完成：<span id="finished">0</span></div>
         <div class="stat">失败：<span id="failed">0</span></div>
         <div class="stat">取消：<span id="canceled">0</span></div>
-      </div>
+        <div class="stat">GPU忙碌：<span id="gpuBusyHours">-</span> h</div>
+        <div class="stat">GPU统计：<span id="gpuTrackedHours">-</span> h</div>
+        <div class="stat">GPU占比：<span id="gpuLoadPct">-</span>%</div>
     </div>
+    <div id="gpuWorkers" class="small" style="margin-top:10px;"></div>
+    </div>
+
 
     <div class="card">
       <h2>任务列表</h2>
@@ -280,6 +285,21 @@
         document.getElementById("finished").textContent = stats.finished ?? 0;
         document.getElementById("failed").textContent = stats.failed ?? 0;
         document.getElementById("canceled").textContent = stats.canceled ?? 0;
+        const gpu = stats.gpu_daily;
+        document.getElementById("gpuBusyHours").textContent = gpu ? (gpu.busy_hours ?? 0) : "-";
+        document.getElementById("gpuTrackedHours").textContent = gpu ? (gpu.tracked_hours ?? 0) : "-";
+        document.getElementById("gpuLoadPct").textContent = gpu ? (gpu.load_pct ?? 0) : "-";
+
+        const gpuWorkers = document.getElementById("gpuWorkers");
+        if (gpu && Array.isArray(gpu.workers) && gpu.workers.length) {
+        gpuWorkers.innerHTML = gpu.workers.map(w => {
+            return `<div>${escapeHtml(w.workerId)}: busy=${escapeHtml(w.busy_hours)}h, load=${escapeHtml(w.load_pct)}%, status=${escapeHtml(w.status)}, jobId=${escapeHtml(w.jobId || "-")}</div>`;
+        }).join("");
+        } else {
+        gpuWorkers.textContent = "无今日GPU统计";
+        }
+
+
 
         const tbody = document.getElementById("taskTableBody");
         tbody.innerHTML = "";
