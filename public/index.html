@@ -437,6 +437,95 @@
             font-size: 13px;
         }
 
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .footer-info-card {
+            display: none;
+            width: min(100%, var(--max));
+            margin: 0 auto 28px;
+            padding: 0 18px;
+        }
+
+        .footer-info-card.is-visible {
+            display: block;
+        }
+
+        .info-section {
+            display: none;
+            padding: 6px 0 0;
+        }
+
+        .info-section.is-active {
+            display: block;
+        }
+
+        .info-section h2 {
+            margin: 0 0 10px;
+            font-size: 18px;
+        }
+
+        .info-section h3 {
+            margin: 18px 0 8px;
+            font-size: 15px;
+            color: #e5e7eb;
+        }
+
+        .info-section p,
+        .info-section li {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .info-section p:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-section ol,
+        .info-section ul {
+            margin: 8px 0 0 20px;
+            padding: 0;
+        }
+
+        .site-footer {
+            margin: 24px 0 8px;
+            padding: 22px 12px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .site-footer nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px 18px;
+            margin-bottom: 10px;
+        }
+
+        .site-footer a {
+            color: #cbd5e1;
+            text-decoration: none;
+        }
+
+        .site-footer a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .site-footer a.active {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .site-footer .copyright {
+            color: #7f8795;
+        }
+
         .build-info {
             text-align: center;
             color: #7f8795;
@@ -471,6 +560,30 @@
         .player-title-text.is-scrolling {
             padding-right: 48px;
             animation: player-title-marquee 12s linear infinite;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            top: 72px;
+            transform: translateX(-50%);
+            z-index: 9999;
+            max-width: min(560px, calc(100vw - 32px));
+            padding: 13px 18px;
+            border: 1px solid rgba(96, 165, 250, .45);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, .96);
+            color: #e5e7eb;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, .32);
+            font-size: 16px;
+            font-weight: 650;
+            line-height: 1.45;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .toast.hidden {
+            display: none;
         }
 
         @keyframes player-title-marquee {
@@ -620,6 +733,23 @@
                 overflow-wrap: anywhere;
             }
 
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .site-footer {
+                width: calc(100% - 24px);
+                margin-left: 12px;
+                margin-right: 12px;
+            }
+
+            .footer-info-card {
+                width: calc(100% - 24px);
+                margin-left: 12px;
+                margin-right: 12px;
+                padding: 0;
+            }
+
             .player-title-text.is-scrolling {
                 animation: player-title-marquee-mobile 12s linear infinite;
             }
@@ -712,6 +842,113 @@
             </div>
         </div>
 
+        <footer class="site-footer">
+            <nav>
+                <a href="#about" data-i18n="footerAbout">About</a>
+                <a href="#how-it-works" data-i18n="footerHow">How it works</a>
+                <a href="#privacy" data-i18n="footerPrivacy">Privacy Policy</a>
+                <a href="#terms" data-i18n="footerTerms">Terms</a>
+                <a href="#contact" data-i18n="footerContact">Contact</a>
+            </nav>
+            <div class="copyright">
+                © 2026 MultMatrix Subtitle Generator
+            </div>
+        </footer>
+
+        <div class="footer-info-card" id="footerInfo">
+            <div class="info-grid">
+                <section id="about" class="info-section">
+                    <h2 data-i18n="aboutTitle">About this tool</h2>
+                    <p data-i18n="aboutText">
+                        Subtitle Generator is an online tool for creating subtitles and translations from supported video links. It is designed for users who want to understand, translate, review, or save video content more easily.
+                    </p>
+                    <p data-i18n="aboutTesting">
+                        This service is currently in testing. We are improving subtitle accuracy, download formats, and playback experience.
+                    </p>
+                </section>
+
+                <section id="how-it-works" class="info-section">
+                    <h2 data-i18n="howTitle">How it works</h2>
+                    <ol>
+                        <li data-i18n="howStep1">Paste a supported video link.</li>
+                        <li data-i18n="howStep2">Optionally enter your email to receive subtitle download links.</li>
+                        <li data-i18n="howStep3">Choose the subtitle target language.</li>
+                        <li data-i18n="howStep4">Click Generate subtitles and wait for the task to finish.</li>
+                    </ol>
+                </section>
+
+                <section id="supported-links" class="info-section">
+                    <h2 data-i18n="supportedTitle">Supported links</h2>
+                    <p data-i18n="supportedText">
+                        We currently support YouTube, X, and Google Drive video links. For Google Drive videos, please make sure the file is shared as "Anyone with the link can view".
+                    </p>
+                    <p data-i18n="copyrightNote">
+                        Please only submit videos that you own, are authorized to use, or are legally allowed to process.
+                    </p>
+                </section>
+
+                <section id="contact" class="info-section">
+                    <h2 data-i18n="contactTitle">Contact</h2>
+                    <p data-i18n="contactText">
+                        If you have questions, feedback, or need help with a subtitle task, you can contact us by email.
+                    </p>
+                    <p>
+                        Email:
+                        <a href="mailto:support@multmatrix.com">support@multmatrix.com</a>
+                    </p>
+                </section>
+
+                <section id="privacy" class="info-section">
+                    <h2 data-i18n="privacyTitle">Privacy Policy</h2>
+
+                    <h3 data-i18n="privacyCollectTitle">Information we collect</h3>
+                    <p data-i18n="privacyCollectText">
+                        When you use this service, we may collect the video link you submit, selected target language, task status, generated subtitle files, your IP address for quota and abuse prevention, browser/device identifiers for task recovery, and your email address if you choose to provide it.
+                    </p>
+
+                    <h3 data-i18n="privacyUseTitle">How we use information</h3>
+                    <p data-i18n="privacyUseText">
+                        We use this information to process subtitle tasks, provide playback and download links, prevent abuse, improve service reliability, and send task result emails if an email address is provided.
+                    </p>
+
+                    <h3 data-i18n="privacyStorageTitle">Cookies and local storage</h3>
+                    <p data-i18n="privacyStorageText">
+                        We use browser local storage and cookies to save recent tasks, language preferences, email input, and a client identifier on your device.
+                    </p>
+
+                    <h3 data-i18n="privacyAdsTitle">Advertising</h3>
+                    <p data-i18n="privacyAdsText">
+                        If Google ads are displayed, third-party vendors including Google may use cookies to serve ads based on your prior visits to this website or other websites. You can opt out of personalized advertising through Google Ads Settings.
+                    </p>
+
+                    <h3 data-i18n="privacyContactTitle">Privacy contact</h3>
+                    <p>
+                        Email:
+                        <a href="mailto:support@multmatrix.com">support@multmatrix.com</a>
+                    </p>
+                </section>
+
+                <section id="terms" class="info-section">
+                    <h2 data-i18n="termsTitle">Terms of Service</h2>
+
+                    <h3 data-i18n="termsUserTitle">User responsibility</h3>
+                    <p data-i18n="termsUserText">
+                        You are responsible for the video links you submit. Please only submit content that you own, are authorized to use, or are legally allowed to process.
+                    </p>
+
+                    <h3 data-i18n="termsCopyrightTitle">Copyright</h3>
+                    <p data-i18n="termsCopyrightText">
+                        We do not claim ownership of videos submitted by users. This service is intended to help users generate subtitles and translations for lawful use.
+                    </p>
+
+                    <h3 data-i18n="termsAvailabilityTitle">Service availability</h3>
+                    <p data-i18n="termsAvailabilityText">
+                        This service is provided on a best-effort basis during testing and may change, pause, or stop without notice.
+                    </p>
+                </section>
+            </div>
+        </div>
+
     </div>
 
     <div id="taskConfirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="taskConfirmHeading"
@@ -734,6 +971,8 @@
             </div>
         </div>
     </div>
+
+    <div id="toast" class="toast hidden"></div>
 
     <script src="https://openfpcdn.io/fingerprintjs/v4/iife.min.js"></script>
 
@@ -790,7 +1029,42 @@
                 langChinese: '中文',
                 langEnglish: '英文',
                 demoVideoTitle: '示例视频',
-                generatedVideoTitle: '已生成视频'
+                generatedVideoTitle: '已生成视频',
+                aboutTitle: '关于这个工具',
+                aboutText: 'Subtitle Generator 是一个在线视频字幕生成和翻译工具，适合需要理解、翻译、整理或保存视频内容的用户使用。',
+                aboutTesting: '当前服务仍在测试阶段，我们正在持续改进字幕准确率、下载格式和播放体验。',
+                howTitle: '使用方法',
+                howStep1: '粘贴一个支持的视频链接。',
+                howStep2: '可选填写邮箱，用于接收字幕下载链接。',
+                howStep3: '选择字幕目标语言。',
+                howStep4: '点击生成字幕，等待任务完成。',
+                supportedTitle: '支持的链接',
+                supportedText: '目前支持 YouTube、X 和 Google 云盘视频链接。Google 云盘视频请设置为“知道链接的任何人可查看”，否则服务器可能无法访问。',
+                copyrightNote: '请只提交你拥有、获得授权，或依法可以处理的视频内容。',
+                contactTitle: '联系',
+                contactText: '如果你有问题、反馈，或需要字幕任务相关帮助，可以通过邮件联系我们。',
+                privacyTitle: '隐私政策',
+                privacyCollectTitle: '我们收集的信息',
+                privacyCollectText: '当你使用本服务时，我们可能会收集你提交的视频链接、目标语言、任务状态、生成的字幕文件、用于配额和防滥用的 IP 地址、用于恢复任务的浏览器或设备标识，以及你自愿提供的邮箱地址。',
+                privacyUseTitle: '我们如何使用信息',
+                privacyUseText: '我们使用这些信息处理字幕任务、提供播放和下载链接、防止滥用、改进服务稳定性，并在你提供邮箱时发送任务结果邮件。',
+                privacyStorageTitle: 'Cookie 和本地存储',
+                privacyStorageText: '我们使用浏览器本地存储和 Cookie，在你的设备上保存最近任务、语言偏好、邮箱输入和客户端标识。',
+                privacyAdsTitle: '广告',
+                privacyAdsText: '如果本网站展示 Google 广告，包括 Google 在内的第三方供应商可能会使用 Cookie，根据你之前访问本网站或其他网站的情况投放广告。你可以通过 Google 广告设置关闭个性化广告。',
+                privacyContactTitle: '隐私联系',
+                termsTitle: '服务条款',
+                termsUserTitle: '用户责任',
+                termsUserText: '你需要对自己提交的视频链接负责。请只提交你拥有、获得授权，或依法可以处理的内容。',
+                termsCopyrightTitle: '版权',
+                termsCopyrightText: '我们不主张拥有用户提交的视频内容。本服务用于帮助用户在合法用途下生成字幕和翻译。',
+                termsAvailabilityTitle: '服务可用性',
+                termsAvailabilityText: '本服务在测试阶段按尽力而为原则提供，可能会变更、暂停或停止。',
+                footerAbout: '关于',
+                footerHow: '使用方法',
+                footerPrivacy: '隐私政策',
+                footerTerms: '服务条款',
+                footerContact: '联系'
             },
             en: {
                 appTitle: 'Auto Subtitles & Translation',
@@ -838,7 +1112,42 @@
                 langChinese: 'Chinese',
                 langEnglish: 'English',
                 demoVideoTitle: 'Demo video',
-                generatedVideoTitle: 'Generated video'
+                generatedVideoTitle: 'Generated video',
+                aboutTitle: 'About this tool',
+                aboutText: 'Subtitle Generator is an online tool for creating subtitles and translations from supported video links. It is designed for users who want to understand, translate, review, or save video content more easily.',
+                aboutTesting: 'This service is currently in testing. We are improving subtitle accuracy, download formats, and playback experience.',
+                howTitle: 'How it works',
+                howStep1: 'Paste a supported video link.',
+                howStep2: 'Optionally enter your email to receive subtitle download links.',
+                howStep3: 'Choose the subtitle target language.',
+                howStep4: 'Click Generate subtitles and wait for the task to finish.',
+                supportedTitle: 'Supported links',
+                supportedText: 'We currently support YouTube, X, and Google Drive video links. For Google Drive videos, please make sure the file is shared as "Anyone with the link can view".',
+                copyrightNote: 'Please only submit videos that you own, are authorized to use, or are legally allowed to process.',
+                contactTitle: 'Contact',
+                contactText: 'If you have questions, feedback, or need help with a subtitle task, you can contact us by email.',
+                privacyTitle: 'Privacy Policy',
+                privacyCollectTitle: 'Information we collect',
+                privacyCollectText: 'When you use this service, we may collect the video link you submit, selected target language, task status, generated subtitle files, your IP address for quota and abuse prevention, browser/device identifiers for task recovery, and your email address if you choose to provide it.',
+                privacyUseTitle: 'How we use information',
+                privacyUseText: 'We use this information to process subtitle tasks, provide playback and download links, prevent abuse, improve service reliability, and send task result emails if an email address is provided.',
+                privacyStorageTitle: 'Cookies and local storage',
+                privacyStorageText: 'We use browser local storage and cookies to save recent tasks, language preferences, email input, and a client identifier on your device.',
+                privacyAdsTitle: 'Advertising',
+                privacyAdsText: 'If Google ads are displayed, third-party vendors including Google may use cookies to serve ads based on your prior visits to this website or other websites. You can opt out of personalized advertising through Google Ads Settings.',
+                privacyContactTitle: 'Privacy contact',
+                termsTitle: 'Terms of Service',
+                termsUserTitle: 'User responsibility',
+                termsUserText: 'You are responsible for the video links you submit. Please only submit content that you own, are authorized to use, or are legally allowed to process.',
+                termsCopyrightTitle: 'Copyright',
+                termsCopyrightText: 'We do not claim ownership of videos submitted by users. This service is intended to help users generate subtitles and translations for lawful use.',
+                termsAvailabilityTitle: 'Service availability',
+                termsAvailabilityText: 'This service is provided on a best-effort basis during testing and may change, pause, or stop without notice.',
+                footerAbout: 'About',
+                footerHow: 'How it works',
+                footerPrivacy: 'Privacy Policy',
+                footerTerms: 'Terms',
+                footerContact: 'Contact'
             }
         };
 
@@ -1000,6 +1309,73 @@
             renderTargetLangOptions();
             renderRecentTasks();
             setCurrentPlayingTitle(guessTitleByVideoUrl(getCurrentPlayingUrls().videoUrl || '/media/default.mp4'));
+        }
+
+        const FOOTER_SECTION_IDS = new Set(['about', 'how-it-works', 'privacy', 'terms', 'contact']);
+
+        function hideFooterSection() {
+            document.getElementById('footerInfo')?.classList.remove('is-visible');
+            document.querySelectorAll('#footerInfo .info-section').forEach(section => {
+                section.classList.remove('is-active');
+            });
+            document.querySelectorAll('.site-footer a[href^="#"]').forEach(link => {
+                link.classList.remove('active');
+                link.removeAttribute('aria-current');
+            });
+        }
+
+        function showFooterSection(sectionId, shouldScroll = false) {
+            if (!FOOTER_SECTION_IDS.has(sectionId)) {
+                hideFooterSection();
+                return false;
+            }
+
+            const infoCard = document.getElementById('footerInfo');
+            const targetSection = document.getElementById(sectionId);
+            if (!infoCard || !targetSection) return false;
+
+            infoCard.classList.add('is-visible');
+            document.querySelectorAll('#footerInfo .info-section').forEach(section => {
+                section.classList.toggle('is-active', section.id === sectionId);
+            });
+
+            document.querySelectorAll('.site-footer a[href^="#"]').forEach(link => {
+                const isActive = link.getAttribute('href') === `#${sectionId}`;
+                link.classList.toggle('active', isActive);
+                if (isActive) {
+                    link.setAttribute('aria-current', 'page');
+                } else {
+                    link.removeAttribute('aria-current');
+                }
+            });
+
+            if (shouldScroll) {
+                infoCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            return true;
+        }
+
+        function bindFooterNavigation() {
+            document.querySelectorAll('.site-footer a[href^="#"]').forEach(link => {
+                link.addEventListener('click', event => {
+                    const sectionId = link.getAttribute('href').slice(1);
+                    if (!FOOTER_SECTION_IDS.has(sectionId)) return;
+
+                    event.preventDefault();
+                    history.pushState(null, '', `#${sectionId}`);
+                    showFooterSection(sectionId, true);
+                });
+            });
+
+            window.addEventListener('hashchange', () => {
+                showFooterSection(window.location.hash.slice(1), true);
+            });
+            window.addEventListener('popstate', () => {
+                showFooterSection(window.location.hash.slice(1), true);
+            });
+
+            showFooterSection(window.location.hash.slice(1), false);
         }
 
         function renderTargetLangOptions(preferred) {
@@ -1167,6 +1543,22 @@
             if (!normalized) return null;
             if (/^https?:\/\//i.test(normalized)) return normalized;
             return `${API_BASE}${normalized.startsWith('/') ? normalized : '/' + normalized}`;
+        }
+
+        function showToast(message, timeout = 10000) {
+            const el = document.getElementById('toast');
+            if (!el) {
+                console.warn(message);
+                return;
+            }
+
+            el.textContent = message;
+            el.classList.remove('hidden');
+
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => {
+                el.classList.add('hidden');
+            }, timeout);
         }
 
         async function downloadMedia(u, filename) {
@@ -1640,12 +2032,12 @@
             const targetLang = els.targetLang.value.trim();
 
             if (!url) {
-                alert(t('warnNeedVideoUrl', 'Please enter a video link'));
+                showToast(t('warnNeedVideoUrl', 'Please enter a video link'));
                 return;
             }
 
             if (!targetLang) {
-                alert(t('warnNeedTargetLang', 'Please enter a target language'));
+                showToast(t('warnNeedTargetLang', 'Please enter a target language'));
                 return;
             }
 
@@ -1695,13 +2087,14 @@
                     if (!errorMsg) {
                         errorMsg = t('warnCreateFail', 'Failed to create job');
                     }
-                    alert(errorMsg);
+                    // alert(errorMsg);
+                    showToast(errorMsg);
                     return;
                 }
 
                 const jobId = data.jobId || data?.job?.jobId;
                 if (!jobId) {
-                    alert(t('warnCreateFail', 'Failed to create job'));
+                    showToast(t('warnCreateFail', 'Failed to create job'));
                     return;
                 }
 
@@ -1719,7 +2112,7 @@
                 }
             } catch (err) {
                 console.error('createJobByUrl failed', err);
-                alert(t('warnCreateFail', 'Failed to create job'));
+                showToast(t('warnCreateFail', 'Failed to create job'));
             } finally {
                 els.createByUrlBtn.disabled = false;
                 creatingJob = false;
@@ -2075,6 +2468,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             setLang(uiLang);
+            bindFooterNavigation();
 
             const savedEmail = localStorage.getItem(LS_KEY_EMAIL);
             if (savedEmail) {
