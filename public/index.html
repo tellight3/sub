@@ -446,8 +446,14 @@
         .footer-info-card {
             display: none;
             width: min(100%, var(--max));
+            height: 180px;
             margin: 0 auto 28px;
-            padding: 0 18px;
+            padding: 18px;
+            overflow-y: auto;
+            background: rgba(15, 23, 40, 0.82);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: var(--shadow);
         }
 
         .footer-info-card.is-visible {
@@ -456,7 +462,7 @@
 
         .info-section {
             display: none;
-            padding: 6px 0 0;
+            padding: 0;
         }
 
         .info-section.is-active {
@@ -745,9 +751,11 @@
 
             .footer-info-card {
                 width: calc(100% - 24px);
+                height: 200px;
                 margin-left: 12px;
                 margin-right: 12px;
-                padding: 0;
+                padding: 14px;
+                border-radius: 12px;
             }
 
             .player-title-text.is-scrolling {
@@ -1335,6 +1343,7 @@
             if (!infoCard || !targetSection) return false;
 
             infoCard.classList.add('is-visible');
+            infoCard.scrollTop = 0;
             document.querySelectorAll('#footerInfo .info-section').forEach(section => {
                 section.classList.toggle('is-active', section.id === sectionId);
             });
