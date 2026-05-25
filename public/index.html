@@ -1211,6 +1211,7 @@
 
         let snapPlayerTimer = null;
         let snappingPlayer = false;
+        let lastPlayerSnapScrollY = window.scrollY || 0;
 
         function findSubtitleIndexForCurrentTime() {
             const video = document.getElementById('defaultVideoPlayer');
@@ -1260,23 +1261,29 @@
 
 
         function bindPlayerTitleSnap() {
-            const titleBar = document.getElementById('playerTitleBar');
-            if (!titleBar) return;
+            const playerWrap = document.querySelector('.player-wrap');
+            if (!playerWrap) return;
 
             window.addEventListener('scroll', () => {
                 if (snappingPlayer) return;
+
+                const currentScrollY = window.scrollY || 0;
+                const isScrollingDown = currentScrollY > lastPlayerSnapScrollY;
+                lastPlayerSnapScrollY = currentScrollY;
+
+                if (!isScrollingDown) return;
 
                 if (snapPlayerTimer) {
                     clearTimeout(snapPlayerTimer);
                 }
 
                 snapPlayerTimer = setTimeout(() => {
-                    const rect = titleBar.getBoundingClientRect();
+                    const rect = playerWrap.getBoundingClientRect();
 
                     if (rect.top > 0 && rect.top < 120) {
                         snappingPlayer = true;
 
-                        titleBar.scrollIntoView({
+                        playerWrap.scrollIntoView({
                             behavior: 'smooth',
                             block: 'start'
                         });
