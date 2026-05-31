@@ -1675,6 +1675,24 @@
             return supabaseClient;
         }
 
+        async function getApiHeaders(extraHeaders = {}) {
+            const headers = { ...extraHeaders };
+            const client = getSupabaseClient();
+            if (!client) return headers;
+
+            try {
+                const { data } = await client.auth.getSession();
+                const token = data?.session?.access_token || '';
+                if (token) {
+                    headers.Authorization = `Bearer ${token}`;
+                }
+            } catch (err) {
+                console.warn('get supabase session failed', err);
+            }
+
+            return headers;
+        }
+
         function setPanelStatus(id, message) {
             const el = document.getElementById(id);
             if (el) el.textContent = message;
@@ -1797,23 +1815,17 @@
                 const client = getSupabaseClient();
                 const { data } = client ? await client.auth.getUser() : { data: null };
                 const authUser = data?.user || null;
-                const { data: sessionData } = client ? await client.auth.getSession() : { data: null };
-                const accessToken = sessionData?.session?.access_token || '';
                 const payload = {
                     message,
                     email: authUser?.email || signedInEmail || feedbackEmail?.value.trim() || '',
                     page_url: window.location.href,
                     client_id: authUser?.id || clientId
                 };
-                const headers = { 'Content-Type': 'application/json' };
-                if (accessToken) {
-                    headers.Authorization = `Bearer ${accessToken}`;
-                }
 
                 try {
                     const res = await fetch(`${API_BASE}/api/feedback`, {
                         method: 'POST',
-                        headers,
+                        headers: await getApiHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(payload)
                     });
 
@@ -2506,7 +2518,7 @@
 
                 const res = await fetch(`${API_BASE}/api/jobs`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: await getApiHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({
                         url,
                         email: email || null,
@@ -2623,7 +2635,7 @@
             try {
                 const resp = await fetch(`${API_BASE}/api/playback/current`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: await getApiHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({
                         client_id: clientId,
                         fingerprint: currentFingerprint
