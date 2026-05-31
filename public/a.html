@@ -46,6 +46,12 @@
             align-items: center;
         }
 
+        .auth-hint {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
         .lang-switch {
             display: flex;
             gap: 8px;
@@ -867,6 +873,7 @@
             <div class="top-actions">
                 <button type="button" class="btn btn-secondary btn-compact" id="openAuthModal" data-i18n="authOpenBtn">Login</button>
                 <button type="button" class="btn btn-secondary btn-compact" id="openFeedbackModal" data-i18n="feedbackOpenBtn">Feedback</button>
+                <span class="auth-hint" data-i18n="authOptionalHint">No login required to generate subtitles.</span>
             </div>
             <div class="top-actions">
                 <div class="lang-switch">
@@ -1168,6 +1175,7 @@
                 generateBtn: '生成字幕',
                 authOpenBtn: '登录',
                 feedbackOpenBtn: '反馈',
+                authOptionalHint: '不登录也可以生成字幕。',
                 authTitle: '账号登录',
                 authEmailPlaceholder: '邮箱',
                 authPasswordPlaceholder: '密码',
@@ -1183,6 +1191,7 @@
                 statusCheckEmail: '注册成功，请检查邮箱确认链接。',
                 statusAuthFailed: '认证失败',
                 statusFeedbackMissing: '请先填写反馈内容。',
+                statusFeedbackTooShort: '反馈内容至少需要 5 个字。',
                 statusFeedbackSaved: '反馈已提交，感谢。',
                 statusFeedbackFailed: '反馈提交失败',
                 benefitPreview: '在线播放',
@@ -1284,6 +1293,7 @@
                 generateBtn: 'Generate subtitles',
                 authOpenBtn: 'Login',
                 feedbackOpenBtn: 'Feedback',
+                authOptionalHint: 'No login required to generate subtitles.',
                 authTitle: 'Account login',
                 authEmailPlaceholder: 'Email',
                 authPasswordPlaceholder: 'Password',
@@ -1299,6 +1309,7 @@
                 statusCheckEmail: 'Sign-up created. Check your email for confirmation.',
                 statusAuthFailed: 'Auth failed',
                 statusFeedbackMissing: 'Enter feedback first.',
+                statusFeedbackTooShort: 'Feedback must be at least 5 characters.',
                 statusFeedbackSaved: 'Feedback submitted. Thank you.',
                 statusFeedbackFailed: 'Failed to submit feedback',
                 benefitPreview: 'Online preview',
@@ -1716,6 +1727,7 @@
             document.getElementById('submitFeedbackBtn')?.addEventListener('click', async () => {
                 const message = feedbackText?.value.trim();
                 if (!message) return setPanelStatus('feedbackStatus', t('statusFeedbackMissing', 'Enter feedback first.'));
+                if (message.length < 5) return setPanelStatus('feedbackStatus', t('statusFeedbackTooShort', 'Feedback must be at least 5 characters.'));
 
                 const client = getSupabaseClient();
                 const { data } = client ? await client.auth.getUser() : { data: null };
