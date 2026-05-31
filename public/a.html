@@ -1130,6 +1130,8 @@
         <div class="modal-content">
             <h3 id="feedbackModalHeading" data-i18n="feedbackTitle">Feedback</h3>
             <div class="modal-form">
+                <input id="feedbackEmail" type="email" class="input" data-i18n-placeholder="feedbackEmailPlaceholder"
+                    placeholder="Email (optional)" autocomplete="email" />
                 <textarea id="feedbackText" class="textarea" data-i18n-placeholder="feedbackPlaceholder"
                     placeholder="Tell us what should be improved."></textarea>
                 <div class="modal-actions">
@@ -1147,8 +1149,7 @@
     <script>
         const API_BASE = 'https://mmx.multmatrix.com';
         const SUPABASE_URL = '';
-        const SUPABASE_ANON_KEY = '';
-        const FEEDBACK_TABLE = 'feedback';
+        const SUPABASE_ANON_KEY = 'sb_publishable_DHku3OtqHTDZJIULqvaM0g__goxNWo_';
         const LS_KEY_CLIENT_ID = 'mmx:clientId';
         const LS_KEY_EMAIL = 'mmx:email';
         const MAX_RECENT = 3;
@@ -1174,6 +1175,7 @@
                 signUpBtn: '注册',
                 cancelBtn: '取消',
                 feedbackTitle: '反馈',
+                feedbackEmailPlaceholder: '邮箱（可选）',
                 feedbackPlaceholder: '告诉我们哪里需要改进。',
                 submitFeedbackBtn: '提交',
                 statusSupabaseMissing: '账号和反馈功能尚未配置。',
@@ -1289,6 +1291,7 @@
                 signUpBtn: 'Sign up',
                 cancelBtn: 'Cancel',
                 feedbackTitle: 'Feedback',
+                feedbackEmailPlaceholder: 'Email (optional)',
                 feedbackPlaceholder: 'Tell us what should be improved.',
                 submitFeedbackBtn: 'Submit',
                 statusSupabaseMissing: 'Account and feedback are not configured yet.',
@@ -1668,6 +1671,7 @@
             const feedbackModal = document.getElementById('feedbackModal');
             const authEmail = document.getElementById('authEmail');
             const authPassword = document.getElementById('authPassword');
+            const feedbackEmail = document.getElementById('feedbackEmail');
             const feedbackText = document.getElementById('feedbackText');
 
             document.getElementById('openAuthModal')?.addEventListener('click', () => {
@@ -1714,22 +1718,36 @@
                 if (!message) return setPanelStatus('feedbackStatus', t('statusFeedbackMissing', 'Enter feedback first.'));
 
                 const client = getSupabaseClient();
-                if (!client) return setPanelStatus('feedbackStatus', t('statusSupabaseMissing', 'Account and feedback are not configured yet.'));
-
-                const { data } = await client.auth.getUser();
-                const user = data?.user || null;
-                const { error } = await client.from(FEEDBACK_TABLE).insert({
+                const { data } = client ? await client.auth.getUser() : { data: null };
+                const authUser = data?.user || null;
+                const payload = {
                     message,
+                    email: feedbackEmail?.value.trim() || authUser?.email || '',
                     page_url: window.location.href,
-                    user_id: user?.id || null,
-                    user_email: user?.email || authEmail?.value.trim() || null
-                });
+                    client_id: authUser?.id || clientId
+                };
 
-                if (error) {
-                    setPanelStatus('feedbackStatus', `${t('statusFeedbackFailed', 'Failed to submit feedback')}: ${error.message}`);
-                } else {
+                try {
+                    const res = await fetch(`${API_BASE}/api/feedback`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!res.ok) {
+                        let detail = '';
+                        try {
+                            const data = await res.json();
+                            detail = data?.error || data?.message || '';
+                        } catch (_) {}
+                        throw new Error(detail || `HTTP ${res.status}`);
+                    }
+
                     feedbackText.value = '';
+                    if (feedbackEmail) feedbackEmail.value = '';
                     setPanelStatus('feedbackStatus', t('statusFeedbackSaved', 'Feedback submitted. Thank you.'));
+                } catch (error) {
+                    setPanelStatus('feedbackStatus', `${t('statusFeedbackFailed', 'Failed to submit feedback')}: ${error.message}`);
                 }
             });
         }
