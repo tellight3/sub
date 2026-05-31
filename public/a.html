@@ -297,6 +297,12 @@
             word-break: break-word;
         }
 
+        .account-email-note {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -909,6 +915,7 @@
                         placeholder="Enter your email (optional)" />
                     <button type="button" class="input-clear" id="clearEmail" aria-label="Clear">×</button>
                 </div>
+                <div class="account-email-note hidden" id="mainAccountEmailNote"></div>
             </div>
 
             <div class="field">
@@ -1139,6 +1146,7 @@
             <div class="modal-form">
                 <input id="feedbackEmail" type="email" class="input" data-i18n-placeholder="feedbackEmailPlaceholder"
                     placeholder="Email (optional)" autocomplete="email" />
+                <div class="account-email-note hidden" id="feedbackAccountEmailNote"></div>
                 <textarea id="feedbackText" class="textarea" data-i18n-placeholder="feedbackPlaceholder"
                     placeholder="Tell us what should be improved."></textarea>
                 <div class="modal-actions">
@@ -1184,6 +1192,7 @@
                 cancelBtn: '取消',
                 feedbackTitle: '反馈',
                 feedbackEmailPlaceholder: '邮箱（可选）',
+                accountEmailNote: '将使用登录邮箱提交：',
                 feedbackPlaceholder: '告诉我们哪里需要改进。',
                 submitFeedbackBtn: '提交',
                 statusSupabaseMissing: '账号和反馈功能尚未配置。',
@@ -1302,6 +1311,7 @@
                 cancelBtn: 'Cancel',
                 feedbackTitle: 'Feedback',
                 feedbackEmailPlaceholder: 'Email (optional)',
+                accountEmailNote: 'Will use signed-in email:',
                 feedbackPlaceholder: 'Tell us what should be improved.',
                 submitFeedbackBtn: 'Submit',
                 statusSupabaseMissing: 'Account and feedback are not configured yet.',
@@ -1438,6 +1448,7 @@
         let recentTasksRenderToken = 0;
         let creatingJob = false;
         const clientId = getOrCreateClientId();
+        let signedInEmail = '';
         let playbackPollTimer = null;
         let subtitleUserScrolling = false;
         let subtitleScrollTimer = null;
@@ -1683,6 +1694,48 @@
             btn.textContent = email ? `${t('statusSignedIn', 'Signed in')}: ${email}` : t('authOpenBtn', 'Login');
         }
 
+        function maskEmail(email = '') {
+            const [name, domain] = String(email).split('@');
+            if (!name || !domain) return email;
+            const visibleStart = name.slice(0, 1);
+            const visibleEnd = name.length > 2 ? name.slice(-1) : '';
+            return `${visibleStart}***${visibleEnd}@${domain}`;
+        }
+
+        function applySignedInEmail(email = '') {
+            signedInEmail = email;
+            updateAuthButton(email);
+
+            const masked = maskEmail(email);
+            const noteText = email ? `${t('accountEmailNote', 'Will use signed-in email:')} ${masked}` : '';
+            const mainNote = document.getElementById('mainAccountEmailNote');
+            const feedbackNote = document.getElementById('feedbackAccountEmailNote');
+            const feedbackEmail = document.getElementById('feedbackEmail');
+
+            if (els.email) {
+                els.email.value = email || localStorage.getItem(LS_KEY_EMAIL) || '';
+                els.email.readOnly = !!email;
+                updateClearButtonState(els.email, els.emailWrap);
+                els.emailWrap?.classList.toggle('hidden', !!email);
+                els.clearEmail?.classList.toggle('hidden', !!email);
+            }
+
+            if (mainNote) {
+                mainNote.textContent = noteText;
+                mainNote.classList.toggle('hidden', !email);
+            }
+
+            if (feedbackEmail) {
+                feedbackEmail.classList.toggle('hidden', !!email);
+                if (email) feedbackEmail.value = '';
+            }
+
+            if (feedbackNote) {
+                feedbackNote.textContent = noteText;
+                feedbackNote.classList.toggle('hidden', !email);
+            }
+        }
+
         function bindAuthAndFeedbackModals() {
             const authModal = document.getElementById('authModal');
             const feedbackModal = document.getElementById('feedbackModal');
@@ -1735,7 +1788,7 @@
 
                 const email = data?.user?.email || authEmail?.value.trim() || '';
                 setPanelStatus('authStatus', `${t('statusSignedIn', 'Signed in')}: ${email}`);
-                updateAuthButton(email);
+                applySignedInEmail(email);
                 setTimeout(() => setModalVisibility('authModal', false), 500);
             });
 
@@ -1749,7 +1802,7 @@
                 const authUser = data?.user || null;
                 const payload = {
                     message,
-                    email: feedbackEmail?.value.trim() || authUser?.email || '',
+                    email: authUser?.email || signedInEmail || feedbackEmail?.value.trim() || '',
                     page_url: window.location.href,
                     client_id: authUser?.id || clientId
                 };
@@ -1771,13 +1824,24 @@
                     }
 
                     feedbackText.value = '';
-                    if (feedbackEmail) feedbackEmail.value = '';
+                    if (feedbackEmail && !signedInEmail) feedbackEmail.value = '';
                     setPanelStatus('feedbackStatus', t('statusFeedbackSaved', 'Feedback submitted. Thank you.'));
                     setTimeout(() => setModalVisibility('feedbackModal', false), 700);
                 } catch (error) {
                     setPanelStatus('feedbackStatus', `${t('statusFeedbackFailed', 'Failed to submit feedback')}: ${error.message}`);
                 }
             });
+
+            const client = getSupabaseClient();
+            if (client) {
+                client.auth.getUser().then(({ data }) => {
+                    if (data?.user?.email) applySignedInEmail(data.user.email);
+                });
+
+                client.auth.onAuthStateChange((_event, session) => {
+                    applySignedInEmail(session?.user?.email || '');
+                });
+            }
         }
 
         const els = {
@@ -2402,7 +2466,7 @@
             if (creatingJob) return;
 
             const url = els.videoUrl.value.trim();
-            const email = els.email.value.trim();
+            const email = signedInEmail || els.email.value.trim();
             if (email) {
                 localStorage.setItem(LS_KEY_EMAIL, email);
             } else {
