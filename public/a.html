@@ -1797,17 +1797,23 @@
                 const client = getSupabaseClient();
                 const { data } = client ? await client.auth.getUser() : { data: null };
                 const authUser = data?.user || null;
+                const { data: sessionData } = client ? await client.auth.getSession() : { data: null };
+                const accessToken = sessionData?.session?.access_token || '';
                 const payload = {
                     message,
                     email: authUser?.email || signedInEmail || feedbackEmail?.value.trim() || '',
                     page_url: window.location.href,
                     client_id: authUser?.id || clientId
                 };
+                const headers = { 'Content-Type': 'application/json' };
+                if (accessToken) {
+                    headers.Authorization = `Bearer ${accessToken}`;
+                }
 
                 try {
                     const res = await fetch(`${API_BASE}/api/feedback`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers,
                         body: JSON.stringify(payload)
                     });
 
