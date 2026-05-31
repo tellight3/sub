@@ -1773,6 +1773,7 @@
                     feedbackText.value = '';
                     if (feedbackEmail) feedbackEmail.value = '';
                     setPanelStatus('feedbackStatus', t('statusFeedbackSaved', 'Feedback submitted. Thank you.'));
+                    setTimeout(() => setModalVisibility('feedbackModal', false), 700);
                 } catch (error) {
                     setPanelStatus('feedbackStatus', `${t('statusFeedbackFailed', 'Failed to submit feedback')}: ${error.message}`);
                 }
