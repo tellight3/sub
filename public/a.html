@@ -1677,6 +1677,12 @@
             modal.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
         }
 
+        function updateAuthButton(email = '') {
+            const btn = document.getElementById('openAuthModal');
+            if (!btn) return;
+            btn.textContent = email ? `${t('statusSignedIn', 'Signed in')}: ${email}` : t('authOpenBtn', 'Login');
+        }
+
         function bindAuthAndFeedbackModals() {
             const authModal = document.getElementById('authModal');
             const feedbackModal = document.getElementById('feedbackModal');
@@ -1721,7 +1727,16 @@
                     email: authEmail?.value.trim(),
                     password: authPassword?.value
                 });
-                setPanelStatus('authStatus', error ? `${t('statusAuthFailed', 'Auth failed')}: ${error.message}` : `${t('statusSignedIn', 'Signed in')}: ${data?.user?.email || ''}`);
+
+                if (error) {
+                    setPanelStatus('authStatus', `${t('statusAuthFailed', 'Auth failed')}: ${error.message}`);
+                    return;
+                }
+
+                const email = data?.user?.email || authEmail?.value.trim() || '';
+                setPanelStatus('authStatus', `${t('statusSignedIn', 'Signed in')}: ${email}`);
+                updateAuthButton(email);
+                setTimeout(() => setModalVisibility('authModal', false), 500);
             });
 
             document.getElementById('submitFeedbackBtn')?.addEventListener('click', async () => {
