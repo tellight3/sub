@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Subtitle Generator</title>
-    <meta name="description" content="Generate subtitles from video content and translate them into another language. Preview the subtitles online and download the result for editing, learning, or content review.">
+    <title>Online Video Subtitle Generator & Translator</title>
+    <meta name="description" content="Generate and translate subtitles from YouTube, TikTok, X/Twitter, Google Drive, and other public video links. Preview online and download subtitle results.">
     <link rel="canonical" href="https://sub.multmatrix.com/">
     <link rel="icon" href="data:,">
     <style>
@@ -228,6 +228,23 @@
             line-height: 1.5;
         }
 
+        .compact-benefits {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .compact-benefits span {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(15, 23, 40, 0.72);
+            border: 1px solid rgba(36, 50, 74, 0.85);
+            color: #cbd5e1;
+            font-size: 13px;
+            line-height: 1.3;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -342,6 +359,23 @@
             flex-shrink: 0;
             flex-wrap: wrap;
             justify-content: flex-end;
+        }
+
+        .player-card-header {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .player-card-header h2 {
+            margin: 0;
+        }
+
+        .player-card-header p {
+            margin: 0;
+            font-size: 13px;
         }
 
         .player-wrap {
@@ -659,6 +693,12 @@
                 overflow-x: hidden;
             }
 
+            .player-card-header {
+                width: calc(100% - 24px);
+                margin-left: 12px;
+                margin-right: 12px;
+            }
+
             .task-item {
                 align-items: flex-start;
                 flex-direction: column;
@@ -784,9 +824,9 @@
             </div>
         </div>
 
-        <h1 data-i18n="appTitle">Auto Subtitles & Translation</h1>
+        <h1 data-i18n="appTitle">Online Video Subtitle Generator</h1>
         <p class="subtitle" data-i18n="appSubtitle">
-            Paste a YouTube, X, or Google Drive link, and we’ll generate subtitles for you. Thanks for testing.
+            Paste a YouTube, TikTok, X/Twitter, Google Drive, or other public video link to generate and translate subtitles.
         </p>
 
         <div class="card">
@@ -797,7 +837,7 @@
                         class="required">*</span></label>
                 <div class="input-wrap" id="videoUrlWrap">
                     <input id="videoUrl" class="input" data-i18n-placeholder="videoUrlPlaceholder"
-                        placeholder="Paste a YouTube, X, or Google Drive link" />
+                        placeholder="Paste a YouTube, TikTok, X/Twitter, Google Drive, or other public video link" />
                     <button type="button" class="input-clear" id="clearVideoUrl" aria-label="Clear">×</button>
                 </div>
             </div>
@@ -818,10 +858,13 @@
 
             <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
                 <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
-                <div style="display:flex; flex-direction:column; gap:2px;">
-                    <div class="muted" data-i18n="inlineNoteLine1">处理完成，播放器自动播放带翻译字幕的视频，字幕发邮箱。</div>
-                    <div class="muted" data-i18n="inlineNoteLine2">任务保存在当前浏览器中，重新打开或者刷新后亦可查看。</div>
-                </div>
+            </div>
+
+            <div class="compact-benefits" aria-label="Result features">
+                <span data-i18n="benefitPreview">Online preview</span>
+                <span data-i18n="benefitDownloads">Original + translated subtitles</span>
+                <span data-i18n="benefitVideo">Subtitled video</span>
+                <span data-i18n="benefitReturn">Close browser and return later</span>
             </div>
         </div>
 
@@ -834,6 +877,10 @@
         </div>
 
         <div class="card player-card">
+            <div class="player-card-header">
+                <h2 data-i18n="sampleTitle">Sample result</h2>
+                <p class="muted" data-i18n="sampleText">This is what the final video with bilingual subtitles looks like.</p>
+            </div>
             <div class="player-wrap">
                 <div class="player-main">
                     <div class="player-title-bar" id="playerTitleBar">
@@ -858,6 +905,7 @@
                 <a href="#how-it-works" data-i18n="footerHow">How it works</a>
                 <a href="#privacy" data-i18n="footerPrivacy">Privacy Policy</a>
                 <a href="#terms" data-i18n="footerTerms">Terms</a>
+                <a href="#faq" data-i18n="footerFAQ">FAQ</a>
                 <a href="#contact" data-i18n="footerContact">Contact</a>
             </nav>
             <div class="copyright">
@@ -884,6 +932,8 @@
                         <li data-i18n="howStep2">Optionally enter your email to receive subtitle download links.</li>
                         <li data-i18n="howStep3">Choose the subtitle target language.</li>
                         <li data-i18n="howStep4">Click Generate subtitles and wait for the task to finish.</li>
+                        <li data-i18n="howStep5">You can close the browser and come back later.</li>
+                        <li data-i18n="howStep6">Finished results appear in the demo player area.</li>
                     </ol>
                 </section>
 
@@ -956,6 +1006,25 @@
                         This service is provided on a best-effort basis during testing and may change, pause, or stop without notice.
                     </p>
                 </section>
+
+                <section id="faq" class="info-section">
+                    <h2 data-i18n="faqTitle">FAQ</h2>
+
+                    <h3 data-i18n="faqCloseTitle">Can I close the browser?</h3>
+                    <p data-i18n="faqCloseText">
+                        Yes. Recent tasks are saved in this browser. Reopen the page later to check results.
+                    </p>
+
+                    <h3 data-i18n="faqPlayTitle">Where will the result play?</h3>
+                    <p data-i18n="faqPlayText">
+                        When the video and subtitles are ready, they will automatically play in the demo video area.
+                    </p>
+
+                    <h3 data-i18n="faqLinksTitle">How long are links available?</h3>
+                    <p data-i18n="faqLinksText">
+                        The online playback file may be removed after several hours. Download links usually remain available for 3 days, with up to 3 links per regular user.
+                    </p>
+                </section>
             </div>
         </div>
 
@@ -994,18 +1063,22 @@
 
         const I18N = {
             zh: {
-                appTitle: '自动字幕与翻译',
-                appSubtitle: '粘贴 YouTube、X 或 Google 云盘链接，自动生成多格式字幕与翻译，感谢帮助测试',
+                appTitle: '在线视频字幕生成与翻译',
+                appSubtitle: '粘贴 YouTube、TikTok、X/Twitter、Google Drive 或其他公开视频链接，自动生成和翻译字幕。',
                 submitTitle: '创建任务',
                 videoUrlLabel: '视频链接',
-                videoUrlPlaceholder: '粘贴 YouTube、X 或 Google 云盘链接',
+                videoUrlPlaceholder: '粘贴 YouTube、TikTok、X/Twitter、Google Drive 或其他公开视频链接',
                 emailLabel: '邮箱（可选）',
                 emailPlaceholder: '邮箱可接收视频和多格式字幕链接（词级）',
                 targetLangLabel: '字幕目标语言',
                 targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
                 generateBtn: '生成字幕',
-                inlineNoteLine1: '处理完成后，下方播放带翻译字幕的视频，字幕链接自动发送至邮箱',
-                inlineNoteLine2: '任务会保存在当前浏览器中，重新打开后仍可查看。',
+                benefitPreview: '在线播放',
+                benefitDownloads: '原文 + 翻译字幕',
+                benefitVideo: '带字幕视频',
+                benefitReturn: '可关闭浏览器稍后回来',
+                sampleTitle: '示例结果',
+                sampleText: '生成后的效果就是这样：视频播放 + 双语字幕。',
                 downloadOriginal: '原文',
                 downloadTranslated: '译文',
                 downloadOriginalHint: '下载原文字幕',
@@ -1041,15 +1114,17 @@
                 demoVideoTitle: '示例视频',
                 generatedVideoTitle: '已生成视频',
                 aboutTitle: '关于这个工具',
-                aboutText: 'Subtitle Generator 是一个在线视频字幕生成和翻译工具，适合需要理解、翻译、整理或保存视频内容的用户使用。',
-                aboutTesting: '当前服务仍在测试阶段，我们正在持续改进字幕准确率、下载格式和播放体验。',
+                aboutText: 'Subtitle Generator 是一个在线视频字幕生成和翻译工具，支持 YouTube、TikTok、X/Twitter、Google Drive 和部分公开视频链接。',
+                aboutTesting: '你可以在线播放结果，并下载原文字幕、翻译字幕和带字幕视频。',
                 howTitle: '使用方法',
                 howStep1: '粘贴一个支持的视频链接。',
                 howStep2: '可选填写邮箱，用于接收字幕下载链接。',
                 howStep3: '选择字幕目标语言。',
                 howStep4: '点击生成字幕，等待任务完成。',
+                howStep5: '可以关闭浏览器离开，之后重新打开本页面查看。',
+                howStep6: '生成完成后，会自动在示例视频位置播放结果。',
                 supportedTitle: '支持的链接',
-                supportedText: '目前支持 YouTube、X 和 Google 云盘视频链接。Google 云盘视频请设置为“知道链接的任何人可查看”，否则服务器可能无法访问。',
+                supportedText: '已测试支持 YouTube、TikTok、X/Twitter 和 Google Drive。其他 yt-dlp 可解析的公开视频链接也可能可用，具体取决于平台限制和视频权限。',
                 copyrightNote: '请只提交你拥有、获得授权，或依法可以处理的视频内容。',
                 contactTitle: '联系',
                 contactText: '如果你有问题、反馈，或需要字幕任务相关帮助，可以通过邮件联系我们。',
@@ -1070,25 +1145,37 @@
                 termsCopyrightText: '我们不主张拥有用户提交的视频内容。本服务用于帮助用户在合法用途下生成字幕和翻译。',
                 termsAvailabilityTitle: '服务可用性',
                 termsAvailabilityText: '本服务在测试阶段按尽力而为原则提供，可能会变更、暂停或停止。',
+                faqTitle: '常见问题',
+                faqCloseTitle: '可以关闭浏览器吗？',
+                faqCloseText: '可以。最近任务会保存在当前浏览器中，之后重新打开本页面即可查看。',
+                faqPlayTitle: '结果在哪里播放？',
+                faqPlayText: '视频和字幕生成完成后，会自动在示例视频位置播放。',
+                faqLinksTitle: '链接会保留多久？',
+                faqLinksText: '在线播放文件可能在几个小时后清理。下载链接通常 3 天内可用，普通用户一般最多 3 个下载链接。',
                 footerAbout: '关于',
                 footerHow: '使用方法',
                 footerPrivacy: '隐私政策',
                 footerTerms: '服务条款',
+                footerFAQ: '常见问题',
                 footerContact: '联系'
             },
             en: {
-                appTitle: 'Auto Subtitles & Translation',
-                appSubtitle: 'Paste a YouTube, X, or Google Drive link, and we’ll generate subtitles for you. Thanks for testing.',
+                appTitle: 'Online Video Subtitle Generator',
+                appSubtitle: 'Paste a YouTube, TikTok, X/Twitter, Google Drive, or other public video link to generate and translate subtitles.',
                 submitTitle: 'Create a task',
                 videoUrlLabel: 'Video link',
-                videoUrlPlaceholder: 'Paste a YouTube, X, or Google Drive link',
+                videoUrlPlaceholder: 'Paste a YouTube, TikTok, X/Twitter, Google Drive, or other public video link',
                 emailLabel: 'Email (optional)',
                 emailPlaceholder: 'Email for receiving video and subtitle download links (word-level).',
                 targetLangLabel: 'Subtitle target language',
                 targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
                 generateBtn: 'Generate subtitles',
-                inlineNoteLine1: 'After processing, video and translated subtitles will be played below, subtitle will be sent to your email box.',
-                inlineNoteLine2: 'Tasks are stored in this browser and remain after reopening it.',
+                benefitPreview: 'Online preview',
+                benefitDownloads: 'Original + translated subtitles',
+                benefitVideo: 'Subtitled video',
+                benefitReturn: 'Close browser and return later',
+                sampleTitle: 'Sample result',
+                sampleText: 'This is the final experience: video playback with bilingual subtitles.',
                 downloadOriginal: 'Original',
                 downloadTranslated: 'Translation',
                 downloadOriginalHint: 'Download original subtitle',
@@ -1124,15 +1211,17 @@
                 demoVideoTitle: 'Demo video',
                 generatedVideoTitle: 'Generated video',
                 aboutTitle: 'About this tool',
-                aboutText: 'Subtitle Generator is an online tool for creating subtitles and translations from supported video links. It is designed for users who want to understand, translate, review, or save video content more easily.',
-                aboutTesting: 'This service is currently in testing. We are improving subtitle accuracy, download formats, and playback experience.',
+                aboutText: 'Subtitle Generator creates and translates subtitles from YouTube, TikTok, X/Twitter, Google Drive, and some other public video links.',
+                aboutTesting: 'You can preview results online and download original subtitles, translated subtitles, and the subtitled video.',
                 howTitle: 'How it works',
                 howStep1: 'Paste a supported video link.',
                 howStep2: 'Optionally enter your email to receive subtitle download links.',
                 howStep3: 'Choose the subtitle target language.',
                 howStep4: 'Click Generate subtitles and wait for the task to finish.',
+                howStep5: 'You can close the browser and reopen this page later.',
+                howStep6: 'When ready, the result plays automatically in the demo video area.',
                 supportedTitle: 'Supported links',
-                supportedText: 'We currently support YouTube, X, and Google Drive video links. For Google Drive videos, please make sure the file is shared as "Anyone with the link can view".',
+                supportedText: 'Tested platforms include YouTube, TikTok, X/Twitter, and Google Drive. Other public links supported by yt-dlp may also work, depending on platform limits and video permissions.',
                 copyrightNote: 'Please only submit videos that you own, are authorized to use, or are legally allowed to process.',
                 contactTitle: 'Contact',
                 contactText: 'If you have questions, feedback, or need help with a subtitle task, you can contact us by email.',
@@ -1153,10 +1242,18 @@
                 termsCopyrightText: 'We do not claim ownership of videos submitted by users. This service is intended to help users generate subtitles and translations for lawful use.',
                 termsAvailabilityTitle: 'Service availability',
                 termsAvailabilityText: 'This service is provided on a best-effort basis during testing and may change, pause, or stop without notice.',
+                faqTitle: 'FAQ',
+                faqCloseTitle: 'Can I close the browser?',
+                faqCloseText: 'Yes. Recent tasks are saved in this browser. Reopen this page later to check results.',
+                faqPlayTitle: 'Where will the result play?',
+                faqPlayText: 'When the video and subtitles are ready, they will automatically play in the demo video area.',
+                faqLinksTitle: 'How long are links available?',
+                faqLinksText: 'The online playback file may be removed after several hours. Download links usually remain available for 3 days, with up to 3 links per regular user.',
                 footerAbout: 'About',
                 footerHow: 'How it works',
                 footerPrivacy: 'Privacy Policy',
                 footerTerms: 'Terms',
+                footerFAQ: 'FAQ',
                 footerContact: 'Contact'
             }
         };
@@ -1321,7 +1418,7 @@
             setCurrentPlayingTitle(guessTitleByVideoUrl(getCurrentPlayingUrls().videoUrl || '/media/default.mp4'));
         }
 
-        const FOOTER_SECTION_IDS = new Set(['about', 'how-it-works', 'privacy', 'terms', 'contact']);
+        const FOOTER_SECTION_IDS = new Set(['about', 'how-it-works', 'privacy', 'terms', 'faq', 'contact']);
 
         function hideFooterSection() {
             document.getElementById('footerInfo')?.classList.remove('is-visible');
