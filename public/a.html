@@ -878,6 +878,7 @@
         <div class="topbar">
             <div class="top-actions">
                 <button type="button" class="btn btn-secondary btn-compact" id="openAuthModal" data-i18n="authOpenBtn">Login</button>
+                <button type="button" class="btn btn-secondary btn-compact hidden" id="signOutBtn" data-i18n="signOutBtn">Logout</button>
                 <button type="button" class="btn btn-secondary btn-compact" id="openFeedbackModal" data-i18n="feedbackOpenBtn">Feedback</button>
                 <span class="auth-hint" data-i18n="authOptionalHint">No login required to generate subtitles.</span>
             </div>
@@ -908,14 +909,13 @@
                 </div>
             </div>
 
-            <div class="field">
+            <div class="field" id="emailField">
                 <label class="label" for="email" data-i18n="emailLabel">Email (optional)</label>
                 <div class="input-wrap" id="emailWrap">
                     <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
                         placeholder="Enter your email (optional)" />
                     <button type="button" class="input-clear" id="clearEmail" aria-label="Clear">×</button>
                 </div>
-                <div class="account-email-note hidden" id="mainAccountEmailNote"></div>
             </div>
 
             <div class="field">
@@ -1146,7 +1146,6 @@
             <div class="modal-form">
                 <input id="feedbackEmail" type="email" class="input" data-i18n-placeholder="feedbackEmailPlaceholder"
                     placeholder="Email (optional)" autocomplete="email" />
-                <div class="account-email-note hidden" id="feedbackAccountEmailNote"></div>
                 <textarea id="feedbackText" class="textarea" data-i18n-placeholder="feedbackPlaceholder"
                     placeholder="Tell us what should be improved."></textarea>
                 <div class="modal-actions">
@@ -1189,10 +1188,10 @@
                 authPasswordPlaceholder: '密码',
                 signInBtn: '登录',
                 signUpBtn: '注册',
+                signOutBtn: '退出',
                 cancelBtn: '取消',
                 feedbackTitle: '反馈',
                 feedbackEmailPlaceholder: '邮箱（可选）',
-                accountEmailNote: '将使用登录邮箱提交：',
                 feedbackPlaceholder: '告诉我们哪里需要改进。',
                 submitFeedbackBtn: '提交',
                 statusSupabaseMissing: '账号和反馈功能尚未配置。',
@@ -1308,10 +1307,10 @@
                 authPasswordPlaceholder: 'Password',
                 signInBtn: 'Sign in',
                 signUpBtn: 'Sign up',
+                signOutBtn: 'Logout',
                 cancelBtn: 'Cancel',
                 feedbackTitle: 'Feedback',
                 feedbackEmailPlaceholder: 'Email (optional)',
-                accountEmailNote: 'Will use signed-in email:',
                 feedbackPlaceholder: 'Tell us what should be improved.',
                 submitFeedbackBtn: 'Submit',
                 statusSupabaseMissing: 'Account and feedback are not configured yet.',
@@ -1690,49 +1689,42 @@
 
         function updateAuthButton(email = '') {
             const btn = document.getElementById('openAuthModal');
+            const signOutBtn = document.getElementById('signOutBtn');
+            const authHint = document.querySelector('.auth-hint');
             if (!btn) return;
-            btn.textContent = email ? `${t('statusSignedIn', 'Signed in')}: ${email}` : t('authOpenBtn', 'Login');
+            btn.textContent = email ? maskEmail(email) : t('authOpenBtn', 'Login');
+            signOutBtn?.classList.toggle('hidden', !email);
+            authHint?.classList.toggle('hidden', !!email);
         }
 
         function maskEmail(email = '') {
             const [name, domain] = String(email).split('@');
             if (!name || !domain) return email;
-            const visibleStart = name.slice(0, 1);
-            const visibleEnd = name.length > 2 ? name.slice(-1) : '';
-            return `${visibleStart}***${visibleEnd}@${domain}`;
+            const maskedName = name.slice(0, 1) + '*'.repeat(Math.max(0, name.length - 1));
+            const visibleDomainTail = domain.length <= 5 ? domain : domain.slice(-5);
+            const maskedDomainHead = '*'.repeat(Math.max(0, domain.length - visibleDomainTail.length));
+            return `${maskedName}@${maskedDomainHead}${visibleDomainTail}`;
         }
 
         function applySignedInEmail(email = '') {
             signedInEmail = email;
             updateAuthButton(email);
 
-            const masked = maskEmail(email);
-            const noteText = email ? `${t('accountEmailNote', 'Will use signed-in email:')} ${masked}` : '';
-            const mainNote = document.getElementById('mainAccountEmailNote');
-            const feedbackNote = document.getElementById('feedbackAccountEmailNote');
+            const emailField = document.getElementById('emailField');
             const feedbackEmail = document.getElementById('feedbackEmail');
 
             if (els.email) {
                 els.email.value = email || localStorage.getItem(LS_KEY_EMAIL) || '';
                 els.email.readOnly = !!email;
                 updateClearButtonState(els.email, els.emailWrap);
-                els.emailWrap?.classList.toggle('hidden', !!email);
                 els.clearEmail?.classList.toggle('hidden', !!email);
             }
 
-            if (mainNote) {
-                mainNote.textContent = noteText;
-                mainNote.classList.toggle('hidden', !email);
-            }
+            emailField?.classList.toggle('hidden', !!email);
 
             if (feedbackEmail) {
                 feedbackEmail.classList.toggle('hidden', !!email);
                 if (email) feedbackEmail.value = '';
-            }
-
-            if (feedbackNote) {
-                feedbackNote.textContent = noteText;
-                feedbackNote.classList.toggle('hidden', !email);
             }
         }
 
@@ -1754,6 +1746,11 @@
             });
             document.getElementById('authCancelBtn')?.addEventListener('click', () => setModalVisibility('authModal', false));
             document.getElementById('feedbackCancelBtn')?.addEventListener('click', () => setModalVisibility('feedbackModal', false));
+            document.getElementById('signOutBtn')?.addEventListener('click', async () => {
+                const client = getSupabaseClient();
+                if (client) await client.auth.signOut();
+                applySignedInEmail('');
+            });
 
             [authModal, feedbackModal].forEach(modal => {
                 modal?.addEventListener('click', event => {
