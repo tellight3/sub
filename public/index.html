@@ -1613,6 +1613,7 @@
             renderTargetLangOptions();
             renderRecentTasks();
             setCurrentPlayingTitle(guessTitleByVideoUrl(getCurrentPlayingUrls().videoUrl || '/media/default.mp4'));
+            updateAuthButton(signedInEmail);
         }
 
         const FOOTER_SECTION_IDS = new Set(['about', 'how-it-works', 'privacy', 'terms', 'faq', 'contact']);
