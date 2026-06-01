@@ -1169,8 +1169,8 @@
                     placeholder="Password" autocomplete="current-password" />
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" id="authCancelBtn" data-i18n="cancelBtn">Cancel</button>
-                    <button type="button" class="btn btn-secondary" id="signInBtn" data-i18n="signInBtn">Sign in</button>
-                    <button type="button" class="btn" id="signUpBtn" data-i18n="signUpBtn">Sign up</button>
+                    <button type="button" class="btn" id="signInBtn" data-i18n="signInBtn">Sign in</button>
+                    <button type="button" class="btn btn-secondary" id="signUpBtn" data-i18n="signUpBtn">Create account</button>
                 </div>
                 <div class="auth-status" id="authStatus"></div>
             </div>
@@ -1226,16 +1226,18 @@
                 authPasswordPlaceholder: '密码',
                 signInBtn: '登录',
                 statusSigningIn: '登录中...',
-                signUpBtn: '注册',
+                signUpBtn: '注册新账号',
+                statusSigningUp: '注册中...',
                 signOutBtn: '退出',
                 cancelBtn: '取消',
                 feedbackTitle: '反馈',
                 feedbackEmailPlaceholder: '邮箱（可选）',
                 feedbackPlaceholder: '告诉我们哪里需要改进。',
                 submitFeedbackBtn: '提交',
+                statusSubmittingFeedback: '提交中...',
                 statusSupabaseMissing: '账号和反馈功能尚未配置。',
                 statusSignedIn: '已登录',
-                statusCheckEmail: '注册成功，请检查邮箱确认链接。',
+                statusCheckEmail: '请检查邮箱中的确认邮件；如果账号已存在，请直接登录。',
                 statusAuthFailed: '认证失败',
                 statusFeedbackMissing: '请先填写反馈内容。',
                 statusFeedbackTooShort: '反馈内容至少需要 2 个字。',
@@ -1348,16 +1350,18 @@
                 authPasswordPlaceholder: 'Password',
                 signInBtn: 'Sign in',
                 statusSigningIn: 'Signing in...',
-                signUpBtn: 'Sign up',
+                signUpBtn: 'Create account',
+                statusSigningUp: 'Signing up...',
                 signOutBtn: 'Logout',
                 cancelBtn: 'Cancel',
                 feedbackTitle: 'Feedback',
                 feedbackEmailPlaceholder: 'Email (optional)',
                 feedbackPlaceholder: 'Tell us what should be improved.',
                 submitFeedbackBtn: 'Submit',
+                statusSubmittingFeedback: 'Submitting...',
                 statusSupabaseMissing: 'Account and feedback are not configured yet.',
                 statusSignedIn: 'Signed in',
-                statusCheckEmail: 'Sign-up created. Check your email for confirmation.',
+                statusCheckEmail: 'Please check your email for the confirmation link. If the account already exists, sign in directly.',
                 statusAuthFailed: 'Auth failed',
                 statusFeedbackMissing: 'Enter feedback first.',
                 statusFeedbackTooShort: 'Feedback must be at least 2 characters.',
@@ -1829,14 +1833,31 @@
             });
 
             document.getElementById('signUpBtn')?.addEventListener('click', async () => {
+                const signUpBtn = document.getElementById('signUpBtn');
+                const signInBtn = document.getElementById('signInBtn');
                 const client = getSupabaseClient();
                 if (!client) return setPanelStatus('authStatus', t('statusSupabaseMissing', 'Account and feedback are not configured yet.'));
 
-                const { error } = await client.auth.signUp({
-                    email: authEmail?.value.trim(),
-                    password: authPassword?.value
-                });
-                setPanelStatus('authStatus', error ? `${t('statusAuthFailed', 'Auth failed')}: ${error.message}` : t('statusCheckEmail', 'Sign-up created. Check your email for confirmation.'));
+                const originalText = signUpBtn?.textContent || t('signUpBtn', 'Create account');
+                if (signUpBtn) {
+                    signUpBtn.disabled = true;
+                    signUpBtn.textContent = t('statusSigningUp', 'Signing up...');
+                }
+                if (signInBtn) signInBtn.disabled = true;
+
+                try {
+                    const { error } = await client.auth.signUp({
+                        email: authEmail?.value.trim(),
+                        password: authPassword?.value
+                    });
+                    setPanelStatus('authStatus', error ? `${t('statusAuthFailed', 'Auth failed')}: ${error.message}` : t('statusCheckEmail', 'A confirmation email has been sent. Click the link in the email to complete registration.'));
+                } finally {
+                    if (signUpBtn) {
+                        signUpBtn.disabled = false;
+                        signUpBtn.textContent = originalText;
+                    }
+                    if (signInBtn) signInBtn.disabled = false;
+                }
             });
 
             document.getElementById('signInBtn')?.addEventListener('click', async () => {
@@ -1874,6 +1895,7 @@
             });
 
             document.getElementById('submitFeedbackBtn')?.addEventListener('click', async () => {
+                const submitFeedbackBtn = document.getElementById('submitFeedbackBtn');
                 const message = feedbackText?.value.trim();
                 if (!message) return setPanelStatus('feedbackStatus', t('statusFeedbackMissing', 'Enter feedback first.'));
                 if (message.length < 2) return setPanelStatus('feedbackStatus', t('statusFeedbackTooShort', 'Feedback must be at least 2 characters.'));
@@ -1887,6 +1909,12 @@
                     page_url: window.location.href,
                     client_id: authUser?.id || clientId
                 };
+
+                const originalText = submitFeedbackBtn?.textContent || t('submitFeedbackBtn', 'Submit');
+                if (submitFeedbackBtn) {
+                    submitFeedbackBtn.disabled = true;
+                    submitFeedbackBtn.textContent = t('statusSubmittingFeedback', 'Submitting...');
+                }
 
                 try {
                     const res = await fetch(`${API_BASE}/api/feedback`, {
@@ -1906,10 +1934,15 @@
 
                     feedbackText.value = '';
                     if (feedbackEmail && !signedInEmail) feedbackEmail.value = '';
-                    setPanelStatus('feedbackStatus', t('statusFeedbackSaved', 'Feedback submitted. Thank you.'));
-                    setTimeout(() => setModalVisibility('feedbackModal', false), 700);
+                    setPanelStatus('feedbackStatus', '');
+                    setModalVisibility('feedbackModal', false);
                 } catch (error) {
                     setPanelStatus('feedbackStatus', `${t('statusFeedbackFailed', 'Failed to submit feedback')}: ${error.message}`);
+                } finally {
+                    if (submitFeedbackBtn) {
+                        submitFeedbackBtn.disabled = false;
+                        submitFeedbackBtn.textContent = originalText;
+                    }
                 }
             });
 
