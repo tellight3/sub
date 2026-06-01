@@ -1810,7 +1810,7 @@
                 setPanelStatus('authStatus', `${t('statusSignedIn', 'Signed in')}: ${email}`);
                 applySignedInEmail(email);
                 await syncPlaybackCurrent();
-                setTimeout(() => setModalVisibility('authModal', false), 500);
+                setModalVisibility('authModal', false);
             });
 
             document.getElementById('submitFeedbackBtn')?.addEventListener('click', async () => {
