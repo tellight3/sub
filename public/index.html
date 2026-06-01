@@ -33,8 +33,23 @@
 
         .topbar {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 16px;
+        }
+
+        .top-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .auth-hint {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
         }
 
         .lang-switch {
@@ -118,6 +133,22 @@
 
         .field {
             margin-bottom: 12px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 12px;
+        }
+
+        .form-row .field {
+            margin-bottom: 0;
+        }
+
+        .form-row.email-hidden {
+            grid-template-columns: minmax(0, 1fr);
         }
 
         .label {
@@ -241,7 +272,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-top: 14px;
+            align-items: center;
         }
 
         .compact-benefits span {
@@ -252,6 +283,40 @@
             color: #cbd5e1;
             font-size: 13px;
             line-height: 1.3;
+        }
+
+        .modal-form {
+            display: grid;
+            gap: 12px;
+        }
+
+        .textarea {
+            width: 100%;
+            min-height: 110px;
+            resize: vertical;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            background: var(--input);
+            color: #fff;
+            outline: none;
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        .auth-status,
+        .feedback-status {
+            min-height: 20px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .account-email-note {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
         }
 
         .hidden {
@@ -794,6 +859,10 @@
                 grid-template-columns: 1fr;
             }
 
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
             .site-footer {
                 width: calc(100% - 24px);
                 margin-left: 12px;
@@ -827,9 +896,17 @@
 <body>
     <div class="container">
         <div class="topbar">
-            <div class="lang-switch">
-                <button type="button" data-lang-btn="zh">中文</button>
-                <button type="button" data-lang-btn="en">EN</button>
+            <div class="top-actions">
+                <button type="button" class="btn btn-secondary btn-compact" id="openAuthModal" data-i18n="authOpenBtn">Sign up / Login</button>
+                <button type="button" class="btn btn-secondary btn-compact hidden" id="signOutBtn" data-i18n="signOutBtn">Logout</button>
+                <button type="button" class="btn btn-secondary btn-compact" id="openFeedbackModal" data-i18n="feedbackOpenBtn">Feedback</button>
+                <span class="auth-hint" data-i18n="authOptionalHint">No sign-up required to generate subtitles.</span>
+            </div>
+            <div class="top-actions">
+                <div class="lang-switch">
+                    <button type="button" data-lang-btn="zh">中文</button>
+                    <button type="button" data-lang-btn="en">EN</button>
+                </div>
             </div>
         </div>
 
@@ -852,29 +929,27 @@
                 </div>
             </div>
 
-            <div class="field">
-                <label class="label" for="email" data-i18n="emailLabel">Email (optional)</label>
-                <div class="input-wrap" id="emailWrap">
-                    <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
-                        placeholder="Enter your email (optional)" />
-                    <button type="button" class="input-clear" id="clearEmail" aria-label="Clear">×</button>
+            <div class="form-row" id="taskOptionsRow">
+                <div class="field" id="emailField">
+                    <label class="label" for="email" data-i18n="emailLabel">Email (optional)</label>
+                    <div class="input-wrap" id="emailWrap">
+                        <input id="email" type="email" class="input" data-i18n-placeholder="emailPlaceholder"
+                            placeholder="Enter your email (optional)" />
+                        <button type="button" class="input-clear" id="clearEmail" aria-label="Clear">×</button>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label" for="targetLang" data-i18n="targetLangLabel">Subtitle target language</label>
+                    <select id="targetLang" class="input"></select>
                 </div>
             </div>
 
-            <div class="field">
-                <label class="label" for="targetLang" data-i18n="targetLangLabel">Subtitle target language</label>
-                <select id="targetLang" class="input"></select>
-            </div>
-
-            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+            <div class="compact-benefits" aria-label="Generation notes">
                 <button id="createByUrlBtn" class="btn" data-i18n="generateBtn">Generate subtitles</button>
-            </div>
-
-            <div class="compact-benefits" aria-label="Result features">
-                <span data-i18n="benefitPreview">Online preview</span>
-                <span data-i18n="benefitDownloads">Original + translated subtitles</span>
-                <span data-i18n="benefitVideo">Subtitled video</span>
-                <span data-i18n="benefitReturn">Close browser and return later</span>
+                <span data-i18n="benefitTime">Usually takes a few minutes; time scales with video length.</span>
+                <span data-i18n="benefitReturn">You can close the browser and check later.</span>
+                <span data-i18n="benefitAutoplay">Bilingual video plays automatically when ready.</span>
             </div>
         </div>
 
@@ -1020,6 +1095,11 @@
                 <section id="faq" class="info-section">
                     <h2 data-i18n="faqTitle">FAQ</h2>
 
+                    <h3 data-i18n="faqLoginTitle">Do I need to log in?</h3>
+                    <p data-i18n="faqLoginText">
+                        No. You can generate subtitles without signing up. After sign-up or login, task history and feedback are linked to your account.
+                    </p>
+
                     <h3 data-i18n="faqCloseTitle">Can I close the browser?</h3>
                     <p data-i18n="faqCloseText">
                         Yes. Recent tasks are saved in this browser. Reopen the page later to check results.
@@ -1063,10 +1143,50 @@
 
     <div id="toast" class="toast hidden"></div>
 
+    <div id="authModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="authModalHeading"
+        aria-hidden="true">
+        <div class="modal-content">
+            <h3 id="authModalHeading" data-i18n="authTitle">Account sign up / login</h3>
+            <div class="modal-form">
+                <input id="authEmail" type="email" class="input" data-i18n-placeholder="authEmailPlaceholder"
+                    placeholder="Email" autocomplete="email" />
+                <input id="authPassword" type="password" class="input" data-i18n-placeholder="authPasswordPlaceholder"
+                    placeholder="Password" autocomplete="current-password" />
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="authCancelBtn" data-i18n="cancelBtn">Cancel</button>
+                    <button type="button" class="btn btn-secondary" id="signInBtn" data-i18n="signInBtn">Sign in</button>
+                    <button type="button" class="btn" id="signUpBtn" data-i18n="signUpBtn">Sign up</button>
+                </div>
+                <div class="auth-status" id="authStatus"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="feedbackModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="feedbackModalHeading"
+        aria-hidden="true">
+        <div class="modal-content">
+            <h3 id="feedbackModalHeading" data-i18n="feedbackTitle">Feedback</h3>
+            <div class="modal-form">
+                <input id="feedbackEmail" type="email" class="input" data-i18n-placeholder="feedbackEmailPlaceholder"
+                    placeholder="Email (optional)" autocomplete="email" />
+                <textarea id="feedbackText" class="textarea" data-i18n-placeholder="feedbackPlaceholder"
+                    placeholder="Tell us what should be improved."></textarea>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="feedbackCancelBtn" data-i18n="cancelBtn">Cancel</button>
+                    <button type="button" class="btn" id="submitFeedbackBtn" data-i18n="submitFeedbackBtn">Submit</button>
+                </div>
+                <div class="feedback-status" id="feedbackStatus"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://openfpcdn.io/fingerprintjs/v4/iife.min.js"></script>
 
     <script>
         const API_BASE = 'https://mmx.multmatrix.com';
+        const SUPABASE_URL = 'https://zonoczzwwxdwrclchfuo.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_DHku3OtqHTDZJIULqvaM0g__goxNWo_';
         const LS_KEY_CLIENT_ID = 'mmx:clientId';
         const LS_KEY_EMAIL = 'mmx:email';
         const MAX_RECENT = 3;
@@ -1083,10 +1203,32 @@
                 targetLangLabel: '字幕目标语言',
                 targetLangPlaceholder: '输入目标语言，例如 en 或 zh',
                 generateBtn: '生成字幕',
-                benefitPreview: '在线播放',
-                benefitDownloads: '原文 + 翻译字幕',
-                benefitVideo: '带字幕视频',
-                benefitReturn: '可关闭浏览器稍后回来',
+                authOpenBtn: '注册 / 登录',
+                feedbackOpenBtn: '反馈',
+                authOptionalHint: '不注册也可以使用；注册或登录后任务记录和反馈会关联到账号。',
+                authTitle: '账号注册 / 登录',
+                authEmailPlaceholder: '邮箱',
+                authPasswordPlaceholder: '密码',
+                signInBtn: '登录',
+                statusSigningIn: '登录中...',
+                signUpBtn: '注册',
+                signOutBtn: '退出',
+                cancelBtn: '取消',
+                feedbackTitle: '反馈',
+                feedbackEmailPlaceholder: '邮箱（可选）',
+                feedbackPlaceholder: '告诉我们哪里需要改进。',
+                submitFeedbackBtn: '提交',
+                statusSupabaseMissing: '账号和反馈功能尚未配置。',
+                statusSignedIn: '已登录',
+                statusCheckEmail: '注册成功，请检查邮箱确认链接。',
+                statusAuthFailed: '认证失败',
+                statusFeedbackMissing: '请先填写反馈内容。',
+                statusFeedbackTooShort: '反馈内容至少需要 2 个字。',
+                statusFeedbackSaved: '反馈已提交，感谢。',
+                statusFeedbackFailed: '反馈提交失败',
+                benefitTime: '通常需要几分钟，耗时随视频长度增加',
+                benefitReturn: '可关闭浏览器,稍后查看',
+                benefitAutoplay: '完成后自动播放双语视频',
                 sampleTitle: '示例结果',
                 sampleText: '生成后的效果就是这样：视频播放 + 双语字幕。',
                 downloadOriginal: '原文',
@@ -1096,7 +1238,7 @@
                 downloadVideoHint: '下载带字幕视频',
                 playVideo: '播放翻译视频',
                 recentTasksTitle: '我的任务',
-                recentTasksNote: '最近任务会保存在当前浏览器中。',
+                recentTasksNote: '最近任务会保存在当前浏览器中；在线播放结果临时保留数小时，下载链接通常保留 3 天。',
                 noRecentTasks: '还没有最近任务。',
                 recentChecking: '正在检查最近任务...',
                 statusProcessing: '处理中',
@@ -1113,7 +1255,7 @@
                 errorIpQuotaLimit: '本视频和已处理的视频总时长已达到 90 分钟。请明天再试。',
                 errorIpQuotaInvalid: '无法识别该网络，暂时无法创建任务。',
                 taskCreatedHeading: '任务创建成功',
-                taskCreatedMessage: '已完成视频信息校验，任务开始排队处理。',
+                taskCreatedMessage: '已完成视频信息校验，任务开始排队处理。可以关闭浏览器，稍后回来会自动恢复结果。',
                 taskCreatedVideoTitleLabel: '视频标题',
                 taskCreatedVideoDurationLabel: '视频时长',
                 taskCreatedConfirm: '3s自动关闭',
@@ -1156,6 +1298,8 @@
                 termsAvailabilityTitle: '服务可用性',
                 termsAvailabilityText: '本服务在测试阶段按尽力而为原则提供，可能会变更、暂停或停止。',
                 faqTitle: '常见问题',
+                faqLoginTitle: '必须登录才能使用吗？',
+                faqLoginText: '不需要。不注册也可以生成字幕；注册或登录后更方便找回任务，并把反馈关联到你的账号。',
                 faqCloseTitle: '可以关闭浏览器吗？',
                 faqCloseText: '可以。最近任务会保存在当前浏览器中，之后重新打开本页面即可查看。',
                 faqPlayTitle: '结果在哪里播放？',
@@ -1180,10 +1324,32 @@
                 targetLangLabel: 'Subtitle target language',
                 targetLangPlaceholder: 'Enter target language (e.g., en or zh)',
                 generateBtn: 'Generate subtitles',
-                benefitPreview: 'Online preview',
-                benefitDownloads: 'Original + translated subtitles',
-                benefitVideo: 'Subtitled video',
-                benefitReturn: 'Close browser and return later',
+                authOpenBtn: 'Sign up / Login',
+                feedbackOpenBtn: 'Feedback',
+                authOptionalHint: 'No sign-up required. Task history and feedback are linked to your account after sign-up or login.',
+                authTitle: 'Account sign up / login',
+                authEmailPlaceholder: 'Email',
+                authPasswordPlaceholder: 'Password',
+                signInBtn: 'Sign in',
+                statusSigningIn: 'Signing in...',
+                signUpBtn: 'Sign up',
+                signOutBtn: 'Logout',
+                cancelBtn: 'Cancel',
+                feedbackTitle: 'Feedback',
+                feedbackEmailPlaceholder: 'Email (optional)',
+                feedbackPlaceholder: 'Tell us what should be improved.',
+                submitFeedbackBtn: 'Submit',
+                statusSupabaseMissing: 'Account and feedback are not configured yet.',
+                statusSignedIn: 'Signed in',
+                statusCheckEmail: 'Sign-up created. Check your email for confirmation.',
+                statusAuthFailed: 'Auth failed',
+                statusFeedbackMissing: 'Enter feedback first.',
+                statusFeedbackTooShort: 'Feedback must be at least 2 characters.',
+                statusFeedbackSaved: 'Feedback submitted. Thank you.',
+                statusFeedbackFailed: 'Failed to submit feedback',
+                benefitTime: 'Usually takes a few minutes; time scales with video length.',
+                benefitReturn: 'You can close the browser and check later.',
+                benefitAutoplay: 'Bilingual video plays automatically when ready.',
                 sampleTitle: 'Sample result',
                 sampleText: 'This is the final experience: video playback with bilingual subtitles.',
                 downloadOriginal: 'Original',
@@ -1193,7 +1359,7 @@
                 downloadVideoHint: 'Download video with subtitles',
                 playVideo: 'Play translated video',
                 recentTasksTitle: 'My tasks',
-                recentTasksNote: 'Your recent tasks are stored in this browser.',
+                recentTasksNote: 'Recent tasks are stored in this browser. Online playback is temporary; download links usually remain available for 3 days.',
                 noRecentTasks: 'No recent tasks yet.',
                 recentChecking: 'Checking recent tasks...',
                 statusProcessing: 'Processing',
@@ -1210,7 +1376,7 @@
                 errorIpQuotaLimit: 'This network has reached today’s 90-minute limit. Please try again tomorrow.',
                 errorIpQuotaInvalid: 'Unable to verify this network for quota tracking.',
                 taskCreatedHeading: 'Task created',
-                taskCreatedMessage: 'The video has been verified and your task is queued.',
+                taskCreatedMessage: 'The video has been verified and your task is queued. You can close the browser and return later to recover the result.',
                 taskCreatedVideoTitleLabel: 'Video title',
                 taskCreatedVideoDurationLabel: 'Duration',
                 taskCreatedConfirm: 'Auto close in 3s',
@@ -1253,6 +1419,8 @@
                 termsAvailabilityTitle: 'Service availability',
                 termsAvailabilityText: 'This service is provided on a best-effort basis during testing and may change, pause, or stop without notice.',
                 faqTitle: 'FAQ',
+                faqLoginTitle: 'Do I need to log in?',
+                faqLoginText: 'No. You can generate subtitles without signing up. After sign-up or login, task history and feedback are linked to your account.',
                 faqCloseTitle: 'Can I close the browser?',
                 faqCloseText: 'Yes. Recent tasks are saved in this browser. Reopen this page later to check results.',
                 faqPlayTitle: 'Where will the result play?',
@@ -1306,7 +1474,9 @@
         let recentTasksRenderToken = 0;
         let creatingJob = false;
         const clientId = getOrCreateClientId();
+        let signedInEmail = '';
         let playbackPollTimer = null;
+        let hasWorkingPlaybackTasks = false;
         let subtitleUserScrolling = false;
         let subtitleScrollTimer = null;
 
@@ -1519,6 +1689,224 @@
             btn.addEventListener('click', () => setLang(btn.dataset.langBtn));
         });
 
+        let supabaseClient = null;
+
+        function isSupabaseConfigured() {
+            return !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+        }
+
+        function getSupabaseClient() {
+            if (!isSupabaseConfigured()) return null;
+            if (!supabaseClient) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            return supabaseClient;
+        }
+
+        async function getApiHeaders(extraHeaders = {}) {
+            const headers = { ...extraHeaders };
+            const client = getSupabaseClient();
+            if (!client) return headers;
+
+            try {
+                const { data } = await client.auth.getSession();
+                const token = data?.session?.access_token || '';
+                if (token) {
+                    headers.Authorization = `Bearer ${token}`;
+                }
+            } catch (err) {
+                console.warn('get supabase session failed', err);
+            }
+
+            return headers;
+        }
+
+        function setPanelStatus(id, message) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = message;
+        }
+
+        function setModalVisibility(modalId, isVisible) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            modal.classList.toggle('hidden', !isVisible);
+            modal.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
+        }
+
+        function updateAuthButton(email = '') {
+            const btn = document.getElementById('openAuthModal');
+            const signOutBtn = document.getElementById('signOutBtn');
+            const authHint = document.querySelector('.auth-hint');
+            if (!btn) return;
+            btn.textContent = email ? maskEmail(email) : t('authOpenBtn', 'Sign up / Login');
+            signOutBtn?.classList.toggle('hidden', !email);
+            authHint?.classList.toggle('hidden', !!email);
+        }
+
+        function maskEmail(email = '') {
+            const [name, domain] = String(email).split('@');
+            if (!name || !domain) return email;
+            const maskedName = name.slice(0, 1) + '*'.repeat(Math.max(0, name.length - 1));
+            const visibleDomainTail = domain.length <= 5 ? domain : domain.slice(-5);
+            const maskedDomainHead = '*'.repeat(Math.max(0, domain.length - visibleDomainTail.length));
+            return `${maskedName}@${maskedDomainHead}${visibleDomainTail}`;
+        }
+
+        function applySignedInEmail(email = '') {
+            signedInEmail = email;
+            updateAuthButton(email);
+
+            const emailField = document.getElementById('emailField');
+            const taskOptionsRow = document.getElementById('taskOptionsRow');
+            const feedbackEmail = document.getElementById('feedbackEmail');
+
+            if (els.email) {
+                els.email.value = email || localStorage.getItem(LS_KEY_EMAIL) || '';
+                els.email.readOnly = !!email;
+                updateClearButtonState(els.email, els.emailWrap);
+                els.clearEmail?.classList.toggle('hidden', !!email);
+            }
+
+            emailField?.classList.toggle('hidden', !!email);
+            taskOptionsRow?.classList.toggle('email-hidden', !!email);
+
+            if (feedbackEmail) {
+                feedbackEmail.classList.toggle('hidden', !!email);
+                if (email) feedbackEmail.value = '';
+            }
+        }
+
+        function bindAuthAndFeedbackModals() {
+            const authModal = document.getElementById('authModal');
+            const feedbackModal = document.getElementById('feedbackModal');
+            const authEmail = document.getElementById('authEmail');
+            const authPassword = document.getElementById('authPassword');
+            const feedbackEmail = document.getElementById('feedbackEmail');
+            const feedbackText = document.getElementById('feedbackText');
+
+            document.getElementById('openAuthModal')?.addEventListener('click', () => {
+                setModalVisibility('authModal', true);
+                setTimeout(() => authEmail?.focus(), 0);
+            });
+            document.getElementById('openFeedbackModal')?.addEventListener('click', () => {
+                setPanelStatus('feedbackStatus', '');
+                setModalVisibility('feedbackModal', true);
+                setTimeout(() => feedbackText?.focus(), 0);
+            });
+            feedbackText?.addEventListener('input', () => setPanelStatus('feedbackStatus', ''));
+            feedbackEmail?.addEventListener('input', () => setPanelStatus('feedbackStatus', ''));
+            document.getElementById('authCancelBtn')?.addEventListener('click', () => setModalVisibility('authModal', false));
+            document.getElementById('feedbackCancelBtn')?.addEventListener('click', () => setModalVisibility('feedbackModal', false));
+            document.getElementById('signOutBtn')?.addEventListener('click', async () => {
+                const client = getSupabaseClient();
+                if (client) await client.auth.signOut();
+                applySignedInEmail('');
+                await syncPlaybackCurrent();
+            });
+
+            [authModal, feedbackModal].forEach(modal => {
+                modal?.addEventListener('click', event => {
+                    if (event.target === modal) setModalVisibility(modal.id, false);
+                });
+            });
+
+            document.getElementById('signUpBtn')?.addEventListener('click', async () => {
+                const client = getSupabaseClient();
+                if (!client) return setPanelStatus('authStatus', t('statusSupabaseMissing', 'Account and feedback are not configured yet.'));
+
+                const { error } = await client.auth.signUp({
+                    email: authEmail?.value.trim(),
+                    password: authPassword?.value
+                });
+                setPanelStatus('authStatus', error ? `${t('statusAuthFailed', 'Auth failed')}: ${error.message}` : t('statusCheckEmail', 'Sign-up created. Check your email for confirmation.'));
+            });
+
+            document.getElementById('signInBtn')?.addEventListener('click', async () => {
+                const signInBtn = document.getElementById('signInBtn');
+                const client = getSupabaseClient();
+                if (!client) return setPanelStatus('authStatus', t('statusSupabaseMissing', 'Account and feedback are not configured yet.'));
+
+                const originalText = signInBtn?.textContent || t('signInBtn', 'Sign in');
+                if (signInBtn) {
+                    signInBtn.disabled = true;
+                    signInBtn.textContent = t('statusSigningIn', 'Signing in...');
+                }
+
+                try {
+                    const { data, error } = await client.auth.signInWithPassword({
+                        email: authEmail?.value.trim(),
+                        password: authPassword?.value
+                    });
+
+                    if (error) {
+                        setPanelStatus('authStatus', `${t('statusAuthFailed', 'Auth failed')}: ${error.message}`);
+                        return;
+                    }
+
+                    const email = data?.user?.email || authEmail?.value.trim() || '';
+                    applySignedInEmail(email);
+                    setModalVisibility('authModal', false);
+                    syncPlaybackCurrent();
+                } finally {
+                    if (signInBtn) {
+                        signInBtn.disabled = false;
+                        signInBtn.textContent = originalText;
+                    }
+                }
+            });
+
+            document.getElementById('submitFeedbackBtn')?.addEventListener('click', async () => {
+                const message = feedbackText?.value.trim();
+                if (!message) return setPanelStatus('feedbackStatus', t('statusFeedbackMissing', 'Enter feedback first.'));
+                if (message.length < 2) return setPanelStatus('feedbackStatus', t('statusFeedbackTooShort', 'Feedback must be at least 2 characters.'));
+
+                const client = getSupabaseClient();
+                const { data } = client ? await client.auth.getUser() : { data: null };
+                const authUser = data?.user || null;
+                const payload = {
+                    message,
+                    email: authUser?.email || signedInEmail || feedbackEmail?.value.trim() || '',
+                    page_url: window.location.href,
+                    client_id: authUser?.id || clientId
+                };
+
+                try {
+                    const res = await fetch(`${API_BASE}/api/feedback`, {
+                        method: 'POST',
+                        headers: await getApiHeaders({ 'Content-Type': 'application/json' }),
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!res.ok) {
+                        let detail = '';
+                        try {
+                            const data = await res.json();
+                            detail = data?.error || data?.message || '';
+                        } catch (_) {}
+                        throw new Error(detail || `HTTP ${res.status}`);
+                    }
+
+                    feedbackText.value = '';
+                    if (feedbackEmail && !signedInEmail) feedbackEmail.value = '';
+                    setPanelStatus('feedbackStatus', t('statusFeedbackSaved', 'Feedback submitted. Thank you.'));
+                    setTimeout(() => setModalVisibility('feedbackModal', false), 700);
+                } catch (error) {
+                    setPanelStatus('feedbackStatus', `${t('statusFeedbackFailed', 'Failed to submit feedback')}: ${error.message}`);
+                }
+            });
+
+            const client = getSupabaseClient();
+            if (client) {
+                client.auth.getUser().then(({ data }) => {
+                    if (data?.user?.email) applySignedInEmail(data.user.email);
+                });
+
+                client.auth.onAuthStateChange((_event, session) => {
+                    applySignedInEmail(session?.user?.email || '');
+                });
+            }
+        }
+
         const els = {
             videoUrl: document.getElementById('videoUrl'),
             email: document.getElementById('email'),
@@ -1636,6 +2024,30 @@
             return !!st && !['FINISHED', 'FAILED', 'CANCELED'].includes(st);
         }
 
+        function hasWorkingJobs(jobs) {
+            return Array.isArray(jobs) && jobs.some(job => isWorkingStatus(job?.status));
+        }
+
+        function stopPlaybackPolling() {
+            if (playbackPollTimer) {
+                clearInterval(playbackPollTimer);
+                playbackPollTimer = null;
+            }
+        }
+
+        function updatePlaybackPolling(shouldPoll = hasWorkingPlaybackTasks) {
+            if (document.hidden || !shouldPoll) {
+                stopPlaybackPolling();
+                return;
+            }
+
+            if (!playbackPollTimer) {
+                playbackPollTimer = setInterval(() => {
+                    syncPlaybackCurrent();
+                }, 15000);
+            }
+        }
+
 
         function normalizeMediaUrl(u) {
             if (!u && u !== '') return null;
@@ -1743,8 +2155,12 @@
         function renderRecentTasksFromJobs(jobs) {
             if (!Array.isArray(jobs) || !jobs.length) {
                 els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
+                hasWorkingPlaybackTasks = false;
+                updatePlaybackPolling(false);
                 return;
             }
+
+            hasWorkingPlaybackTasks = hasWorkingJobs(jobs);
 
             const items = jobs.slice(0, MAX_RECENT).map(job => {
                 return toRecentTaskItem({
@@ -1762,6 +2178,7 @@
             });
 
             drawRecentTaskList(items);
+            updatePlaybackPolling(hasWorkingPlaybackTasks);
         }
 
 
@@ -2107,12 +2524,13 @@
                 if (msg.type === 'snapshot') {
                     handleSnapshot(msg);
 
-                    const st = String(msg.status || '').toUpperCase();
-                    if (!isWorkingStatus(st)) {
-                        closeSSE();
-                    }
-                    return;
+                const st = String(msg.status || '').toUpperCase();
+                if (!isWorkingStatus(st)) {
+                    closeSSE();
+                    syncPlaybackCurrent();
                 }
+                return;
+            }
 
                 if (msg.type === 'play_ready') {
                     syncPlaybackCurrent();
@@ -2141,7 +2559,7 @@
             if (creatingJob) return;
 
             const url = els.videoUrl.value.trim();
-            const email = els.email.value.trim();
+            const email = signedInEmail || els.email.value.trim();
             if (email) {
                 localStorage.setItem(LS_KEY_EMAIL, email);
             } else {
@@ -2178,7 +2596,7 @@
 
                 const res = await fetch(`${API_BASE}/api/jobs`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: await getApiHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({
                         url,
                         email: email || null,
@@ -2224,8 +2642,11 @@
 
                 const st = String(jobPayload?.status || '').toUpperCase();
                 if (isWorkingStatus(st)) {
+                    hasWorkingPlaybackTasks = true;
+                    updatePlaybackPolling(true);
                     subscribeJob(jobId);
                 } else {
+                    updatePlaybackPolling(hasWorkingPlaybackTasks);
                     handleSnapshot(jobPayload);
                 }
             } catch (err) {
@@ -2295,7 +2716,7 @@
             try {
                 const resp = await fetch(`${API_BASE}/api/playback/current`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: await getApiHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({
                         client_id: clientId,
                         fingerprint: currentFingerprint
@@ -2337,6 +2758,8 @@
             } catch (err) {
                 console.error('syncPlaybackCurrent failed', err);
             }
+
+            return hasWorkingPlaybackTasks;
         }
 
         async function syncLatestTaskStatus() {
@@ -2348,10 +2771,13 @@
         }
 
         function generateClientId() {
+            let rawId = '';
             if (window.crypto?.randomUUID) {
-                return window.crypto.randomUUID();
+                rawId = window.crypto.randomUUID();
+            } else {
+                rawId = 'cid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
             }
-            return 'cid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
+            return `anon_${rawId}`;
         }
 
         function saveClientId(clientId) {
@@ -2381,6 +2807,8 @@
 
             if (!clientId) {
                 clientId = generateClientId();
+            } else if (!clientId.startsWith('anon_')) {
+                clientId = `anon_${clientId}`;
             }
 
             saveClientId(clientId);
@@ -2587,6 +3015,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             setLang(uiLang);
             bindFooterNavigation();
+            bindAuthAndFeedbackModals();
 
             const savedEmail = localStorage.getItem(LS_KEY_EMAIL);
             if (savedEmail) {
@@ -2601,11 +3030,15 @@
             await loadSubtitleBox(current.subtitleUrl);
             bindSubtitleBoxScroll();
             bindPlayerTitleSnap();
+            updatePlaybackPolling();
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    stopPlaybackPolling();
+                    return;
+                }
 
-            playbackPollTimer = setInterval(() => {
                 syncPlaybackCurrent();
-            }, 5000);
-
+            });
 
         });
     </script>
