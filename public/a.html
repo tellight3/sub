@@ -2688,10 +2688,13 @@
         }
 
         function generateClientId() {
+            let rawId = '';
             if (window.crypto?.randomUUID) {
-                return window.crypto.randomUUID();
+                rawId = window.crypto.randomUUID();
+            } else {
+                rawId = 'cid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
             }
-            return 'cid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
+            return `anon_${rawId}`;
         }
 
         function saveClientId(clientId) {
@@ -2721,6 +2724,8 @@
 
             if (!clientId) {
                 clientId = generateClientId();
+            } else if (!clientId.startsWith('anon_')) {
+                clientId = `anon_${clientId}`;
             }
 
             saveClientId(clientId);
