@@ -541,6 +541,19 @@
             font-size: 12px;
         }
 
+        .card-header-inline {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .card-header-inline h2,
+        .card-header-inline p {
+            margin: 0;
+        }
+
         .footer-note {
             margin-top: 8px;
             color: var(--muted);
@@ -954,11 +967,13 @@
         </div>
 
         <div class="card">
-            <h2 data-i18n="recentTasksTitle">我的任务</h2>
-            <div id="recentTasks" class="task-list"></div>
-            <div class="footer-note" data-i18n="recentTasksNote">
-                最近任务会保存在当前浏览器中。
+            <div class="card-header-inline">
+                <h2 data-i18n="recentTasksTitle">我的任务</h2>
+                <p class="muted" data-i18n="recentTasksNote">
+                    最近任务会保存在当前浏览器中。
+                </p>
             </div>
+            <div id="recentTasks" class="task-list"></div>
         </div>
 
         <div class="card player-card">
