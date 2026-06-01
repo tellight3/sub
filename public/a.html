@@ -1449,6 +1449,7 @@
         const clientId = getOrCreateClientId();
         let signedInEmail = '';
         let playbackPollTimer = null;
+        let hasWorkingPlaybackTasks = false;
         let subtitleUserScrolling = false;
         let subtitleScrollTimer = null;
 
@@ -1979,6 +1980,30 @@
             return !!st && !['FINISHED', 'FAILED', 'CANCELED'].includes(st);
         }
 
+        function hasWorkingJobs(jobs) {
+            return Array.isArray(jobs) && jobs.some(job => isWorkingStatus(job?.status));
+        }
+
+        function stopPlaybackPolling() {
+            if (playbackPollTimer) {
+                clearInterval(playbackPollTimer);
+                playbackPollTimer = null;
+            }
+        }
+
+        function updatePlaybackPolling(shouldPoll = hasWorkingPlaybackTasks) {
+            if (document.hidden || !shouldPoll) {
+                stopPlaybackPolling();
+                return;
+            }
+
+            if (!playbackPollTimer) {
+                playbackPollTimer = setInterval(() => {
+                    syncPlaybackCurrent();
+                }, 15000);
+            }
+        }
+
 
         function normalizeMediaUrl(u) {
             if (!u && u !== '') return null;
@@ -2086,8 +2111,12 @@
         function renderRecentTasksFromJobs(jobs) {
             if (!Array.isArray(jobs) || !jobs.length) {
                 els.recentTasks.innerHTML = `<div class="muted">${t('noRecentTasks', 'No recent tasks yet.')}</div>`;
+                hasWorkingPlaybackTasks = false;
+                updatePlaybackPolling(false);
                 return;
             }
+
+            hasWorkingPlaybackTasks = hasWorkingJobs(jobs);
 
             const items = jobs.slice(0, MAX_RECENT).map(job => {
                 return toRecentTaskItem({
@@ -2105,6 +2134,7 @@
             });
 
             drawRecentTaskList(items);
+            updatePlaybackPolling(hasWorkingPlaybackTasks);
         }
 
 
@@ -2450,12 +2480,13 @@
                 if (msg.type === 'snapshot') {
                     handleSnapshot(msg);
 
-                    const st = String(msg.status || '').toUpperCase();
-                    if (!isWorkingStatus(st)) {
-                        closeSSE();
-                    }
-                    return;
+                const st = String(msg.status || '').toUpperCase();
+                if (!isWorkingStatus(st)) {
+                    closeSSE();
+                    syncPlaybackCurrent();
                 }
+                return;
+            }
 
                 if (msg.type === 'play_ready') {
                     syncPlaybackCurrent();
@@ -2567,8 +2598,11 @@
 
                 const st = String(jobPayload?.status || '').toUpperCase();
                 if (isWorkingStatus(st)) {
+                    hasWorkingPlaybackTasks = true;
+                    updatePlaybackPolling(true);
                     subscribeJob(jobId);
                 } else {
+                    updatePlaybackPolling(hasWorkingPlaybackTasks);
                     handleSnapshot(jobPayload);
                 }
             } catch (err) {
@@ -2680,6 +2714,8 @@
             } catch (err) {
                 console.error('syncPlaybackCurrent failed', err);
             }
+
+            return hasWorkingPlaybackTasks;
         }
 
         async function syncLatestTaskStatus() {
@@ -2950,11 +2986,15 @@
             await loadSubtitleBox(current.subtitleUrl);
             bindSubtitleBoxScroll();
             bindPlayerTitleSnap();
+            updatePlaybackPolling();
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    stopPlaybackPolling();
+                    return;
+                }
 
-            playbackPollTimer = setInterval(() => {
                 syncPlaybackCurrent();
-            }, 5000);
-
+            });
 
         });
     </script>
