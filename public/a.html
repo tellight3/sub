@@ -1759,9 +1759,12 @@
                 setTimeout(() => authEmail?.focus(), 0);
             });
             document.getElementById('openFeedbackModal')?.addEventListener('click', () => {
+                setPanelStatus('feedbackStatus', '');
                 setModalVisibility('feedbackModal', true);
                 setTimeout(() => feedbackText?.focus(), 0);
             });
+            feedbackText?.addEventListener('input', () => setPanelStatus('feedbackStatus', ''));
+            feedbackEmail?.addEventListener('input', () => setPanelStatus('feedbackStatus', ''));
             document.getElementById('authCancelBtn')?.addEventListener('click', () => setModalVisibility('authModal', false));
             document.getElementById('feedbackCancelBtn')?.addEventListener('click', () => setModalVisibility('feedbackModal', false));
             document.getElementById('signOutBtn')?.addEventListener('click', async () => {
